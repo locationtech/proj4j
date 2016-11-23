@@ -10,9 +10,6 @@ package org.osgeo.proj4j;
  */
 public class UnsupportedParameterException extends Proj4jException 
 {
-	public UnsupportedParameterException() {
-		super();
-	}
 
 	public UnsupportedParameterException(String message) {
 		super(message);

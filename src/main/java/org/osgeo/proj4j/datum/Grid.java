@@ -57,10 +57,9 @@ public final class Grid implements Serializable {
      */
     // This method corresponds to the pj_gridlist_merge_gridfile function in proj.4
     public static void mergeGridFile(
-        String name,
-        List<Grid> gridList)
-    throws IOException
-    {
+            String name,
+            List<Grid> gridList)
+            throws IOException {
         gridList.add(gridinfoInit(name));
         // TODO: Maintain cache of loaded grids so we never need more than one
         // copy of the same grid file loaded in memory
@@ -72,7 +71,7 @@ public final class Grid implements Serializable {
     // This method corresponds to the pj_apply_gridshift function from proj.4
     public static void shift(List<Grid> grids, boolean inverse, ProjCoordinate in) {
         PolarCoordinate input = new PolarCoordinate(in.x, in.y),
-                        output = new PolarCoordinate(Double.NaN, Double.NaN);
+                output = new PolarCoordinate(Double.NaN, Double.NaN);
 
         for (Grid grid : grids) {
             ConversionTable table = grid.table;
@@ -82,10 +81,10 @@ public final class Grid implements Serializable {
                     || table.ll.lam - epsilon > input.lam
                     || (table.ll.phi + (table.lim.phi - 1) * table.del.phi + epsilon < input.phi)
                     || (table.ll.lam + (table.lim.lam - 1) * table.del.lam + epsilon < input.lam))
-            continue;
+                continue;
 
             // If we have child nodes, check to see if any of them apply
-            while (grid.child != null)  {
+            while (grid.child != null) {
                 Grid child;
                 for (child = grid.child; child != null; child = child.next) {
                     ConversionTable t = child.table;
@@ -95,7 +94,7 @@ public final class Grid implements Serializable {
                             || t.ll.lam - epsilon0 > input.lam
                             || (t.ll.phi + (t.lim.phi - 1) * t.del.phi + epsilon0 < input.phi)
                             || (t.ll.lam + (t.lim.lam - 1) * t.del.lam + epsilon0 < input.lam))
-                    continue;
+                        continue;
 
                     break;
                 }
@@ -115,7 +114,7 @@ public final class Grid implements Serializable {
             output = nad_cvt(input, inverse, table);
         }
 
-        if (! Double.isNaN(output.lam)) {
+        if (!Double.isNaN(output.lam)) {
             in.x = output.lam;
             in.y = output.phi;
         } else {
@@ -166,14 +165,14 @@ public final class Grid implements Serializable {
             if (that instanceof ConversionTable) {
                 ConversionTable ct = (ConversionTable) that;
                 if (id == null && ct.id != null) return false;
-                if (! id.equals(ct.id)) return false;
+                if (!id.equals(ct.id)) return false;
                 if (del == null && ct.del != null) return false;
-                if (! del.equals(ct.del)) return false;
+                if (!del.equals(ct.del)) return false;
                 if (ll == null && ct.ll != null) return false;
-                if (! ll.equals(ct.ll)) return false;
-                if (! Arrays.equals(cvs, ct.cvs)) return false;
+                if (!ll.equals(ct.ll)) return false;
+                if (!Arrays.equals(cvs, ct.cvs)) return false;
                 return true;
-            } else { 
+            } else {
                 return false;
             }
         }
@@ -193,7 +192,7 @@ public final class Grid implements Serializable {
 
         if (inverse) {
             PolarCoordinate del = new PolarCoordinate(Double.NaN, Double.NaN),
-                            dif = new PolarCoordinate(Double.NaN, Double.NaN);
+                    dif = new PolarCoordinate(Double.NaN, Double.NaN);
             int i = MAX_TRY;
 
             if (Double.isNaN(t.lam)) return t;
@@ -238,7 +237,7 @@ public final class Grid implements Serializable {
         t = new PolarCoordinate(t);
         PolarCoordinate val = new PolarCoordinate(Double.NaN, Double.NaN);
         IntPolarCoordinate indx = new IntPolarCoordinate(
-                (int) Math.floor(t.lam /= table.del.lam), 
+                (int) Math.floor(t.lam /= table.del.lam),
                 (int) Math.floor(t.phi /= table.del.phi));
         PolarCoordinate frct = new PolarCoordinate(t.lam - indx.lam, t.phi - indx.phi);
         double m00, m10, m01, m11;
@@ -276,7 +275,7 @@ public final class Grid implements Serializable {
                 return val;
             }
         }
-        index = indx.phi * ((int)table.lim.lam) + indx.lam;
+        index = indx.phi * ((int) table.lim.lam) + indx.lam;
         f00 = table.cvs[index++];
         f10 = table.cvs[index];
         index += table.lim.lam;
@@ -295,7 +294,7 @@ public final class Grid implements Serializable {
     // This method corresponds to the pj_gridlist_from_nadgrids function in proj.4
     public static List<Grid> fromNadGrids(String grids) throws IOException {
         List<Grid> gridlist = new ArrayList<Grid>();
-        synchronized(Grid.class) {
+        synchronized (Grid.class) {
             for (String gridName : grids.split(",")) {
                 boolean optional = gridName.startsWith("@");
                 if (optional) gridName = gridName.substring(1);

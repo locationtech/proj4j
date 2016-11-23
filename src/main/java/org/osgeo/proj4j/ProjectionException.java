@@ -21,23 +21,21 @@ import org.osgeo.proj4j.proj.Projection;
 /**
  * Signals that an erroneous situation has
  * occured during the computation of
- * a projected coordinate system value. 
- * 
- * @author mbdavis
+ * a projected coordinate system value.
  *
+ * @author mbdavis
  */
-public class ProjectionException extends Proj4jException 
-{
-  public static String ERR_17 = "non-convergent inverse meridinal dist";
-  
-	public ProjectionException() {
-		super();
-	}
+public class ProjectionException extends Proj4jException {
 
-  public ProjectionException(String message) {
-    super(message);
-  }
-  public ProjectionException(Projection proj, String message) {
-    this(proj.toString() + ": " + message);
-  }
+    public static String ERR_17 = "non-convergent inverse meridinal dist";
+
+    public ProjectionException() {}
+
+    public ProjectionException(String message) {
+        super(message);
+    }
+
+    public ProjectionException(Projection proj, String message) {
+        this(proj.toString() + ": " + message);
+    }
 }

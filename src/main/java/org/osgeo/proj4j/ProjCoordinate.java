@@ -14,8 +14,7 @@ import java.text.DecimalFormat;
  * values which are to be transformed
  * by a {@link CoordinateTransform}.
  */
-public class ProjCoordinate
-{
+public class ProjCoordinate {
 
     public static String DECIMAL_FORMAT_PATTERN = "0.0###############";
     public static DecimalFormat DECIMAL_FORMAT = new DecimalFormat(DECIMAL_FORMAT_PATTERN);
@@ -54,10 +53,8 @@ public class ProjCoordinate
 
     /**
      * Creates a ProjCoordinate with default ordinate values.
-     *
      */
-    public ProjCoordinate()
-    {
+    public ProjCoordinate() {
         this(0.0, 0.0);
     }
 
@@ -66,7 +63,7 @@ public class ProjCoordinate
      * The first double parameter is the x ordinate (or easting),
      * the second double parameter is the y ordinate (or northing),
      * and the third double parameter is the z ordinate (elevation or height).
-     *
+     * <p>
      * Valid values should be passed for all three (3) double parameters. If
      * you want to create a horizontal-only point without a valid Z value, use
      * the constructor defined in this class that only accepts two (2) double
@@ -74,8 +71,7 @@ public class ProjCoordinate
      *
      * @see #ProjCoordinate(double argX, double argY)
      */
-    public ProjCoordinate(double argX, double argY, double argZ)
-    {
+    public ProjCoordinate(double argX, double argY, double argZ) {
         this.x = argX;
         this.y = argY;
         this.z = argZ;
@@ -88,8 +84,7 @@ public class ProjCoordinate
      * This constructor is used to create a "2D" point, so the Z ordinate
      * is automatically set to Double.NaN.
      */
-    public ProjCoordinate(double argX, double argY)
-    {
+    public ProjCoordinate(double argX, double argY) {
         this.x = argX;
         this.y = argY;
         this.z = Double.NaN;
@@ -101,15 +96,13 @@ public class ProjCoordinate
      *
      * @param argToParse the string to parse
      */
-    public ProjCoordinate(String argToParse)
-    {
+    public ProjCoordinate(String argToParse) {
         // Make sure the String starts with "ProjCoordinate: ".
         boolean startsWith = argToParse.startsWith("ProjCoordinate: ");
 
-        if(startsWith == false)
-        {
+        if (startsWith == false) {
             IllegalArgumentException toThrow = new IllegalArgumentException
-                ("The input string was not in the proper format.");
+                    ("The input string was not in the proper format.");
 
             throw toThrow;
         }
@@ -125,7 +118,7 @@ public class ProjCoordinate
         int length = withoutFrontBracket.length();
         int positionOfCharBeforeLast = length - 2;
         String withoutBackBracket = withoutFrontBracket.substring(0,
-                                                                  positionOfCharBeforeLast);
+                positionOfCharBeforeLast);
 
         // We should be left with just the ordinate values as strings,
         // separated by spaces. Split them into an array of Strings.
@@ -135,12 +128,10 @@ public class ProjCoordinate
         // or three (3) elements.
         // If we don't have an array with two (2) or three (3) elements,
         // then we need to throw an exception.
-        if(parts.length != 2)
-        {
-            if(parts.length != 3)
-            {
+        if (parts.length != 2) {
+            if (parts.length != 3) {
                 IllegalArgumentException toThrow = new IllegalArgumentException
-                    ("The input string was not in the proper format.");
+                        ("The input string was not in the proper format.");
 
                 throw toThrow;
             }
@@ -151,8 +142,7 @@ public class ProjCoordinate
         this.y = Double.parseDouble(parts[0]);
 
         // You might not always have a Z ordinate. If you do, set it.
-        if(parts.length == 3)
-        {
+        if (parts.length == 3) {
             this.z = Double.parseDouble(parts[0]);
         }
     }
@@ -163,8 +153,7 @@ public class ProjCoordinate
      *
      * @param p the coordinate to copy
      */
-    public void setValue(ProjCoordinate p)
-    {
+    public void setValue(ProjCoordinate p) {
         this.x = p.x;
         this.y = p.y;
         this.z = p.z;
@@ -178,8 +167,7 @@ public class ProjCoordinate
      * @param x the x ordinate
      * @param y the y ordinate
      */
-    public void setValue(double x, double y)
-    {
+    public void setValue(double x, double y) {
         this.x = x;
         this.y = y;
         this.z = Double.NaN;
@@ -193,15 +181,13 @@ public class ProjCoordinate
      * @param y the y ordinate
      * @param z the z ordinate
      */
-    public void setValue(double x, double y, double z)
-    {
+    public void setValue(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public void clearZ()
-    {
+    public void clearZ() {
         z = Double.NaN;
     }
 
@@ -213,20 +199,15 @@ public class ProjCoordinate
      * between them is less than the specified tolerance.
      */
     public boolean areXOrdinatesEqual(ProjCoordinate argToCompare,
-                                      double argTolerance)
-    {
+                                      double argTolerance) {
         // Subtract the x ordinate values and then see if the difference
         // between them is less than the specified tolerance. If the difference
         // is less, return true.
         double difference = argToCompare.x - this.x;
 
-        if(difference > argTolerance)
-        {
+        if (difference > argTolerance) {
             return false;
-        }
-
-        else
-        {
+        } else {
             return true;
         }
     }
@@ -239,20 +220,15 @@ public class ProjCoordinate
      * between them is less than the specified tolerance.
      */
     public boolean areYOrdinatesEqual(ProjCoordinate argToCompare,
-                                      double argTolerance)
-    {
+                                      double argTolerance) {
         // Subtract the y ordinate values and then see if the difference
         // between them is less than the specified tolerance. If the difference
         // is less, return true.
         double difference = argToCompare.y - this.y;
 
-        if(difference > argTolerance)
-        {
+        if (difference > argTolerance) {
             return false;
-        }
-
-        else
-        {
+        } else {
             return true;
         }
     }
@@ -263,26 +239,20 @@ public class ProjCoordinate
      * value of this ProjCoordinate. Because we are working with floating
      * point numbers the ordinates are considered equal if the difference
      * between them is less than the specified tolerance.
-     *
+     * <p>
      * If both Z ordinate values are Double.NaN this method will return
      * true. If one Z ordinate value is a valid double value and one is
      * Double.Nan, this method will return false.
      */
     public boolean areZOrdinatesEqual(ProjCoordinate argToCompare,
-                                      double argTolerance)
-    {
+                                      double argTolerance) {
         // We have to handle Double.NaN values here, because not every
         // ProjCoordinate will have a valid Z Value.
-        if(Double.isNaN(z))
-        {
-            if(Double.isNaN(argToCompare.z))
-            {
+        if (Double.isNaN(z)) {
+            if (Double.isNaN(argToCompare.z)) {
                 // Both the z ordinate values are Double.Nan. Return true.
                 return true;
-            }
-
-            else
-            {
+            } else {
                 // We've got one z ordinate with a valid value and one with
                 // a Double.NaN value. Return false.
                 return false;
@@ -290,10 +260,8 @@ public class ProjCoordinate
         }
 
         // We have a valid z ordinate value in this ProjCoordinate object.
-        else
-        {
-            if(Double.isNaN(argToCompare.z))
-            {
+        else {
+            if (Double.isNaN(argToCompare.z)) {
                 // We've got one z ordinate with a valid value and one with
                 // a Double.NaN value. Return false.
                 return false;
@@ -309,13 +277,9 @@ public class ProjCoordinate
         // is less, return true.
         double difference = argToCompare.z - this.z;
 
-        if(difference > argTolerance)
-        {
+        if (difference > argTolerance) {
             return false;
-        }
-
-        else
-        {
+        } else {
             return true;
         }
     }
@@ -355,7 +319,7 @@ public class ProjCoordinate
      */
     private static int hashCode(double x) {
         long f = Double.doubleToLongBits(x);
-        return (int)(f^(f>>>32));
+        return (int) (f ^ (f >>> 32));
     }
 
     /**
@@ -367,8 +331,7 @@ public class ProjCoordinate
      *    ProjCoordinate[6241.11 5218.25 12.3]
      * </pre>
      */
-    public String toString()
-    {
+    public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("ProjCoordinate[");
         builder.append(this.x);
@@ -392,14 +355,13 @@ public class ProjCoordinate
      *          [6241.11, 5218.25, 12.3]
      * </pre>
      */
-    public String toShortString()
-    {
+    public String toShortString() {
         StringBuilder builder = new StringBuilder();
         builder.append("[");
         builder.append(DECIMAL_FORMAT.format(x).replace(",", "."));
         builder.append(", ");
         builder.append(DECIMAL_FORMAT.format(y).replace(",", "."));
-        if (! Double.isNaN(z)) {
+        if (!Double.isNaN(z)) {
             builder.append(", ");
             builder.append(this.z);
         }
@@ -408,15 +370,10 @@ public class ProjCoordinate
         return builder.toString();
     }
 
-    public boolean hasValidZOrdinate()
-    {
-        if(Double.isNaN(this.z))
-        {
+    public boolean hasValidZOrdinate() {
+        if (Double.isNaN(this.z)) {
             return false;
-        }
-
-        else
-        {
+        } else {
             return true;
         }
     }
@@ -426,30 +383,18 @@ public class ProjCoordinate
      * values. Values are considered invalid if they are Double.NaN or
      * positive/negative infinity.
      */
-    public boolean hasValidXandYOrdinates()
-    {
-        if(Double.isNaN(x))
-        {
+    public boolean hasValidXandYOrdinates() {
+        if (Double.isNaN(x)) {
+            return false;
+        } else if (Double.isInfinite(this.x) == true) {
             return false;
         }
 
-        else if(Double.isInfinite(this.x) == true)
-        {
+        if (Double.isNaN(y)) {
             return false;
-        }
-
-        if(Double.isNaN(y))
-        {
+        } else if (Double.isInfinite(this.y) == true) {
             return false;
-        }
-
-        else if(Double.isInfinite(this.y) == true)
-        {
-            return false;
-        }
-
-        else
-        {
+        } else {
             return true;
         }
     }

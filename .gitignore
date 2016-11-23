@@ -32,8 +32,5 @@ _SUCCESS
 *.sublime-*
 .vagrant
 
-lib
-index.html
-index.js
 .ensime*
 tags

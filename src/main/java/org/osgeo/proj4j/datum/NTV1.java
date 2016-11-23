@@ -10,11 +10,10 @@ import java.util.Arrays;
 import org.osgeo.proj4j.util.IntPolarCoordinate;
 import org.osgeo.proj4j.util.FloatPolarCoordinate;
 import org.osgeo.proj4j.util.PolarCoordinate;
+
 import static org.osgeo.proj4j.util.ProjectionMath.DTR;
 
 public final class NTV1 {
-    private NTV1() {
-    }
 
     private static final byte[] magic1 = "HEADER".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] magic2 = "W GRID".getBytes(StandardCharsets.US_ASCII);
@@ -22,8 +21,8 @@ public final class NTV1 {
 
     public static boolean testHeader(byte[] header) {
         return containsAt(magic1, header, 0) &&
-               containsAt(magic2, header, 96) &&
-               containsAt(magic3, header, 144);
+                containsAt(magic2, header, 96) &&
+                containsAt(magic3, header, 144);
     }
 
     public static Grid.ConversionTable init(DataInputStream definition) throws IOException {
@@ -39,8 +38,8 @@ public final class NTV1 {
 
         Grid.ConversionTable table = new Grid.ConversionTable();
         table.id = "NTv1 Grid Shift File";
-        table.ll = new PolarCoordinate(- doubleFromBytes(header, 72), doubleFromBytes(header, 24));
-        PolarCoordinate ur = new PolarCoordinate(- doubleFromBytes(header, 56), doubleFromBytes(header, 40));
+        table.ll = new PolarCoordinate(-doubleFromBytes(header, 72), doubleFromBytes(header, 24));
+        PolarCoordinate ur = new PolarCoordinate(-doubleFromBytes(header, 56), doubleFromBytes(header, 40));
         table.del = new PolarCoordinate(doubleFromBytes(header, 104), doubleFromBytes(header, 88));
         table.lim = new IntPolarCoordinate(
                 (int) (Math.abs(ur.lam - table.ll.lam) / table.del.lam + 0.5) + 1,
@@ -56,7 +55,7 @@ public final class NTV1 {
         definition.skip(176);
         double[] row_buff = new double[grid.table.lim.lam * 2];
         FloatPolarCoordinate[] tmp_cvs =
-            new FloatPolarCoordinate[grid.table.lim.lam * grid.table.lim.phi];
+                new FloatPolarCoordinate[grid.table.lim.lam * grid.table.lim.phi];
 
         for (int row = 0; row < grid.table.lim.phi; row++) {
             byte[] byteBuff = new byte[8 * row_buff.length];
@@ -64,9 +63,9 @@ public final class NTV1 {
             ByteBuffer.wrap(byteBuff).order(ByteOrder.BIG_ENDIAN).asDoubleBuffer().get(row_buff);
             for (int i = 0; i < grid.table.lim.lam; i++) {
                 tmp_cvs[row * grid.table.lim.lam + grid.table.lim.lam - i - 1] =
-                    new FloatPolarCoordinate(
-                            (float) (row_buff[2 * i] * Math.PI / 180.0 / 3600.0),
-                            (float) (row_buff[2 * i + 1] * Math.PI / 180.0 / 3600.0));
+                        new FloatPolarCoordinate(
+                                (float) (row_buff[2 * i] * Math.PI / 180.0 / 3600.0),
+                                (float) (row_buff[2 * i + 1] * Math.PI / 180.0 / 3600.0));
             }
         }
         grid.table.cvs = tmp_cvs;

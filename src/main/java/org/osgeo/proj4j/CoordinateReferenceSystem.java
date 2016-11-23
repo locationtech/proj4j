@@ -22,13 +22,11 @@ import org.osgeo.proj4j.units.Units;
  * </ul>
  *
  * @author Martin Davis
- *
  * @see CRSFactory
- *
  */
 // CoordinateReferenceSystem corresponds to the PJ struct from proj.4
-public class CoordinateReferenceSystem implements java.io.Serializable
-{
+public class CoordinateReferenceSystem implements java.io.Serializable {
+
     // allows specifying transformations which convert to/from Geographic coordinates on the same datum
     public static final CoordinateReferenceSystem CS_GEO = new CoordinateReferenceSystem("CS_GEO", null, null, null);
 
@@ -39,8 +37,7 @@ public class CoordinateReferenceSystem implements java.io.Serializable
     private Datum datum;
     private Projection proj;
 
-    public CoordinateReferenceSystem(String name, String[] params, Datum datum, Projection proj)
-    {
+    public CoordinateReferenceSystem(String name, String[] params, Datum datum, Projection proj) {
         this.name = name;
         this.params = params;
         this.datum = datum;
@@ -54,28 +51,23 @@ public class CoordinateReferenceSystem implements java.io.Serializable
         }
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public String[] getParameters()
-    {
+    public String[] getParameters() {
         return params;
     }
 
-    public Datum getDatum()
-    {
+    public Datum getDatum() {
         return datum;
     }
 
-    public Projection getProjection()
-    {
+    public Projection getProjection() {
         return proj;
     }
 
-    public String getParameterString()
-    {
+    public String getParameterString() {
         if (params == null) return "";
 
         StringBuffer buf = new StringBuffer();
@@ -86,8 +78,7 @@ public class CoordinateReferenceSystem implements java.io.Serializable
         return buf.toString();
     }
 
-    public Boolean isGeographic()
-    {
+    public Boolean isGeographic() {
         return proj.isGeographic();
     }
 
@@ -101,8 +92,7 @@ public class CoordinateReferenceSystem implements java.io.Serializable
      *
      * @return a geographic CoordinateReferenceSystem based on the datum of this CRS
      */
-    public CoordinateReferenceSystem createGeographic()
-    {
+    public CoordinateReferenceSystem createGeographic() {
         Datum datum = getDatum();
         Projection geoProj = new LongLatProjection();
         geoProj.setEllipsoid(getProjection().getEllipsoid());
@@ -111,5 +101,7 @@ public class CoordinateReferenceSystem implements java.io.Serializable
         return new CoordinateReferenceSystem("GEO-" + datum.getCode(), null, datum, geoProj);
     }
 
-    public String toString() { return name; }
+    public String toString() {
+        return name;
+    }
 }

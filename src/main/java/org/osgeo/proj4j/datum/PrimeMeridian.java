@@ -11,6 +11,7 @@ import org.osgeo.proj4j.units.AngleFormat;
  */
 // The list of named prime meridians is defined in proj.4 in pj_datums.c
 public final class PrimeMeridian implements Serializable {
+
     private final String name;
     private final double offsetFromGreenwich;
 

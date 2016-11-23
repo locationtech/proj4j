@@ -5,16 +5,15 @@ package org.osgeo.proj4j;
  * which prevents computation from proceeding,
  * or which would lead to erroneous results.
  * <p>
- * This is the base class for all exceptions 
+ * This is the base class for all exceptions
  * thrown in the Proj4J API.
- * 
+ *
  * @author mbdavis
  *
  */
-public class Proj4jException extends RuntimeException 
+public class Proj4jException extends RuntimeException
 {
 	public Proj4jException() {
-		super();
 	}
 
 	public Proj4jException(String message) {

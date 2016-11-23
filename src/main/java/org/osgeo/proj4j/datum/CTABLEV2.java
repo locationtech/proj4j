@@ -12,8 +12,6 @@ import org.osgeo.proj4j.util.FloatPolarCoordinate;
 import org.osgeo.proj4j.util.PolarCoordinate;
 
 public final class CTABLEV2 {
-    private CTABLEV2() {
-    }
 
     private static final byte[] magic = "CTABLE V2".getBytes(StandardCharsets.US_ASCII);
 

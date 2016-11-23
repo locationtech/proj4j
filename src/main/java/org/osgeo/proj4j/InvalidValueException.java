@@ -9,9 +9,6 @@ package org.osgeo.proj4j;
  *
  */
 public class InvalidValueException extends Proj4jException {
-	public InvalidValueException() {
-		super();
-	}
 
 	public InvalidValueException(String message) {
 		super(message);
