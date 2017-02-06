@@ -3,6 +3,7 @@ package org.osgeo.proj4j;
 import junit.framework.TestCase;
 import junit.textui.TestRunner;
 import org.junit.Test;
+import org.junit.Ignore;
 
 /**
  * Tests from Proj4JS
@@ -55,7 +56,7 @@ public class Proj4JSTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:21781", 8.23, 46.82, 660389.52, 185731.63, 200);
     }
 
-    @Test
+    @Ignore("TODO: Should these expect UnknownAuthoriyCode exceptions?") @Test
     public void xtestUnknownCRS() {
         checkTransformFromGeo("EPSG:102026", 40.0, 40.0, 3000242.4, 5092492.64, 0.1);
         checkTransformFromGeo("EPSG:42304", -99.84375, 48.515625, -358185.267976, -40271.099023, 0.1);

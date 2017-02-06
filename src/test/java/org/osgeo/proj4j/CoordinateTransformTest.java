@@ -2,6 +2,7 @@ package org.osgeo.proj4j;
 
 import junit.textui.TestRunner;
 import org.junit.Test;
+import org.junit.Ignore;
 
 /**
  * Tests correctness and accuracy of Coordinate System transformations.
@@ -18,11 +19,11 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         //checkTransform("EPSG:4258", 5.0, 70.0,    "EPSG:3035", 4041548.12525335, 4109791.65987687, 0.1 );
     /*
     checkTransform("EPSG:4326", 3.8142776, 51.285914,    "EPSG:23031", 556878.9016076007, 5682145.166264554, 0.1 );
-    checkTransformFromWGS84("+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.237,50.0087,465.658,-0.406857,0.350733,-1.87035,4.0812 +units=m +no_defs",    
+    checkTransformFromWGS84("+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.237,50.0087,465.658,-0.406857,0.350733,-1.87035,4.0812 +units=m +no_defs",
         5.387638889, 52.156160556,    155029.78919920223, 463109.9541111593);
     //checkTransformFromWGS84("EPSG:3153",     -127.0, 52.11,  931625.9111828626, 789252.646454557 );
-    //checkTransformToGeo("EPSG:28992",     148312.15,  457804.79,  5.29, 52.11,   0.01 );  
-    //checkTransformFromWGS84("EPSG:3785",     -76.640625, 49.921875,  -8531595.34908, 6432756.94421   );  
+    //checkTransformToGeo("EPSG:28992",     148312.15,  457804.79,  5.29, 52.11,   0.01 );
+    //checkTransformFromWGS84("EPSG:3785",     -76.640625, 49.921875,  -8531595.34908, 6432756.94421   );
   */
     }
 
@@ -89,7 +90,7 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
 
         // from GIGS Test Suite - seems to have a very large discrepancy
         //checkTransform("EPSG:4230", 5, 58, "EPSG:2192", 764566.84, 3343948.93, 0.01 );
-    
+
     /*
      * Not sure why this one doesn't work
      *
@@ -205,7 +206,7 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:29100", -53.0, 5.0, 5110899.06, 10552971.67, 4000);
     }
 
-    @Test
+    @Ignore("TODO: Should these expect UnknownAuthoriyCode exceptions?") @Test
     public void XtestUndefined() {
         //runInverseTransform("EPSG:27492",    25260.493584, -9579.245052,    -7.84, 39.58);
         //runInverseTransform("EPSG:27563",    653704.865208, 176887.660037,    3.005, 43.89);
