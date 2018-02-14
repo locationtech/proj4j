@@ -65,7 +65,7 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
      */
     @Test
     public void testAmersfoort_RD_New() {
-        checkTransformFromWGS84("EPSG:28992", 5.387638889, 52.156160556, 155029.79409195564, 463109.95436430885);
+        checkTransformFromWGS84("EPSG:28992", 5.387638889, 52.156160556, 155029.79409195564, 463109.95436430885, 2.0e-4);
     }
 
     @Test
