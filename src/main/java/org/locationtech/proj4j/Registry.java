@@ -247,6 +247,7 @@ public class Registry {
         register("tcea", TransverseCylindricalEqualArea.class, "Transverse Cylindrical Equal Area");
 //    register( "tissot", TissotProjection.class, "Tissot Conic" );
         register("tmerc", TransverseMercatorProjection.class, "Transverse Mercator");
+        register("etmerc", ExtendedTransverseMercatorProjection.class, "Extended Transverse Mercator");
 //    register( "tpeqd", Projection.class, "Two Point Equidistant" );
 //    register( "tpers", Projection.class, "Tilted perspective" );
 //    register( "ups", Projection.class, "Universal Polar Stereographic" );
