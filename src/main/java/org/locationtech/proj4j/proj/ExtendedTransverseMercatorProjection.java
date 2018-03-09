@@ -2,7 +2,6 @@ package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.datum.Ellipsoid;
-import org.locationtech.proj4j.util.ProjectionMath;
 
 /**
  * 
@@ -11,6 +10,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
  */
 public class ExtendedTransverseMercatorProjection extends CylindricalProjection {
     
+    private static final long serialVersionUID = 1L;
+    
     double    Qn;    /* Merid. quad., scaled to the projection */ 
     double    Zb;    /* Radius vector in polar coord. systems  */ 
     double[]    cgb = new double[6]; /* Constants for Gauss -> Geo lat */ 
@@ -18,10 +19,6 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
     double[]    utg = new double[6]; /* Constants for transv. merc. -> geo */ 
     double[]    gtu = new double[6]; /* Constants for geo -> transv. merc. */
 
-    private double esp;
-    private double ml0;
-    private double[] en;
-    
     private static final int PROJ_ETMERC_ORDER = 6;
     private static final double HUGE_VAL = Double.POSITIVE_INFINITY;
     
@@ -193,15 +190,6 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
     public void initialize() {
         super.initialize();
         
-        if (spherical) {
-            esp = scaleFactor;
-            ml0 = .5 * esp;
-        } else {
-            en = ProjectionMath.enfn(es);
-            ml0 = ProjectionMath.mlfn(projectionLatitude, Math.sin(projectionLatitude), Math.cos(projectionLatitude), en);
-            esp = es / (1. - es);
-        }
-        
         double f, n, np, Z;
 
         if (es <= 0) {
@@ -295,9 +283,6 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
     
     public Object clone() {
         ExtendedTransverseMercatorProjection p = (ExtendedTransverseMercatorProjection) super.clone();
-        if (en != null) {
-            p.en = (double[]) en.clone();
-        }
         if (cgb != null) {
             p.cgb = (double[]) cgb.clone();
         }
