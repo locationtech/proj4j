@@ -23,6 +23,7 @@ import org.locationtech.proj4j.*;
 import org.locationtech.proj4j.datum.Datum;
 import org.locationtech.proj4j.datum.Ellipsoid;
 import org.locationtech.proj4j.datum.Grid;
+import org.locationtech.proj4j.proj.ExtendedTransverseMercatorProjection;
 import org.locationtech.proj4j.proj.Projection;
 import org.locationtech.proj4j.proj.TransverseMercatorProjection;
 import org.locationtech.proj4j.units.Angle;
@@ -155,6 +156,12 @@ public class Proj4Parser {
             s = (String) params.get(Proj4Keyword.zone);
             if (s != null)
                 ((TransverseMercatorProjection) projection).setUTMZone(Integer
+                        .parseInt(s));
+        }
+        if (projection instanceof ExtendedTransverseMercatorProjection) {
+            s = (String) params.get(Proj4Keyword.zone);
+            if (s != null)
+                ((ExtendedTransverseMercatorProjection) projection).setUTMZone(Integer
                         .parseInt(s));
         }
 
