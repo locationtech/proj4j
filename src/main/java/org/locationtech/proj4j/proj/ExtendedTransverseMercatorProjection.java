@@ -62,10 +62,8 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
 
         double cos_2B = 2*Math.cos(2*B);
      
-        for (int p1i = len_p1; p1i > 0;) {
-            h1 = p1[--p1i];
-            h2 = h1;
-            h1 = h;
+        int p1i;
+        for (p1i = len_p1, h1 = p1[--p1i]; p1i > 0; h2 = h1, h1 = h) {
             h = -h2 + cos_2B*h1 + p1[--p1i];
         }
         
