@@ -330,28 +330,29 @@ public final class Grid implements Serializable {
         grid.gridName = gridName;
         grid.format = "missing";
         grid.gridOffset = 0;
-        DataInputStream gridDefinition = resolveGridDefinition(gridName);
-        if (gridDefinition == null) {
-            throw new IOException("Unknown grid: " + gridName);
-        }
-        byte[] header = new byte[160];
-        gridDefinition.mark(header.length);
-        gridDefinition.readFully(header);
-        gridDefinition.reset();
-        if (CTABLEV2.testHeader(header)) {
-            grid.format = "ctable2";
-            gridDefinition.mark(1024);
-            grid.table = CTABLEV2.init(gridDefinition);
+        try(DataInputStream gridDefinition = resolveGridDefinition(gridName)) {
+            if (gridDefinition == null) {
+                throw new IOException("Unknown grid: " + gridName);
+            }
+            byte[] header = new byte[160];
+            gridDefinition.mark(header.length);
+            gridDefinition.readFully(header);
             gridDefinition.reset();
-            CTABLEV2.load(gridDefinition, grid);
-        }
-        if (NTV1.testHeader(header)) {
-            grid.format = "ntv1";
-            gridDefinition.mark(1024);
-            grid.table = NTV1.init(gridDefinition);
-            gridDefinition.reset();
-            NTV1.load(gridDefinition, grid);
-        }
+            if (CTABLEV2.testHeader(header)) {
+                grid.format = "ctable2";
+                gridDefinition.mark(1024);
+                grid.table = CTABLEV2.init(gridDefinition);
+                gridDefinition.reset();
+                CTABLEV2.load(gridDefinition, grid);
+            }
+            if (NTV1.testHeader(header)) {
+                grid.format = "ntv1";
+                gridDefinition.mark(1024);
+                grid.table = NTV1.init(gridDefinition);
+                gridDefinition.reset();
+                NTV1.load(gridDefinition, grid);
+            }
+		}
         return grid;
     }
 
