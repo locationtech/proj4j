@@ -72,7 +72,9 @@ public class Proj4Parser {
             if (projection == null)
                 throw new InvalidValueException("Unknown projection: " + s);
         }
-
+		else {
+			throw new InvalidValueException("Keyword '" + Proj4Keyword.proj + "' is a required parameter");
+        }
         projection.setEllipsoid(ellipsoid);
 
         //TODO: better error handling for things like bad number syntax.
