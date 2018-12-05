@@ -47,7 +47,7 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
-            <!-- <plugin>
+            <plugin>
                 <inherited>true</inherited>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <executions>
@@ -62,7 +62,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin> -->
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

@@ -4,9 +4,9 @@ import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.datum.Ellipsoid;
 
 /**
- * 
- * @see https://github.com/OSGeo/proj.4/issues/316
- * @see https://github.com/OSGeo/proj.4/blob/master/src/proj_etmerc.c
+ *
+ * @see <a href="https://github.com/OSGeo/proj.4/issues/316">Proj.4 issue 316</a>
+ * @see <a href="https://github.com/OSGeo/proj.4/blob/master/src/proj_etmerc.c">proj_etmerc.c</a>
  */
 public class ExtendedTransverseMercatorProjection extends CylindricalProjection {
     
