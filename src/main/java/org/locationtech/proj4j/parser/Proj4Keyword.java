@@ -53,6 +53,7 @@ public class Proj4Keyword {
     public static final String R_lat_a = "R_lat_a";
     public static final String R_lat_g = "R_lat_g";
     public static final String rf = "rf";
+    public static final String h = "h";
 
     public static final String south = "south";
     public static final String to_meter = "to_meter";
@@ -83,6 +84,7 @@ public class Proj4Keyword {
             supportedParams.add(b);
             supportedParams.add(datum);
             supportedParams.add(ellps);
+            supportedParams.add(h);
 
             supportedParams.add(R_A);
 
