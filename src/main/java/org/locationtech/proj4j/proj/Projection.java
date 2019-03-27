@@ -191,6 +191,11 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
      * northing, vertical (up)
      */
     private AxisOrder axes = AxisOrder.ENU;
+    
+    /**
+     * Height of orbit - Geostationary satellite projection
+     */
+    protected double heightOfOrbit = 35785831.0;
 
     // Some useful constants
     protected final static double EPS10 = 1e-10;
@@ -761,6 +766,22 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
 
     public Unit getUnits() {
         return this.unit;
+    }
+    
+    /**
+     * Get height of orbit - Geostationary satellite projection
+     * @return Height of orbit
+     */
+    public double getHeightOfOrbit(){
+        return this.heightOfOrbit;
+    }
+    
+    /**
+     * Set height of orbit - Geostationary satellite projection
+     * @param h Height of orbit
+     */
+    public void setHeightOfOrbit(double h){
+        this.heightOfOrbit = h;
     }
 
     /**
