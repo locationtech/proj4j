@@ -139,6 +139,11 @@ public class Proj4Parser {
         s = (String) params.get(Proj4Keyword.to_meter);
         if (s != null)
             projection.setFromMetres(1.0 / Double.parseDouble(s));
+        
+        s = (String) params.get(Proj4Keyword.h);
+        if (s != null) {
+            projection.setHeightOfOrbit(Double.parseDouble(s));
+        }
 
         if (params.containsKey(Proj4Keyword.south))
             projection.setSouthernHemisphere(true);
