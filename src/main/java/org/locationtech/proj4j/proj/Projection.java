@@ -765,7 +765,7 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     }
 
     public Unit getUnits() {
-        return this.unit;
+        return this.unit != null ? this.unit : Units.METRES;
     }
     
     /**
