@@ -157,6 +157,11 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     protected String name = null;
 
     /**
+     * The description of this projection
+     */
+    protected String description = null;
+
+    /**
      * Conversion factor from metres to whatever units the projection uses.
      */
     protected double fromMetres = 1;
@@ -420,6 +425,19 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     public String getName() {
         if ( name != null )
             return name;
+        return toString();
+    }
+
+    /**
+     * Set the description of this projection.
+     */
+    public void setDescription( String description ) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        if ( description != null )
+            return description;
         return toString();
     }
 

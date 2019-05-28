@@ -117,20 +117,25 @@ public class Registry {
     }
 
     private Map<String, Class> projRegistry;
+    private Map<String, String> projDescRegistry;
 
     private void register(String name, Class cls, String description) {
         projRegistry.put(name, cls);
+        projDescRegistry.put(name, description);
     }
 
     public Projection getProjection(String name) {
 //    if ( projRegistry == null )
 //      initialize();
         Class cls = (Class) projRegistry.get(name);
+        String desc = (String) projDescRegistry.get(name);
         if (cls != null) {
             try {
                 Projection projection = (Projection) cls.newInstance();
-                if (projection != null)
+                if (projection != null) {
                     projection.setName(name);
+                    projection.setDescription(desc);
+                }
                 return projection;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
@@ -146,6 +151,7 @@ public class Registry {
         if (projRegistry != null)
             return;
         projRegistry = new HashMap();
+        projDescRegistry = new HashMap();
         register("aea", AlbersProjection.class, "Albers Equal Area");
         register("aeqd", EquidistantAzimuthalProjection.class, "Azimuthal Equidistant");
         register("airy", AiryProjection.class, "Airy");
