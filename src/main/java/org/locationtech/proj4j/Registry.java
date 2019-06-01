@@ -137,6 +137,7 @@ public class Registry {
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (InstantiationException e) {
+                System.err.println("Cannot instantiate projection " + name + " [" + cls.getName() + "]");
                 e.printStackTrace();
             }
         }
