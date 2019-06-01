@@ -150,7 +150,9 @@ public class Registry {
         for (String name : projRegistry.keySet()) {
             Projection projection = getProjection(name);
 
-            projections.add(projection);
+            if (projection != null) {
+                projections.add(projection);
+            }
         }
 
         return projections;
