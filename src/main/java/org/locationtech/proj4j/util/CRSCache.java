@@ -17,22 +17,22 @@ package org.locationtech.proj4j.util;
 
 import org.locationtech.proj4j.*;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CRSCache {
     private static CRSFactory crsFactory = new CRSFactory();
-    private Cache<String, CoordinateReferenceSystem> crsCache = Caffeine.newBuilder().build();
-    private Cache<String, String> epsgCache = Caffeine.newBuilder().build();
+
+    private ConcurrentHashMap<String, CoordinateReferenceSystem> crsCache = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, String> epsgCache = new ConcurrentHashMap<>();
 
     public CRSCache CRSCache() {
-        crsCache = Caffeine.newBuilder().build();
+        crsCache = new ConcurrentHashMap<>();
+        epsgCache = new ConcurrentHashMap<>();
         return this;
     }
 
-    public CRSCache CRSCache(Cache<String, CoordinateReferenceSystem> crsCache, Cache<String, String> epsgCache) {
+    public CRSCache CRSCache(ConcurrentHashMap<String, CoordinateReferenceSystem> crsCache, ConcurrentHashMap<String, String> epsgCache) {
         this.crsCache = crsCache;
         this.epsgCache = epsgCache;
         return this;
@@ -40,26 +40,39 @@ public class CRSCache {
 
     public CoordinateReferenceSystem createFromName(String name)
             throws UnsupportedParameterException, InvalidValueException, UnknownAuthorityCodeException {
-        return crsCache.get(name, k -> crsFactory.createFromName(name));
+        CoordinateReferenceSystem res = crsCache.get(name);
+        if(res != null) return res;
+        return crsCache.computeIfAbsent(name, k -> crsFactory.createFromName(name));
     }
 
     public CoordinateReferenceSystem createFromParameters(String name, String paramStr)
             throws UnsupportedParameterException, InvalidValueException {
         String nonNullName = name == null ? "" : name;
-        return crsCache.get(nonNullName + paramStr, k -> crsFactory.createFromParameters(name, paramStr));
+        String key = nonNullName + paramStr;
+        CoordinateReferenceSystem res = crsCache.get(key);
+        if(res != null) return res;
+        return crsCache.computeIfAbsent(key, k -> crsFactory.createFromParameters(name, paramStr));
     }
 
     public CoordinateReferenceSystem createFromParameters(String name, String[] params)
             throws UnsupportedParameterException, InvalidValueException {
         String nonNullName = name == null ? "" : name;
-        return crsCache.get(nonNullName + String.join(" ", params), k -> crsFactory.createFromParameters(name, params));
+        String key = nonNullName + String.join(" ", params);
+        CoordinateReferenceSystem res = crsCache.get(key);
+        if(res != null) return res;
+        return crsCache.computeIfAbsent(key, k -> crsFactory.createFromParameters(name, params));
     }
 
     public String readEpsgFromParameters(String paramStr) {
-        return epsgCache.get(paramStr, k -> { try { return crsFactory.readEpsgFromParameters(paramStr); } catch (IOException e) {  return null; } });
+        String res = epsgCache.get(paramStr);
+        if(res != null) return res;
+        return epsgCache.computeIfAbsent(paramStr, k -> { try { return crsFactory.readEpsgFromParameters(paramStr); } catch (IOException e) {  return null; } });
     }
 
     public String readEpsgFromParameters(String[] params) {
-        return epsgCache.get(String.join(" ", params), k -> { try { return crsFactory.readEpsgFromParameters(params); } catch (IOException e) {  return null; } });
+        String paramStr = String.join(" ", params);
+        String res = epsgCache.get(paramStr);
+        if(res != null) return res;
+        return epsgCache.computeIfAbsent(paramStr, k -> { try { return crsFactory.readEpsgFromParameters(params); } catch (IOException e) {  return null; } });
     }
 }
