@@ -22,6 +22,8 @@ import org.locationtech.proj4j.proj.Projection;
 import org.locationtech.proj4j.units.Unit;
 import org.locationtech.proj4j.units.Units;
 
+import java.util.Arrays;
+
 /**
  * Represents a projected or geodetic geospatial coordinate system,
  * to which coordinates may be referenced.
@@ -118,5 +120,17 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
 
     public String toString() {
         return name;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        }
+        if (that instanceof CoordinateReferenceSystem) {
+            CoordinateReferenceSystem cr = (CoordinateReferenceSystem) that;
+            return name.equals(cr.name) && datum.isEqual(cr.getDatum()) && Arrays.equals(params, cr.params);
+        }
+        return false;
     }
 }

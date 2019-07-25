@@ -15,31 +15,51 @@
  */
 package org.locationtech.proj4j.util;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.locationtech.proj4j.*;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
+import java.io.IOException;
+
 public class CRSCache {
-
-    private static Map<String, CoordinateReferenceSystem> projCache = new HashMap<String, CoordinateReferenceSystem>();
-
     private static CRSFactory crsFactory = new CRSFactory();
+    private Cache<String, CoordinateReferenceSystem> crsCache = Caffeine.newBuilder().build();
+    private Cache<String, String> epsgCache = Caffeine.newBuilder().build();
 
-// TODO: provide limit on number of items in cache (LRU)
+    public CRSCache CRSCache() {
+        crsCache = Caffeine.newBuilder().build();
+        return this;
+    }
 
-    public CRSCache() {
-        super();
+    public CRSCache CRSCache(Cache<String, CoordinateReferenceSystem> crsCache, Cache<String, String> epsgCache) {
+        this.crsCache = crsCache;
+        this.epsgCache = epsgCache;
+        return this;
     }
 
     public CoordinateReferenceSystem createFromName(String name)
             throws UnsupportedParameterException, InvalidValueException, UnknownAuthorityCodeException {
-        CoordinateReferenceSystem proj = (CoordinateReferenceSystem) projCache.get(name);
-        if (proj == null) {
-            proj = crsFactory.createFromName(name);
-            projCache.put(name, proj);
-        }
-        return proj;
+        return crsCache.get(name, k -> crsFactory.createFromName(name));
     }
 
+    public CoordinateReferenceSystem createFromParameters(String name, String paramStr)
+            throws UnsupportedParameterException, InvalidValueException {
+        String nonNullName = name == null ? "" : name;
+        return crsCache.get(nonNullName + paramStr, k -> crsFactory.createFromParameters(name, paramStr));
+    }
+
+    public CoordinateReferenceSystem createFromParameters(String name, String[] params)
+            throws UnsupportedParameterException, InvalidValueException {
+        String nonNullName = name == null ? "" : name;
+        return crsCache.get(nonNullName + String.join(" ", params), k -> crsFactory.createFromParameters(name, params));
+    }
+
+    public String readEpsgFromParameters(String paramStr) {
+        return epsgCache.get(paramStr, k -> { try { return crsFactory.readEpsgFromParameters(paramStr); } catch (IOException e) {  return null; } });
+    }
+
+    public String readEpsgFromParameters(String[] params) {
+        return epsgCache.get(String.join(" ", params), k -> { try { return crsFactory.readEpsgFromParameters(params); } catch (IOException e) {  return null; } });
+    }
 }
