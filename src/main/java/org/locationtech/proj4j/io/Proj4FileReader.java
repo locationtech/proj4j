@@ -15,6 +15,8 @@
  */
 package org.locationtech.proj4j.io;
 
+import org.locationtech.proj4j.util.Pair;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,49 +74,14 @@ public class Proj4FileReader {
         return t;
     }
 
-    private String[] readFile(BufferedReader reader, String name)
-            throws IOException {
+    private String[] readFile(BufferedReader reader, String name) throws IOException {
         StreamTokenizer t = createTokenizer(reader);
 
         t.nextToken();
         while (t.ttype == '<') {
-            t.nextToken();
-            if (t.ttype != StreamTokenizer.TT_WORD)
-                throw new IOException(t.lineno() + ": Word expected after '<'");
-            String crsName = t.sval;
-            t.nextToken();
-            if (t.ttype != '>')
-                throw new IOException(t.lineno() + ": '>' expected");
-            t.nextToken();
-            List v = new ArrayList();
-
-            while (t.ttype != '<') {
-                if (t.ttype == '+')
-                    t.nextToken();
-                if (t.ttype != StreamTokenizer.TT_WORD)
-                    throw new IOException(t.lineno() + ": Word expected after '+'");
-                String key = t.sval;
-                t.nextToken();
-
-
-                // parse =arg, if any
-                if (t.ttype == '=') {
-                    t.nextToken();
-                    //Removed check to allow for proj4 hack +nadgrids=@null
-                    //if ( t.ttype != StreamTokenizer.TT_WORD )
-                    //  throw new IOException( t.lineno()+": Value expected after '='" );
-                    String value = t.sval;
-                    t.nextToken();
-                    addParam(v, key, value);
-                } else {
-                    // add param with no value
-                    addParam(v, key, null);
-                }
-            }
-            t.nextToken();
-            if (t.ttype != '>')
-                throw new IOException(t.lineno() + ": '<>' expected");
-            t.nextToken();
+            Pair<String, List> pair = parseTokenizer(t);
+            String crsName = pair.fst();
+            List v = pair.snd();
 
             // found requested CRS?
             if (crsName.equals(name)) {
@@ -169,48 +136,56 @@ public class Proj4FileReader {
 
         t.nextToken();
         while (t.ttype == '<') {
-            t.nextToken();
-            if (t.ttype != StreamTokenizer.TT_WORD)
-                throw new IOException(t.lineno() + ": Word expected after '<'");
-            String crsName = t.sval;
-            t.nextToken();
-            if (t.ttype != '>')
-                throw new IOException(t.lineno() + ": '>' expected");
-            t.nextToken();
-            List v = new ArrayList();
-
-            while (t.ttype != '<') {
-                if (t.ttype == '+')
-                    t.nextToken();
-                if (t.ttype != StreamTokenizer.TT_WORD)
-                    throw new IOException(t.lineno() + ": Word expected after '+'");
-                String key = t.sval;
-                t.nextToken();
-
-
-                // parse =arg, if any
-                if (t.ttype == '=') {
-                    t.nextToken();
-                    //Removed check to allow for proj4 hack +nadgrids=@null
-                    //if ( t.ttype != StreamTokenizer.TT_WORD )
-                    //  throw new IOException( t.lineno()+": Value expected after '='" );
-                    String value = t.sval;
-                    t.nextToken();
-                    addParam(v, key, value);
-                } else {
-                    // add param with no value
-                    addParam(v, key, null);
-                }
-            }
-            t.nextToken();
-            if (t.ttype != '>')
-                throw new IOException(t.lineno() + ": '<>' expected");
-            t.nextToken();
+            Pair<String, List> pair = parseTokenizer(t);
+            String crsName = pair.fst();
+            List v = pair.snd();
 
             String[] paramsParsed = (String[]) v.toArray(new String[0]);
 
             if(Arrays.equals(params, paramsParsed)) return crsName;
         }
         return null;
+    }
+
+    private static Pair<String, List> parseTokenizer(StreamTokenizer t) throws IOException {
+        t.nextToken();
+        if (t.ttype != StreamTokenizer.TT_WORD)
+            throw new IOException(t.lineno() + ": Word expected after '<'");
+        String crsName = t.sval;
+        t.nextToken();
+        if (t.ttype != '>')
+            throw new IOException(t.lineno() + ": '>' expected");
+        t.nextToken();
+        List v = new ArrayList();
+
+        while (t.ttype != '<') {
+            if (t.ttype == '+')
+                t.nextToken();
+            if (t.ttype != StreamTokenizer.TT_WORD)
+                throw new IOException(t.lineno() + ": Word expected after '+'");
+            String key = t.sval;
+            t.nextToken();
+
+
+            // parse =arg, if any
+            if (t.ttype == '=') {
+                t.nextToken();
+                //Removed check to allow for proj4 hack +nadgrids=@null
+                //if ( t.ttype != StreamTokenizer.TT_WORD )
+                //  throw new IOException( t.lineno()+": Value expected after '='" );
+                String value = t.sval;
+                t.nextToken();
+                addParam(v, key, value);
+            } else {
+                // add param with no value
+                addParam(v, key, null);
+            }
+        }
+        t.nextToken();
+        if (t.ttype != '>')
+            throw new IOException(t.lineno() + ": '<>' expected");
+        t.nextToken();
+
+        return Pair.create(crsName, v);
     }
 }
