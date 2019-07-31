@@ -18,6 +18,8 @@ package org.locationtech.proj4j;
 import org.locationtech.proj4j.io.Proj4FileReader;
 import org.locationtech.proj4j.parser.Proj4Parser;
 
+import java.io.IOException;
+
 /**
  * A factory which can create {@link CoordinateReferenceSystem}s
  * from a variety of ways
@@ -38,7 +40,6 @@ public class CRSFactory {
     private static Registry registry = new Registry();
 
     // TODO: add method to allow reading from arbitrary PROJ4 CS file
-
 
     /**
      * Gets the {@link Registry} used by this factory.
@@ -126,9 +127,39 @@ public class CRSFactory {
         return parser.parse(name, params);
     }
 
+    /**
+     * Finds a EPSG Code
+     * from a PROJ.4 projection parameter string.
+     * <p>
+     * An example of a valid PROJ.4 projection parameter string is:
+     * <pre>
+     * +proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +units=m
+     * </pre>
+     *
+     * @param paramStr a PROJ.4 projection parameter string
+     * @return the specified {@link CoordinateReferenceSystem}
+     * @throws IOException if there was an issue in reading EPSG file
+     */
+    public String readEpsgFromParameters(String paramStr) throws IOException {
+        return readEpsgFromParameters(splitParameters(paramStr));
+    }
+
+    /**
+     * Finds a EPSG Code
+     * defined by an array of PROJ.4 projection parameters.
+     * PROJ.4 parameters are generally of the form
+     * "<tt>+name=value</tt>".
+     *
+     * @param params an array of PROJ.4 projection parameters
+     * @return s String EPSG code
+     * @throws IOException if there was an issue in reading EPSG file
+     */
+    public String readEpsgFromParameters(String[] params) throws IOException {
+        return csReader.readEpsgCodeFromFile(params);
+    }
+
     private static String[] splitParameters(String paramStr) {
         String[] params = paramStr.split("\\s+");
         return params;
     }
-
 }
