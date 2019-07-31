@@ -15,7 +15,9 @@
  */
 package org.locationtech.proj4j;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.locationtech.proj4j.datum.Datum;
@@ -135,10 +137,25 @@ public class Registry {
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (InstantiationException e) {
+                System.err.println("Cannot instantiate projection " + name + " [" + cls.getName() + "]");
                 e.printStackTrace();
             }
         }
         return null;
+    }
+
+    public List<Projection> getProjections() {
+        List<Projection> projections = new ArrayList<>();
+
+        for (String name : projRegistry.keySet()) {
+            Projection projection = getProjection(name);
+
+            if (projection != null) {
+                projections.add(projection);
+            }
+        }
+
+        return projections;
     }
 
     private synchronized void initialize() {
