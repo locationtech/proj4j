@@ -23,19 +23,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CRSCache {
     private static CRSFactory crsFactory = new CRSFactory();
 
-    private ConcurrentHashMap<String, CoordinateReferenceSystem> crsCache = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, String> epsgCache = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, CoordinateReferenceSystem> crsCache;
+    private ConcurrentHashMap<String, String> epsgCache;
 
-    public CRSCache CRSCache() {
+    public CRSCache() {
         crsCache = new ConcurrentHashMap<>();
         epsgCache = new ConcurrentHashMap<>();
-        return this;
     }
 
-    public CRSCache CRSCache(ConcurrentHashMap<String, CoordinateReferenceSystem> crsCache, ConcurrentHashMap<String, String> epsgCache) {
+    public CRSCache(ConcurrentHashMap<String, CoordinateReferenceSystem> crsCache, ConcurrentHashMap<String, String> epsgCache) {
         this.crsCache = crsCache;
         this.epsgCache = epsgCache;
-        return this;
     }
 
     public CoordinateReferenceSystem createFromName(String name)
