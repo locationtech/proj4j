@@ -15,6 +15,8 @@
  */
 package org.locationtech.proj4j;
 
+import java.io.Serializable;
+
 /**
  * An interface for the operation of transforming
  * a {@link ProjCoordinate} from one {@link CoordinateReferenceSystem}
@@ -23,7 +25,7 @@ package org.locationtech.proj4j;
  * @author Martin Davis
  * @see CoordinateTransformFactory
  */
-public interface CoordinateTransform {
+public interface CoordinateTransform extends Serializable {
 
     CoordinateReferenceSystem getSourceCRS();
 

@@ -15,6 +15,7 @@
  */
 package org.locationtech.proj4j;
 
+import java.io.Serializable;
 import java.text.DecimalFormat;
 
 
@@ -29,7 +30,7 @@ import java.text.DecimalFormat;
  * values which are to be transformed
  * by a {@link CoordinateTransform}.
  */
-public class ProjCoordinate {
+public class ProjCoordinate implements Serializable {
 
     public static String DECIMAL_FORMAT_PATTERN = "0.0###############";
     public static DecimalFormat DECIMAL_FORMAT = new DecimalFormat(DECIMAL_FORMAT_PATTERN);
