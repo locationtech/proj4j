@@ -33,7 +33,7 @@ public class UrmaevFlatPolarSinusoidalProjection extends Projection {
 
 	public UrmaevFlatPolarSinusoidalProjection() {
 	}
-	
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		out.y = ProjectionMath.asin(n * Math.sin(lpphi));
 		out.x = C_x * lplam * Math.cos(lpphi);
@@ -63,13 +63,24 @@ public class UrmaevFlatPolarSinusoidalProjection extends Projection {
 	public void setN( double n ) {
 		this.n = n;
 	}
-	
+
 	public double getN() {
 		return n;
 	}
-	
+
 	public String toString() {
 		return "Urmaev Flat-Polar Sinusoidal";
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof UrmaevFlatPolarSinusoidalProjection) {
+					UrmaevFlatPolarSinusoidalProjection p = (UrmaevFlatPolarSinusoidalProjection) that;
+					return (n == p.n) && super.equals(that);
+			}
+			return false;
+	}
 }

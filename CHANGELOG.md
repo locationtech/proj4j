@@ -9,16 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2019-09-05
 
 ### Added
-- Added `GeostationarySatelliteProjection`/`geos` projection by [@Yaqiang](https://github.com/Yaqiang)
-- Registry.getProjections exposes all available projects by [@noberasco](https://github.com/noberasco)
-- OSGi compatibility by [@Neutius](https://github.com/Neutius)
+- Added `GeostationarySatelliteProjection`/`geos` projection
+- Registry.getProjections exposes all available projects
+- OSGi compatibility
 
 ### Changed
-- Parse `geos` (Geostationary Satellite Projection) proj4 strings by [@pomadchin](https://github.com/pomadchin)
-- Projection units reported as meters by default by [@bosborn](https://github.com/bosborn)
-- BasicCoordinateTransform now thread-safe by [@sebasbaumh](https://github.com/sebasbaumh)
-- Improve CRS Caching performance by [@pomadchin](https://github.com/pomadchin)
-- CoordinateReferenceSystem.equals considered logical equality by [@pomadchin](https://github.com/pomadchin)
+- Parse `geos` (Geostationary Satellite Projection) proj4 strings
+- Projection units reported as meters by default
+- BasicCoordinateTransform now thread-safe
+- Improve CRS Caching performance
+- CoordinateReferenceSystem.equals considered logical equality
+- Projection.equals considered logical equality
 
 ## [1.0.0] - 2019-12-12
 

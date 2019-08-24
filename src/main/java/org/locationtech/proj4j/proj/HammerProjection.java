@@ -30,7 +30,7 @@ public class HammerProjection extends PseudoCylindricalProjection {
 
 	public HammerProjection() {
 	}
-	
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate xy) {
 		double cosphi, d;
 
@@ -66,21 +66,35 @@ public class HammerProjection extends PseudoCylindricalProjection {
 	public void setW( double w ) {
 		this.w = w;
 	}
-	
+
 	public double getW() {
 		return w;
 	}
-	
+
 	public void setM( double m ) {
 		this.m = m;
 	}
-	
+
 	public double getM() {
 		return m;
 	}
-	
+
 	public String toString() {
 		return "Hammer & Eckert-Greifendorff";
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof HammerProjection) {
+					HammerProjection p = (HammerProjection) that;
+					return (
+						m == p.m &&
+						w == p.w &&
+						super.equals(that));
+			}
+			return false;
+	}
 }

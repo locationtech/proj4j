@@ -45,7 +45,7 @@ public class AiryProjection extends Projection {
 		maxLongitude = Math.toRadians(90);
 		initialize();
 	}
-	
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		double sinlam, coslam, cosphi, sinphi, t, s, Krho, cosz;
 

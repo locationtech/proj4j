@@ -45,7 +45,7 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 		alpha = Math.toRadians(-45);//FIXME
 		initialize();
 	}
-	
+
 	/**
 	* Set up a projection suitable for State Plane Coordinates.
 	*/
@@ -59,7 +59,7 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 		falseNorthing = y_0;
 		initialize();
 	}
-	
+
 	public void initialize() {
 		super.initialize();
 		double con, com, cosphi0, d, f, h, l, sinphi0, p, j;
@@ -67,7 +67,7 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 		//FIXME-setup rot, alpha, longc,lon/lat1/2
 		rot = true;
     lamc = lonc;
-    
+
     // true if alpha provided
     int azi = Double.isNaN(alpha) ? 0 : 1;
 		if (azi != 0) { // alpha specified
@@ -228,4 +228,19 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 		return "Oblique Mercator";
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof ObliqueMercatorProjection) {
+					ObliqueMercatorProjection p = (ObliqueMercatorProjection) that;
+					return (
+						Gamma == p.Gamma &&
+						alpha == p.alpha &&
+						lonc == p.lonc &&
+						super.equals(that));
+			}
+			return false;
+	}
 }

@@ -86,7 +86,7 @@ public final class AxisOrder implements Serializable {
         public abstract void toENU(double x, ProjCoordinate c);
     }
 
-    public final static AxisOrder ENU = 
+    public final static AxisOrder ENU =
         new AxisOrder(Axis.Easting, Axis.Northing, Axis.Up);
 
     private final Axis x, y, z;

@@ -53,7 +53,7 @@ public class LagrangeProjection extends Projection {
 	public void setW( double w ) {
 		this.rw = w;
 	}
-	
+
 	public double getW() {
 		return rw;
 	}
@@ -75,7 +75,7 @@ public class LagrangeProjection extends Projection {
 	public boolean isConformal() {
 		return true;
 	}
-	
+
 	public boolean hasInverse() {
 		return false;
 	}
@@ -84,4 +84,15 @@ public class LagrangeProjection extends Projection {
 		return "Lagrange";
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof LagrangeProjection) {
+					LagrangeProjection p = (LagrangeProjection) that;
+					return (rw == p.rw) && super.equals(that);
+			}
+			return false;
+	}
 }

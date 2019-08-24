@@ -14,12 +14,17 @@ import org.locationtech.proj4j.util.ProjectionMath;
  */
 public class GeostationarySatelliteProjection extends Projection {
 
+    /**
+     * Height of orbit - Geostationary satellite projection
+     */
+    protected double heightOfOrbit = 35785831.0;
+
     private double _radiusP;
     private double _radiusP2;
     private double _radiusPInv2;
     private double _radiusG;
     private double _radiusG1;
-    private double _c;    
+    private double _c;
 
     /**
      * Constructor
@@ -41,6 +46,17 @@ public class GeostationarySatelliteProjection extends Projection {
         } else {
             _radiusP = _radiusP2 = _radiusPInv2 = 1.0;
         }
+    }
+
+
+    @Override
+    public double getHeightOfOrbit(){
+        return this.heightOfOrbit;
+    }
+
+    @Override
+    public void setHeightOfOrbit(double h){
+        this.heightOfOrbit = h;
     }
 
     @Override
@@ -187,4 +203,16 @@ public class GeostationarySatelliteProjection extends Projection {
     public String toString() {
         return "Geostationary Satellite";
     }
+
+    @Override
+	public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        }
+        if (that instanceof GeostationarySatelliteProjection) {
+            GeostationarySatelliteProjection p = (GeostationarySatelliteProjection) that;
+            return (this.heightOfOrbit == p.heightOfOrbit) && super.equals(that);
+        }
+        return false;
+	}
 }
