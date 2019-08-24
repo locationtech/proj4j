@@ -31,14 +31,14 @@ public class CylindricalEqualAreaProjection extends Projection {
 	public CylindricalEqualAreaProjection() {
 		this(0.0, 0.0, 0.0);
 	}
-	
+
 	public CylindricalEqualAreaProjection(double projectionLatitude, double projectionLongitude, double trueScaleLatitude) {
 		this.projectionLatitude = projectionLatitude;
 		this.projectionLongitude = projectionLongitude;
 		this.trueScaleLatitude = trueScaleLatitude;
 		initialize();
 	}
-	
+
 	public void initialize() {
 		super.initialize();
 		double t = trueScaleLatitude;
@@ -51,7 +51,7 @@ public class CylindricalEqualAreaProjection extends Projection {
 			qp = ProjectionMath.qsfn(1., e, one_es);
 		}
 	}
-	
+
 	public ProjCoordinate project(double lam, double phi, ProjCoordinate xy) {
 		if (spherical) {
 			xy.x = scaleFactor * lam;
@@ -90,4 +90,3 @@ public class CylindricalEqualAreaProjection extends Projection {
 	}
 
 }
-

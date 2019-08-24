@@ -25,15 +25,13 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class CentralCylindricalProjection extends CylindricalProjection {
 
-	private double ap;
-
 	private final static double EPS10 = 1.e-10;
 
 	public CentralCylindricalProjection() {
 		minLatitude = Math.toRadians(-80);
 		maxLatitude = Math.toRadians(80);
 	}
-	
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		if (Math.abs(Math.abs(lpphi) - ProjectionMath.HALFPI) <= EPS10) throw new ProjectionException("F");
 		out.x = lplam;

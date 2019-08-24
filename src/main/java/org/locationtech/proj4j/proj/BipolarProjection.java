@@ -54,7 +54,7 @@ public class BipolarProjection extends Projection {
 		minLongitude = Math.toRadians(-90);
 		maxLongitude = Math.toRadians(90);
 	}
-	
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		double cphi, sphi, tphi, t, al, Az, z, Av, cdlam, sdlam, r;
 		boolean tag;
@@ -112,8 +112,8 @@ public class BipolarProjection extends Projection {
 		out.y += (tag ? -r : r) * Math.cos(t);
 		if (noskew) {
 			t = out.x;
-			out.x = -out.x * cAzc - out.y * sAzc; 
-			out.y = -out.y * cAzc + t * sAzc; 
+			out.x = -out.x * cAzc - out.y * sAzc;
+			out.y = -out.y * cAzc + t * sAzc;
 		}
 		return out;
 	}
@@ -125,8 +125,8 @@ public class BipolarProjection extends Projection {
 
 		if (noskew) {
 			t = xyx;
-			out.x = -xyx * cAzc + xyy * sAzc; 
-			out.y = -xyy * cAzc - t * sAzc; 
+			out.x = -xyx * cAzc + xyy * sAzc;
+			out.y = -xyy * cAzc - t * sAzc;
 		}
 		if (neg = (xyx < 0.)) {
 			out.y = rhoc - xyy;

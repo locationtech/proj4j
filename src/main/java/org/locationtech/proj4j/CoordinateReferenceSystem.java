@@ -129,7 +129,8 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
         }
         if (that instanceof CoordinateReferenceSystem) {
             CoordinateReferenceSystem cr = (CoordinateReferenceSystem) that;
-            return name.equals(cr.name) && datum.isEqual(cr.getDatum()) && Arrays.equals(params, cr.params);
+            // Projection equality contains Ellipsoid and Unit equality
+            return datum.isEqual(cr.getDatum()) && proj.equals(cr.proj);
         }
         return false;
     }

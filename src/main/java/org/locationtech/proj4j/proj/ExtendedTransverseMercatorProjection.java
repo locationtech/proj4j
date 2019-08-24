@@ -9,19 +9,23 @@ import org.locationtech.proj4j.datum.Ellipsoid;
  * @see <a href="https://github.com/OSGeo/proj.4/blob/master/src/proj_etmerc.c">proj_etmerc.c</a>
  */
 public class ExtendedTransverseMercatorProjection extends CylindricalProjection {
-    
+
     private static final long serialVersionUID = 1L;
-    
-    double    Qn;    /* Merid. quad., scaled to the projection */ 
-    double    Zb;    /* Radius vector in polar coord. systems  */ 
-    double[]    cgb = new double[6]; /* Constants for Gauss -> Geo lat */ 
-    double[]    cbg = new double[6]; /* Constants for Geo lat -> Gauss */ 
-    double[]    utg = new double[6]; /* Constants for transv. merc. -> geo */ 
+
+    double    Qn;    /* Merid. quad., scaled to the projection */
+    double    Zb;    /* Radius vector in polar coord. systems  */
+    double[]    cgb = new double[6]; /* Constants for Gauss -> Geo lat */
+    double[]    cbg = new double[6]; /* Constants for Geo lat -> Gauss */
+    double[]    utg = new double[6]; /* Constants for transv. merc. -> geo */
     double[]    gtu = new double[6]; /* Constants for geo -> transv. merc. */
 
+    /**
+     * Indicates whether a Southern Hemisphere UTM zone
+     */
+    protected boolean isSouth = false;
     private static final int PROJ_ETMERC_ORDER = 6;
     private static final double HUGE_VAL = Double.POSITIVE_INFINITY;
-    
+
     public ExtendedTransverseMercatorProjection() {
         ellipsoid = Ellipsoid.GRS80;
         projectionLatitude = Math.toRadians(0);
@@ -30,7 +34,7 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
         maxLongitude = Math.toRadians(90);
         initialize();
     }
-    
+
     public ExtendedTransverseMercatorProjection(Ellipsoid ellipsoid, double lon_0, double lat_0, double k, double x_0, double y_0) {
         setEllipsoid(ellipsoid);
         projectionLongitude = lon_0;
@@ -40,7 +44,17 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
         falseNorthing = y_0;
         initialize();
     }
-    
+
+    @Override
+    public void setSouthernHemisphere(boolean isSouth) {
+        this.isSouth = isSouth;
+    }
+
+    @Override
+    public boolean getSouthernHemisphere() {
+        return isSouth;
+    }
+
     static double log1py(double x) {              /* Compute log(1+x) accurately */
         double y = 1 + x;
         double z = y - 1;
@@ -50,26 +64,26 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
          * (log(y)/z) introduces little additional error. */
         return z == 0 ? x : x * Math.log(y) / z;
     }
-    
+
     static double asinhy(double x) {              /* Compute asinh(x) accurately */
         double y = Math.abs(x);         /* Enforce odd parity */
         y = log1py(y * (1 + y/(Math.hypot(1.0, y) + 1)));
         return x < 0 ? -y : y;
     }
- 
+
     static double gatg(double[] p1, int len_p1, double B) {
         double h = 0, h1, h2 = 0;
 
         double cos_2B = 2*Math.cos(2*B);
-     
+
         int p1i;
         for (p1i = len_p1, h1 = p1[--p1i]; p1i > 0; h2 = h1, h1 = h) {
             h = -h2 + cos_2B*h1 + p1[--p1i];
         }
-        
+
         return (B + h*Math.sin(2*B));
     }
-    
+
     static double clenS(double[] a, int size, double arg_r, double arg_i, double[] R, double[] I) {
         double      hr, hr1, hr2, hi, hi1, hi2;
 
@@ -115,7 +129,7 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
         }
         return Math.sin (arg_r)*hr;
     }
-    
+
     public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate xy) {
         double sin_Cn, cos_Cn, cos_Ce, sin_Ce;
         double[] dCn = new double[1];
@@ -171,10 +185,10 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
             out.y = gatg (cgb,  PROJ_ETMERC_ORDER, Cn);
             out.x = Ce;
         }
-        
+
         return out;
     }
-    
+
     public void setUTMZone(int zone) {
         zone--;
         projectionLongitude = (zone + .5) * Math.PI / 30. - Math.PI;
@@ -184,10 +198,10 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
         falseNorthing = isSouth ? 10000000.0 : 0.0;
         initialize();
     }
-    
+
     public void initialize() {
         super.initialize();
-        
+
         double f, n, np, Z;
 
         if (es <= 0) {
@@ -270,15 +284,15 @@ public class ExtendedTransverseMercatorProjection extends CylindricalProjection 
         /* i.e. true northing = N - P->Zb                         */
         Zb  = - Qn*(Z + clens(gtu, PROJ_ETMERC_ORDER, 2*Z));
     }
-    
+
     public boolean hasInverse() {
         return true;
     }
-    
+
     public boolean isRectilinear() {
         return false;
     }
-    
+
     public Object clone() {
         ExtendedTransverseMercatorProjection p = (ExtendedTransverseMercatorProjection) super.clone();
         if (cgb != null) {

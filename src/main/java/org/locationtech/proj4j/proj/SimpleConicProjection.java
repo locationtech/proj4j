@@ -44,13 +44,13 @@ public class SimpleConicProjection extends ConicProjection {
 	public SimpleConicProjection() {
 		this( EULER );
 	}
-	
+
 	public SimpleConicProjection(int type) {
 		this.type = type;
 		minLatitude = Math.toRadians(0);
 		maxLatitude = Math.toRadians(80);
 	}
-	
+
 	public String toString() {
 		return "Simple Conic";
 	}
@@ -157,7 +157,7 @@ public class SimpleConicProjection extends ConicProjection {
 		case EULER:
 			n = Math.sin(sig) * Math.sin(del) / del;
 			del *= 0.5;
-			rho_c = del / (Math.tan(del) * Math.tan(sig)) + sig;	
+			rho_c = del / (Math.tan(del) * Math.tan(sig)) + sig;
 			rho_0 = rho_c - projectionLatitude;
 			break;
 		case PCONIC:
@@ -175,5 +175,17 @@ maxLatitude = Math.toRadians(60);//FIXME
 			rho_0 = rho_c - projectionLatitude;
 			break;
 		}
+	}
+
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof SimpleConicProjection) {
+					SimpleConicProjection p = (SimpleConicProjection) that;
+					return (this.type == p.type) && super.equals(that);
+			}
+			return false;
 	}
 }

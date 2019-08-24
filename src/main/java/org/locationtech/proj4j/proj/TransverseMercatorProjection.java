@@ -27,7 +27,7 @@ import org.locationtech.proj4j.util.ProjectionMath;
 * Transverse Mercator Projection algorithm is taken from the USGS PROJ package.
 */
 public class TransverseMercatorProjection extends CylindricalProjection {
-	
+
 	private final static double FC1 = 1.0;
 	private final static double FC2 = 0.5;
 	private final static double FC3 = 0.16666666666666666666;
@@ -37,6 +37,10 @@ public class TransverseMercatorProjection extends CylindricalProjection {
 	private final static double FC7 = 0.02380952380952380952;
 	private final static double FC8 = 0.01785714285714285714;
 
+	/**
+	 * Indicates whether a Southern Hemisphere UTM zone
+	 */
+	protected boolean isSouth = false;
   private int utmZone = -1;
 	private double esp;
 	private double ml0;
@@ -50,7 +54,7 @@ public class TransverseMercatorProjection extends CylindricalProjection {
 		maxLongitude = Math.toRadians(90);
 		initialize();
 	}
-	
+
 	/**
 	* Set up a projection suitable for State Plane Coordinates.
 	*/
@@ -63,14 +67,24 @@ public class TransverseMercatorProjection extends CylindricalProjection {
 		falseNorthing = y_0;
 		initialize();
 	}
-	
+
+	@Override
+	public void setSouthernHemisphere(boolean isSouth) {
+		this.isSouth = isSouth;
+	}
+
+	@Override
+	public boolean getSouthernHemisphere() {
+		return isSouth;
+	}
+
 	public Object clone() {
 		TransverseMercatorProjection p = (TransverseMercatorProjection)super.clone();
 		if (en != null)
 			p.en = (double[])en.clone();
 		return p;
 	}
-	
+
 	public boolean isRectilinear() {
 		return false;
 	}
@@ -95,7 +109,7 @@ public class TransverseMercatorProjection extends CylindricalProjection {
 			return 24;
 		return (degrees + 80) / 8 + 3;
 	}
-	
+
 	public static int getZoneFromNearestMeridian(double longitude) {
 		int zone = (int)Math.floor((ProjectionMath.normalizeLongitude(longitude) + Math.PI) * 30.0 / Math.PI) + 1;
 		if (zone < 1)
@@ -104,7 +118,7 @@ public class TransverseMercatorProjection extends CylindricalProjection {
 			zone = 60;
 		return zone;
 	}
-	
+
 	public void setUTMZone(int zone) {
     utmZone = zone;
 		zone--;

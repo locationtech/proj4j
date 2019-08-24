@@ -36,7 +36,7 @@ class SineTangentSeriesProjection extends ConicProjection {
 		tan_mode = mode;
 		initialize();
 	}
-	
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate xy) {
 		double c;
 
@@ -56,7 +56,7 @@ class SineTangentSeriesProjection extends ConicProjection {
 
 	public ProjCoordinate projectInverse(double xyx, double xyy, ProjCoordinate lp) {
 		double c;
-		
+
 		xyy /= C_y;
 		c = Math.cos(lp.y = tan_mode ? Math.atan(xyy) : ProjectionMath.asin(xyy));
 		lp.y /= C_p;
@@ -72,4 +72,20 @@ class SineTangentSeriesProjection extends ConicProjection {
 		return true;
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof SineTangentSeriesProjection) {
+					SineTangentSeriesProjection p = (SineTangentSeriesProjection) that;
+					return (
+						C_x == p.C_x &&
+						C_y == p.C_y &&
+						C_p == p.C_p &&
+						tan_mode == p.tan_mode &&
+						super.equals(that));
+			}
+			return false;
+	}
 }

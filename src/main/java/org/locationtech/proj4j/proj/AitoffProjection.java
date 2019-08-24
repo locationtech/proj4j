@@ -23,7 +23,7 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 
 public class AitoffProjection extends PseudoCylindricalProjection {
-	
+
 	protected final static int AITOFF = 0;
 	protected final static int WINKEL = 1;
 
@@ -65,7 +65,7 @@ public class AitoffProjection extends PseudoCylindricalProjection {
 				cosphi1 = 0.636619772367581343;
 		}
 	}
-	
+
 	public boolean hasInverse() {
 		return false;
 	}
@@ -74,5 +74,15 @@ public class AitoffProjection extends PseudoCylindricalProjection {
 		return winkel ? "Winkel Tripel" : "Aitoff";
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof AitoffProjection) {
+					AitoffProjection p = (AitoffProjection) that;
+					return (winkel == p.winkel && super.equals(that));
+			}
+			return false;
+	}
 }
-

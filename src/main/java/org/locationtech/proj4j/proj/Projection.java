@@ -16,6 +16,8 @@
 
 package org.locationtech.proj4j.proj;
 
+import java.util.NoSuchElementException;
+
 import org.locationtech.proj4j.*;
 import org.locationtech.proj4j.datum.AxisOrder;
 import org.locationtech.proj4j.datum.Ellipsoid;
@@ -103,10 +105,6 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     protected double falseNorthing = 0;
 
     /**
-     * Indicates whether a Southern Hemisphere UTM zone
-     */
-    protected boolean isSouth = false;
-    /**
      * The latitude of true scale. Only used by specific projections.
      */
     protected double trueScaleLatitude = 0.0;
@@ -191,11 +189,6 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
      * northing, vertical (up)
      */
     private AxisOrder axes = AxisOrder.ENU;
-    
-    /**
-     * Height of orbit - Geostationary satellite projection
-     */
-    protected double heightOfOrbit = 35785831.0;
 
     // Some useful constants
     protected final static double EPS10 = 1e-10;
@@ -701,12 +694,13 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
         return falseEasting;
     }
 
-    public void setSouthernHemisphere(boolean isSouth)
-    {
-        this.isSouth = isSouth;
+    public void setSouthernHemisphere(boolean isSouth) {
+        throw new NoSuchElementException();
     }
 
-    public boolean getSouthernHemisphere() { return isSouth; }
+    public boolean getSouthernHemisphere() {
+        throw new NoSuchElementException();
+    }
 
     /**
      * Set the projection scale factor. This is set to 1 by default.
@@ -767,21 +761,21 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     public Unit getUnits() {
         return this.unit != null ? this.unit : Units.METRES;
     }
-    
+
     /**
      * Get height of orbit - Geostationary satellite projection
      * @return Height of orbit
      */
     public double getHeightOfOrbit(){
-        return this.heightOfOrbit;
+        throw new NoSuchElementException();
     }
-    
+
     /**
      * Set height of orbit - Geostationary satellite projection
      * @param h Height of orbit
      */
     public void setHeightOfOrbit(double h){
-        this.heightOfOrbit = h;
+        throw new NoSuchElementException();
     }
 
     /**
@@ -823,6 +817,38 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
 
     /** Is this "projection" longlat? Overridden in LongLatProjection. */
     public Boolean isGeographic() {
+        return false;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        }
+        if (that instanceof Projection) {
+            Projection p = (Projection) that;
+            // Using Double.compare when values can be NaN and should still be equal
+            return (
+                // class represents implementation of project method
+                this.getClass().equals(that.getClass()) &&
+                ellipsoid.isEqual(p.ellipsoid) &&
+                falseNorthing == p.falseNorthing &&
+                falseEasting == p.falseEasting &&
+                scaleFactor == p.scaleFactor &&
+                fromMetres == p.fromMetres &&
+                trueScaleLatitude == p.trueScaleLatitude &&
+                projectionLatitude == p.projectionLatitude &&
+                projectionLongitude == p.projectionLongitude &&
+                projectionLatitude1 == p.projectionLatitude1 &&
+                projectionLatitude2 == p.projectionLatitude2 &&
+                minLatitude == p.minLatitude &&
+                maxLatitude == p.maxLatitude &&
+                minLongitude == p.minLongitude &&
+                maxLongitude == p.maxLongitude &&
+                axes.equals(p.axes) &&
+                unit.equals(p.unit) &&
+                primeMeridian.equals(p.primeMeridian));
+        }
         return false;
     }
 }

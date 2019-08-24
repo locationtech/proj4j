@@ -25,9 +25,9 @@ import org.locationtech.proj4j.util.ProjectionMath;
 public class StereographicAzimuthalProjection extends AzimuthalProjection {
 
 	private final static double TOL = 1.e-8;
-	
+
 	private double akm1;
-	
+
 	public StereographicAzimuthalProjection() {
 		this(Math.toRadians(90.0), Math.toRadians(0.0));
 	}
@@ -36,7 +36,7 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 		super(projectionLatitude, projectionLongitude);
 		initialize();
 	}
-	
+
 	public void setupUPS(int pole) {
 		projectionLatitude = (pole == SOUTH_POLE) ? -ProjectionMath.HALFPI: ProjectionMath.HALFPI;
 		projectionLongitude = 0.0;
@@ -46,7 +46,7 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 		trueScaleLatitude = ProjectionMath.HALFPI;
 		initialize();
 	}
-	
+
 	public void initialize() {
 		double t;
 
@@ -245,14 +245,14 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 		}
 		return lp;
 	}
-	
+
 	/**
 	 * Returns true if this projection is conformal
 	 */
 	public boolean isConformal() {
 		return true;
 	}
-	
+
 	public boolean hasInverse() {
 		return true;
 	}
@@ -266,6 +266,4 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 	public String toString() {
 		return "Stereographic Azimuthal";
 	}
-
 }
-

@@ -27,11 +27,11 @@ public abstract class AzimuthalProjection extends Projection {
 	public final static int SOUTH_POLE = 2;
 	public final static int EQUATOR = 3;
 	public final static int OBLIQUE = 4;
-	
+
 	protected int mode;
 	protected double sinphi0, cosphi0;
 	private double mapRadius = 90.0;
-	
+
 	public AzimuthalProjection() {
 		this( Math.toRadians(45.0), Math.toRadians(45.0) );
 	}
@@ -41,7 +41,7 @@ public abstract class AzimuthalProjection extends Projection {
 		this.projectionLongitude = projectionLongitude;
 		initialize();
 	}
-	
+
 	public void initialize() {
 		super.initialize();
 		if (Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) < EPS10)
@@ -69,5 +69,20 @@ public abstract class AzimuthalProjection extends Projection {
 		return mapRadius;
 	}
 
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof AzimuthalProjection) {
+					AzimuthalProjection p = (AzimuthalProjection) that;
+					return (
+						mode == p.mode &&
+						sinphi0 == p.sinphi0 &&
+						cosphi0 == p.cosphi0 &&
+						mapRadius == p.mapRadius &&
+						super.equals(that));
+			}
+			return false;
+	}
 }
-

@@ -36,7 +36,7 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 	public MolleweideProjection() {
 		this(Math.PI/2);
 	}
-	
+
 	public MolleweideProjection(int type) {
 		this.type = type;
 		switch (type) {
@@ -54,11 +54,11 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 			break;
 		}
 	}
-	
+
 	public MolleweideProjection(double p) {
 		init(p);
 	}
-	
+
 	public void init(double p) {
 		double r, sp, p2 = p + p;
 
@@ -96,7 +96,7 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 
 	public ProjCoordinate projectInverse(double x, double y, ProjCoordinate lp) {
 		double lat, lon;
-		
+
 		lat = Math.asin(y / cy);
 		lon = x / (cx * Math.cos(lat));
 		lat += lat;
@@ -105,7 +105,7 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 		lp.y = lat;
 		return lp;
 	}
-	
+
 	public boolean hasInverse() {
 		return true;
 	}
@@ -113,7 +113,7 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 	public boolean isEqualArea() {
 	    return true;
 	}
-	 
+
 	public String toString() {
 		switch (type) {
 		case WAGNER4:
@@ -122,5 +122,22 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 			return "Wagner V";
 		}
 		return "Molleweide";
+	}
+
+	@Override
+	public boolean equals(Object that) {
+			if (this == that) {
+					return true;
+			}
+			if (that instanceof MolleweideProjection) {
+					MolleweideProjection p = (MolleweideProjection) that;
+					return (
+						type == p.type &&
+						cx == p.cx &&
+						cy == p.cy &&
+						cp == p.cp &&
+						super.equals(that));
+			}
+			return false;
 	}
 }
