@@ -15,7 +15,6 @@
  *******************************************************************************/
 package org.locationtech.proj4j;
 
-import org.junit.Test;
 import org.locationtech.proj4j.CRSFactory;
 import org.locationtech.proj4j.CoordinateReferenceSystem;
 import org.locationtech.proj4j.CoordinateTransform;
@@ -35,39 +34,30 @@ public class CoordinateTransformTester {
         this.verbose = verbose;
     }
 
-    private ProjCoordinate p = new ProjCoordinate();
-    private ProjCoordinate p2 = new ProjCoordinate();
-
-    @Test
     public boolean checkTransformFromWGS84(String name, double lon, double lat, double x, double y) {
         return checkTransformFromWGS84(name, lon, lat, x, y, 0.0001);
     }
 
-    @Test
     public boolean checkTransformFromWGS84(String name, double lon, double lat, double x, double y, double tolerance) {
         return checkTransform(WGS84, lon, lat, createCRS(name), x, y, tolerance);
     }
 
-    @Test
     public boolean checkTransformToWGS84(String name, double x, double y, double lon, double lat, double tolerance) {
         return checkTransform(createCRS(name), x, y, WGS84, lon, lat, tolerance);
     }
 
-    @Test
     public boolean checkTransformFromGeo(String name, double lon, double lat, double x, double y, double tolerance) {
         CoordinateReferenceSystem crs = createCRS(name);
         CoordinateReferenceSystem geoCRS = crs.createGeographic();
         return checkTransform(geoCRS, lon, lat, crs, x, y, tolerance);
     }
 
-    @Test
     public boolean checkTransformToGeo(String name, double x, double y, double lon, double lat, double tolerance) {
         CoordinateReferenceSystem crs = createCRS(name);
         CoordinateReferenceSystem geoCRS = crs.createGeographic();
         return checkTransform(crs, x, y, geoCRS, lon, lat, tolerance);
     }
 
-    @Test
     private CoordinateReferenceSystem createCRS(String crsSpec) {
         CoordinateReferenceSystem crs = null;
         // test if name is a PROJ4 spec
@@ -79,13 +69,11 @@ public class CoordinateTransformTester {
         return crs;
     }
 
-    @Test
     private static String crsDisplay(CoordinateReferenceSystem crs) {
         return crs.getName()
                 + "(" + crs.getProjection() + "/" + crs.getDatum().getCode() + ")";
     }
 
-    @Test
     public boolean checkTransform(
             String srcCRS, double x1, double y1,
             String tgtCRS, double x2, double y2, double tolerance) {
@@ -94,7 +82,6 @@ public class CoordinateTransformTester {
                 createCRS(tgtCRS), x2, y2, tolerance);
     }
 
-    @Test
     public boolean checkTransform(
             String srcCRS, ProjCoordinate p1,
             String tgtCRS, ProjCoordinate p2, double tolerance) {
@@ -103,7 +90,6 @@ public class CoordinateTransformTester {
                 createCRS(tgtCRS), p2, tolerance);
     }
 
-    @Test
     public boolean checkTransform(
             CoordinateReferenceSystem srcCRS, double x1, double y1,
             CoordinateReferenceSystem tgtCRS, double x2, double y2,
@@ -114,7 +100,6 @@ public class CoordinateTransformTester {
                 tolerance);
     }
 
-    @Test
     public boolean checkTransform(
             CoordinateReferenceSystem srcCRS, ProjCoordinate p,
             CoordinateReferenceSystem tgtCRS, ProjCoordinate p2,
@@ -168,7 +153,6 @@ public class CoordinateTransformTester {
      * @param checkInverse
      * @return
      */
-    @Test
     public boolean checkTransform(
             String cs1, double x1, double y1,
             String cs2, double x2, double y2,
