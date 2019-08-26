@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.util.ProjectionMath;
 
@@ -87,5 +89,10 @@ class SineTangentSeriesProjection extends ConicProjection {
 						super.equals(that));
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(C_x, C_y, C_p, tan_mode, super.hashCode());
 	}
 }

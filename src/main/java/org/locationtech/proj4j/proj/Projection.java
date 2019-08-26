@@ -17,6 +17,7 @@
 package org.locationtech.proj4j.proj;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import org.locationtech.proj4j.*;
 import org.locationtech.proj4j.datum.AxisOrder;
@@ -820,6 +821,12 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
         return false;
     }
 
+    /**
+     * Represents quality between possible outputs of {@link #project(ProjCoordinate, ProjCoordinate) }.
+     * Subclasses of Projection should capture additional state that is used in the project method and delgate to base.
+     *
+     * Note: The name of the projection is not part of equality.
+     */
     @Override
     public boolean equals(Object that) {
         if (this == that) {
@@ -850,5 +857,17 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
                 primeMeridian.equals(p.primeMeridian));
         }
         return false;
+    }
+
+    /**
+     * Hash of those fields considered in Projection equalituy.
+     * Subclasses that override equality should override hashCode.
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getClass(),
+            ellipsoid, falseNorthing, falseEasting, scaleFactor, fromMetres, trueScaleLatitude,
+            projectionLatitude, projectionLongitude, projectionLatitude1, projectionLatitude2,
+            minLatitude, maxLatitude, minLongitude, maxLongitude, axes, unit, primeMeridian);
     }
 }

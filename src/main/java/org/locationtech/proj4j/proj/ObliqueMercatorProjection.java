@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.datum.Ellipsoid;
@@ -242,5 +244,10 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 						super.equals(that));
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(Gamma, alpha, lonc, super.hashCode());
 	}
 }

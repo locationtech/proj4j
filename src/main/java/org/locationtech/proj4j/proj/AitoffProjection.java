@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.ProjCoordinate;
 
 
@@ -84,5 +86,10 @@ public class AitoffProjection extends PseudoCylindricalProjection {
 					return (winkel == p.winkel && super.equals(that));
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(winkel, super.hashCode());
 	}
 }

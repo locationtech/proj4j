@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 
@@ -96,5 +98,10 @@ public class HammerProjection extends PseudoCylindricalProjection {
 						super.equals(that));
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(m, w, super.hashCode());
 	}
 }
