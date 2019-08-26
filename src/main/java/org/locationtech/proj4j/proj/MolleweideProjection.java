@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.ProjCoordinate;
 
 public class MolleweideProjection extends PseudoCylindricalProjection {
@@ -139,5 +141,10 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 						super.equals(that));
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(type, cx, cy, cp, super.hashCode());
 	}
 }

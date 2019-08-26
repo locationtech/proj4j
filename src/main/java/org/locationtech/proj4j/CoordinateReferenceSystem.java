@@ -23,6 +23,7 @@ import org.locationtech.proj4j.units.Unit;
 import org.locationtech.proj4j.units.Units;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Represents a projected or geodetic geospatial coordinate system,
@@ -134,4 +135,9 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
         }
         return false;
     }
+
+    @Override
+	public int hashCode() {
+			return Objects.hash(datum, proj);
+	}
 }
