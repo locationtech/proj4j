@@ -23,6 +23,7 @@ import static org.locationtech.proj4j.util.ProjectionMath.isIdentity;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.locationtech.proj4j.ProjCoordinate;
 
@@ -264,4 +265,9 @@ public class Datum implements java.io.Serializable {
     public void inverseShift(ProjCoordinate xy) {
         Grid.shift(grids, true, xy);
     }
+
+    @Override
+	public int hashCode() {
+			return Objects.hash(ellipsoid, grids, getTransformType());
+	}
 }
