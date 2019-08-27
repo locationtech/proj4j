@@ -359,6 +359,7 @@ public final class Ellipsoid implements Cloneable, java.io.Serializable {
         return name;
     }
 
+    @Override
     public int hashCode() {
         return name.hashCode()
                 | (7 * shortName.hashCode())
@@ -367,6 +368,7 @@ public final class Ellipsoid implements Cloneable, java.io.Serializable {
                 | (37 * Double.valueOf(eccentricity).hashCode());
     }
 
+    @Override
     public boolean equals(Object that) {
         if (this == that) return true;
         if (that instanceof Ellipsoid) {

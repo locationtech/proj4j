@@ -265,9 +265,4 @@ public class Datum implements java.io.Serializable {
     public void inverseShift(ProjCoordinate xy) {
         Grid.shift(grids, true, xy);
     }
-
-    @Override
-	public int hashCode() {
-			return Objects.hash(ellipsoid, grids, getTransformType());
-	}
 }
