@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.ProjectionMath;
@@ -187,5 +189,10 @@ maxLatitude = Math.toRadians(60);//FIXME
 					return (this.type == p.type) && super.equals(that);
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(type, super.hashCode());
 	}
 }

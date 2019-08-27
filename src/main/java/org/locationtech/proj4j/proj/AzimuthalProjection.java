@@ -16,6 +16,8 @@
 
 package org.locationtech.proj4j.proj;
 
+import java.util.Objects;
+
 import org.locationtech.proj4j.util.ProjectionMath;
 
 /**
@@ -84,5 +86,10 @@ public abstract class AzimuthalProjection extends Projection {
 						super.equals(that));
 			}
 			return false;
+	}
+
+	@Override
+	public int hashCode() {
+			return Objects.hash(mode, sinphi0, cosphi0, mapRadius, super.hashCode());
 	}
 }
