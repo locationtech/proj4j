@@ -15,6 +15,8 @@
  */
 package org.locationtech.proj4j.util;
 
+import java.util.Objects;
+
 public class Pair<A, B> {
 
     private A first;
@@ -70,6 +72,11 @@ public class Pair<A, B> {
         } else if (!second.equals(other.second))
             return false;
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getClass(), first, second);
     }
 
     public static <A, B> Pair<A, B> create(A first, B second) {
