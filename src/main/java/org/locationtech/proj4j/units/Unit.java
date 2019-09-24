@@ -18,6 +18,7 @@ package org.locationtech.proj4j.units;
 
 import java.io.Serializable;
 import java.text.NumberFormat;
+import java.util.Objects;
 
 public class Unit implements Serializable {
 
@@ -93,4 +94,9 @@ public class Unit implements Serializable {
         return false;
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getClass(), name, value);
+    }
+    
 }
