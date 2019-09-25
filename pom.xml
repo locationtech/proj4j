@@ -3,7 +3,7 @@
 
     <groupId>org.locationtech.proj4j</groupId>
     <artifactId>proj4j</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Proj4J</name>
     <url>https://github.com/locationtech/proj4j</url>
@@ -17,7 +17,7 @@
 	<scm>
 		<url>https://github.com/locationtech/proj4j.git</url>
 		<connection>scm:git:https://github.com/locationtech/proj4j.git</connection>
-		<tag>proj4j-1.1.0</tag>
+		<tag>HEAD</tag>
 	</scm>
 
     <developers>
