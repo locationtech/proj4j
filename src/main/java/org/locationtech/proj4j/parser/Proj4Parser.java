@@ -156,6 +156,11 @@ public class Proj4Parser {
         if (s != null)
             projection.setAxisOrder(s);
 
+        /* Radius of the sphere given in meters. If used in conjuction with +ellps +R takes precedence. */
+        s = (String) params.get(Proj4Keyword.R);
+        if (s != null)
+            projection.setRadius(Double.parseDouble(s));
+
         //TODO: implement some of these parameters ?
 
         // this must be done last, since behaviour depends on other params being set (eg +south)

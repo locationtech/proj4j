@@ -747,6 +747,10 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
         return ellipsoid;
     }
 
+    public void setRadius(double radius) {
+        a = radius;
+    }
+
     /**
      * Returns the ESPG code for this projection, or 0 if unknown.
      */
