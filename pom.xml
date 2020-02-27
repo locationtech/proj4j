@@ -159,17 +159,17 @@
 
     <profiles>
         <profile>
-            <id>locationtech</id>
+            <id>eclipse</id>
             <distributionManagement>
                 <repository>
-                    <id>repo.locationtech.org</id>
+                    <id>repo.eclipse.org</id>
                     <name>Proj4J Repository - Releases</name>
-                    <url>https://repo.locationtech.org/content/repositories/proj4j-releases/</url>
+                    <url>https://repo.eclipse.org/content/repositories/proj4j-releases/</url>
                 </repository>
                 <snapshotRepository>
-                    <id>repo.locationtech.org</id>
+                    <id>repo.eclipse.org</id>
                     <name>Proj4J Repository - Snapshots</name>
-                    <url>https://repo.locationtech.org/content/repositories/proj4j-snapshots/</url>
+                    <url>https://repo.eclipse.org/content/repositories/proj4j-snapshots/</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
