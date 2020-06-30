@@ -11,4 +11,11 @@ public class GeocentProjection extends Projection {
     geocentricConverter.convertGeodeticToGeocentric(dst);
     return dst;
   }
+  
+  @Override
+  public ProjCoordinate inverseProjectRadians(ProjCoordinate src, ProjCoordinate dst) {
+    GeocentricConverter geocentricConverter = new GeocentricConverter(this.ellipsoid);
+    geocentricConverter.convertGeocentricToGeodetic(dst);
+    return dst;
+  }
 }
