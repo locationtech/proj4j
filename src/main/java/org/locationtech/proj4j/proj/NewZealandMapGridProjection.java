@@ -49,8 +49,8 @@ public class NewZealandMapGridProjection extends Projection {
                  
     private final static double tpsi[] = { .6399175073, -.1358797613, .063294409, -.02526853, .0117879, -.0055161, .0026906, -.001333, .00067, -.00034 };
 
-    private final static double SECS_TO_RAD = ProjectionMath.DTR / 3600d;
-    private final static double RAD_TO_SECS = ProjectionMath.RTD * 3600d;
+    private final static double SECS_TO_RAD = 1E5 * ProjectionMath.DTR / 3600d;
+    private final static double RAD_TO_SECS = 1E-5 *ProjectionMath.RTD * 3600d;
 
 	public NewZealandMapGridProjection() {
 		initialize();
@@ -65,7 +65,7 @@ public class NewZealandMapGridProjection extends Projection {
             p.r = tpsi[i] + lpphi * p.r;
         p.r *= lpphi;
         p.i = lplam;
-        zpoly1(p, bf);
+        p = zpoly1(p, bf);
         out.x = p.i;
         out.y = p.r;
         return out;
@@ -92,9 +92,9 @@ public class NewZealandMapGridProjection extends Projection {
             dst.x = p.i;
             dst.y = tphi[tphi.length - 1];
             for (i = tphi.length - 1; i > 0; i--) {
-                dst.y = tphi[i] + p.r * dst.y;
+                dst.y = tphi[i-1] + p.r * dst.y;
             }
-            dst.y = projectionLongitude + p.r * dst.x * SECS_TO_RAD;
+            dst.y = projectionLatitude + p.r * dst.y * SECS_TO_RAD;
         } else
             dst.y = dst.x = Double.NaN;
         return dst;
