@@ -511,7 +511,7 @@ public class ProjectionMath {
                 b.r = a.r + z.r * (t = b.r) - z.i * b.i;
                 b.i = a.i + z.r * b.i + z.i * t;
             }
-            Complex c = C[i];
+            Complex c = C[i-1];
             a.r = c.r + z.r * (t = a.r) - z.i * a.i;
             a.i = c.i + z.r * a.i + z.i * t;
         }
@@ -525,7 +525,7 @@ public class ProjectionMath {
         return a;
     }
 
-    /**
+     /**
      * Tests whether the datum parameter-based transform
      * is the identity transform
      * (in which case datum transformation can be short-circuited,
