@@ -25,28 +25,28 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class TranverseCentralCylindricalProjection extends CylindricalProjection {
 
-	public TranverseCentralCylindricalProjection() {
-		minLongitude = ProjectionMath.degToRad(-60);
-		maxLongitude = ProjectionMath.degToRad(60);
-	}
-	
-	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		double b, bt;
+    public TranverseCentralCylindricalProjection() {
+        minLongitude = ProjectionMath.degToRad(-60);
+        maxLongitude = ProjectionMath.degToRad(60);
+    }
 
-		b = Math.cos(lpphi) * Math.sin(lplam);
-		if ((bt = 1. - b * b) < EPS10)
-			throw new ProjectionException("F");
-		out.x = b / Math.sqrt(bt);
-		out.y = Math.atan2(Math.tan(lpphi), Math.cos(lplam));
-		return out;
-	}
+    public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
+        double b, bt;
 
-	public boolean isRectilinear() {
-		return false;
-	}
+        b = Math.cos(lpphi) * Math.sin(lplam);
+        if ((bt = 1. - b * b) < EPS10)
+            throw new ProjectionException("F");
+        out.x = b / Math.sqrt(bt);
+        out.y = Math.atan2(Math.tan(lpphi), Math.cos(lplam));
+        return out;
+    }
 
-	public String toString() {
-		return "Transverse Central Cylindrical";
-	}
+    public boolean isRectilinear() {
+        return false;
+    }
+
+    public String toString() {
+        return "Transverse Central Cylindrical";
+    }
 
 }

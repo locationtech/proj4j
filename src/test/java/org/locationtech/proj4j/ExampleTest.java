@@ -100,6 +100,66 @@ public class ExampleTest {
         assertTrue(isInTolerance(p2, 33, 42, 0.000001));
     }
 
+    @Test
+    public void lccToUtmBidirectionalTransform() {
+
+        String sourceProjection = "+proj=lcc +lat_1=49 +lat_2=77 +lat_0=49 +lon_0=-95 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";
+        String targetProjection = "+proj=utm +zone=13 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";
+
+        CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
+        CRSFactory csFactory = new CRSFactory();
+        /*
+         * Create {@link CoordinateReferenceSystem} & CoordinateTransformation.
+         * Normally this would be carried out once and reused for all transformations
+         */
+        CoordinateReferenceSystem sourceCRS = csFactory.createFromParameters(null, sourceProjection);
+        CoordinateReferenceSystem targetCRS = csFactory.createFromParameters(null, targetProjection);
+
+        CoordinateTransform trans = ctFactory.createTransform(sourceCRS, targetCRS);
+        CoordinateTransform inverse = ctFactory.createTransform(targetCRS, sourceCRS);
+
+        /*
+         * Create input and output points.
+         * These can be constructed once per thread and reused.
+         */
+        ProjCoordinate p1 = new ProjCoordinate();
+        ProjCoordinate p2 = new ProjCoordinate();
+
+        p1.x = -2328478.0;
+        p1.y = -732244.0;
+        p2.x = 2641142.0;
+        p2.y = 3898488.0;
+
+        ProjCoordinate p1t = new ProjCoordinate();
+        ProjCoordinate p2t = new ProjCoordinate();
+
+        ProjCoordinate p1i = new ProjCoordinate();
+        ProjCoordinate p2i = new ProjCoordinate();
+
+        /*
+         * Transform point
+         */
+        trans.transform(p1, p1t);
+        trans.transform(p2, p2t);
+
+        inverse.transform(p1t, p1i);
+        inverse.transform(p2t, p2i);
+
+        // TransverseMercator: -898112.8947364385 4366397.986532097
+        // proj4js, ExtendedTransverseMercator: -898112.6757444271, 4366397.955450379
+        assertTrue(isInTolerance(p1t, -898112.6757444271, 4366397.955450379, 0.000001));
+        // TransverseMercator: 3168615.043479321 10060133.986247078
+        // proj4js, ExtendedTransverseMercator: 3196914.503779556, 10104027.377988787
+        assertTrue(isInTolerance(p2t, 3196914.503779556, 10104027.377988787, 0.000001));
+
+        // TransverseMercator: -2328476.414958664 -732244.6234315771
+        // proj4js, ExtendedTransverseMercator: -2328478.000000011, -732244.0000000233
+        assertTrue(isInTolerance(p1i, p1.x, p1.y, 0.000001));
+        // TransverseMercator: 0 4654175.264342441
+        // proj4js, ExtendedTransverseMercator: 2641142.000000019, 3898487.999999993
+        assertTrue(isInTolerance(p2i, p2.x, p2.y, 0.000001));
+    }
+
 
     private boolean isInTolerance(ProjCoordinate p, double x, double y, double tolerance) {
         /*

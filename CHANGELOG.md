@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix NZ Map projection and add a test for it [#62](https://github.com/locationtech/proj4j/issues/62)
+- Fix UTM projection [#71](https://github.com/locationtech/proj4j/pull/71)
 
 ## [1.1.1] - 2020-03-08
 
