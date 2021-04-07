@@ -194,6 +194,7 @@ public class Registry {
         register("fouc", FoucautProjection.class, "Foucaut");
         register("fouc_s", FoucautSinusoidalProjection.class, "Foucaut Sinusoidal");
         register("gall", GallProjection.class, "Gall (Gall Stereographic)");
+        register("geocent", GeocentProjection.class, "Geocentric");
         register("geos", GeostationarySatelliteProjection.class, "Geostationary Satellite");
 //    register( "gins8", Projection.class, "Ginsburg VIII (TsNIIGAiK)" );
 //    register( "gn_sinu", Projection.class, "General Sinusoidal Series" );
