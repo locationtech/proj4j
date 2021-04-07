@@ -160,6 +160,46 @@ public class ExampleTest {
         assertTrue(isInTolerance(p2i, p2.x, p2.y, 0.000001));
     }
 
+    @Test
+    public void latLonToLccBidirectionalTransform() {
+        String sourceProjection = "+proj=longlat +datum=WGS84 +no_defs";
+        String targetProjection = "+proj=lcc +lat_1=10.16666666666667 +lat_0=10.16666666666667 +lon_0=-71.60561777777777 +k_0=1 +x_0=0 +y_0=-52684.972 +ellps=intl +units=m +no_defs";
+
+        CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
+        CRSFactory csFactory = new CRSFactory();
+        /*
+         * Create {@link CoordinateReferenceSystem} & CoordinateTransformation.
+         * Normally this would be carried out once and reused for all transformations
+         */
+        CoordinateReferenceSystem sourceCRS = csFactory.createFromParameters(null, sourceProjection);
+        CoordinateReferenceSystem targetCRS = csFactory.createFromParameters(null, targetProjection);
+
+        CoordinateTransform trans = ctFactory.createTransform(sourceCRS, targetCRS);
+        CoordinateTransform inverse = ctFactory.createTransform(targetCRS, sourceCRS);
+
+        /*
+         * Create input and output points.
+         * These can be constructed once per thread and reused.
+         */
+        ProjCoordinate p = new ProjCoordinate();
+
+        p.x = 1;
+        p.y = -1;
+
+        ProjCoordinate pt = new ProjCoordinate();
+
+        ProjCoordinate pi = new ProjCoordinate();
+
+        /*
+         * Transform point
+         */
+        trans.transform(p, pt);
+        inverse.transform(pt, pi);
+
+        assertTrue(isInTolerance(pt, 8166119.317682125, -378218.6293696874, 0.000001));
+        assertTrue(isInTolerance(pi, p.x, p.y, 0.000001));
+    }
+
 
     private boolean isInTolerance(ProjCoordinate p, double x, double y, double tolerance) {
         /*
