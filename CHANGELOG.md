@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix NZ Map projection and add a test for it [#62](https://github.com/locationtech/proj4j/issues/62)
 - Update OrthographicAzimuthalProjection [#63](https://github.com/locationtech/proj4j/pull/63)
-- Fix UTM, LCC and Krovak projections [#71](https://github.com/locationtech/proj4j/pull/71)
+- Fix UTM, LCC, Krovak and Stere projections [#71](https://github.com/locationtech/proj4j/pull/71)
+- *2 in stereographic projection near the equator [#58](https://github.com/locationtech/proj4j/issues/58)
+- WebMercator EPSG code retrieved from proj4 parameters returns a legacy value [#61](https://github.com/locationtech/proj4j/issues/61)
 
 ### Added
 - Geocent projection support [#60](https://github.com/locationtech/proj4j/pull/60)

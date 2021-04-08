@@ -149,7 +149,8 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 				xy.x = A * cosX;
 				break;
 			case EQUATOR:
-				A = 2. * akm1 / (1. + cosX * coslam);
+				// https://github.com/OSGeo/PROJ/blob/8.0.0/src/projections/stere.cpp#L77
+				A = akm1 / (1. + cosX * coslam);
 				xy.y = A * sinX;
 				xy.x = A * cosX;
 				break;
