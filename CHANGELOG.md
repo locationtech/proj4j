@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2021-04-12
+
 ### Fixed
 - Fix NZ Map projection and add a test for it [#62](https://github.com/locationtech/proj4j/issues/62)
 - Update OrthographicAzimuthalProjection [#63](https://github.com/locationtech/proj4j/pull/63)
@@ -49,7 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix possible `null` dereference [#16](https://github.com/locationtech/proj4j/pull/16)
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
-[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/locationtech/proj4j/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/locationtech/proj4j/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/locationtech/proj4j/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/locationtech/proj4j/compare/def8d6f3a1408676969eb7ce20c1f1eafa1ce010...v1.0.0
