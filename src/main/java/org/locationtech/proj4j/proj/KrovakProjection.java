@@ -31,6 +31,9 @@ import org.locationtech.proj4j.util.ProjectionMath;
  */
 public class KrovakProjection extends Projection {
 
+    // TODO: should be set on parsing https://github.com/OSGeo/PROJ/blob/e3d7e18f988230973ced5163fa2581b6671c8755/src/projections/krovak.cpp#L219
+    boolean czech = false;
+
 	public KrovakProjection() {
 		minLatitude = Math.toRadians(-60);
 		maxLatitude = Math.toRadians(60);
@@ -93,12 +96,10 @@ public class KrovakProjection extends Projection {
         out.y = ro * cos(eps) / a;
         out.x = ro * sin(eps) / a;
 
-        // TODO: Is the 'czech' parameter used?
-        // if( !pj_param(P->ctx, P->params, "tczech").i )
-        // {
-        //     out.y *= -1.0;
-        //     out.x *= -1.0;
-        // }
+        if(!czech) {
+            out.y *= -1.0;
+            out.x *= -1.0;
+        }
 
         return out;
     }
@@ -144,15 +145,14 @@ public class KrovakProjection extends Projection {
 
         /* Transformation */
         /* revert y, x*/
-        xy0=dst.x;
-        dst.x=dst.y;
-        dst.y=xy0;
+        xy0 = dst.x;
+        dst.x = dst.y;
+        dst.y = xy0;
 
-        // if( !pj_param(P->ctx, P->params, "tczech").i )
-        // {
-        //     xy.x *= -1.0;
-        //     xy.y *= -1.0;
-        // }
+        if(!czech) {
+          dst.x *= -1.0;
+          dst.y *= -1.0;
+        }
 
         ro = sqrt(dst.x * dst.x + dst.y * dst.y);
         eps = atan2(dst.y, dst.x);

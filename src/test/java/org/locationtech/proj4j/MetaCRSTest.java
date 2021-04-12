@@ -20,60 +20,76 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
-import org.locationtech.proj4j.CRSFactory;
-import org.locationtech.proj4j.Proj4jException;
 import org.locationtech.proj4j.io.MetaCRSTestCase;
 import org.locationtech.proj4j.io.MetaCRSTestFileReader;
 
 /**
  * Runs MetaCRS test files.
- * 
+ *
  * @author mbdavis
- * 
  */
 public class MetaCRSTest {
 
-	private static CRSFactory csFactory = new CRSFactory();
+    private static CRSFactory csFactory = new CRSFactory();
 
-	@Test
-	public void xtestMetaCRSExample() throws IOException {
-        //todo: tidy rel paths
-		File file = getFile("../../../TestData.csv");
-		MetaCRSTestFileReader reader = new MetaCRSTestFileReader(file);
-		List<MetaCRSTestCase> tests = reader.readTests();
-		for (MetaCRSTestCase test : tests) {
-			runTest(test);
-		}
-	}
+    @Test
+    public void xtestMetaCRSExample() throws IOException {
+        File file = getFile("TestData.csv");
+        MetaCRSTestFileReader reader = new MetaCRSTestFileReader(file);
+        List<MetaCRSTestCase> tests = reader.readTests();
+        for (MetaCRSTestCase test : tests) {
+            Assert.assertTrue(runTest(test));
+        }
+    }
 
-	@Test
-	public void testPROJ4_SPCS() throws IOException {
-		File file = getFile("../../../PROJ4_SPCS_EPSG_nad83.csv");
-		MetaCRSTestFileReader reader = new MetaCRSTestFileReader(file);
-		List<MetaCRSTestCase> tests = reader.readTests();
-		for (MetaCRSTestCase test : tests) {
-			runTest(test);
-		}
-	}
+    @Test
+    public void testPROJ4_SPCS() throws IOException {
+        File file = getFile("PROJ4_SPCS_EPSG_nad83.csv");
+        MetaCRSTestFileReader reader = new MetaCRSTestFileReader(file);
+        List<MetaCRSTestCase> tests = reader.readTests();
+        for (MetaCRSTestCase test : tests) {
+            Assert.assertTrue(runTest(test));
+        }
+    }
 
-	File getFile(String name) {
-		try {
-			return new File(this.getClass().getResource(name).toURI());
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
+    @Test
+    public void testPROJ4_Empirical() throws IOException {
+        File file = getFile("proj4-epsg.csv");
+        MetaCRSTestFileReader reader = new MetaCRSTestFileReader(file);
+        List<MetaCRSTestCase> tests = reader.readTests();
+        for (MetaCRSTestCase test : tests) {
+            boolean testResult = runTest(test);
+            String testMethod = test.getTestMethod();
 
-	void runTest(MetaCRSTestCase crsTest) {
-		try {
-			crsTest.execute(csFactory);
-			crsTest.print(System.out);
-		} catch (Proj4jException ex) {
-			System.out.println(ex);
-		}
-	}
+            if (testMethod.equals(MetaCRSTestCase.PASSING)) {
+                Assert.assertTrue(testResult);
+            } else {
+                Assert.assertFalse(testResult);
+            }
+        }
+    }
 
+    File getFile(String name) {
+        try {
+            return new File(this.getClass().getResource("../../../" + name).toURI());
+        } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    boolean runTest(MetaCRSTestCase crsTest) {
+        boolean returnCode = false;
+        try {
+            returnCode = crsTest.execute(csFactory);
+            crsTest.print(System.out);
+        } catch (Proj4jException ex) {
+            System.out.println(ex);
+        }
+
+        return returnCode;
+    }
 }

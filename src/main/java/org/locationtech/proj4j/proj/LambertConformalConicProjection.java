@@ -30,12 +30,14 @@ public class LambertConformalConicProjection extends ConicProjection {
 	public LambertConformalConicProjection() {
 		minLatitude = Math.toRadians(0);
 		maxLatitude = Math.toRadians(80.0);
-		projectionLatitude = ProjectionMath.QUARTERPI;
+		// an incorrect init, LCC is sensitive to input parameters
+		// init should happen only after the LCC projection parsing
+		// projectionLatitude = ProjectionMath.QUARTERPI;
 		projectionLatitude1 = 0;
 		projectionLatitude2 = 0;
-		initialize();
+		// initialize();
 	}
-	
+
 	/**
 	* Set up a projection suitable for State Place Coordinates.
 	*/
@@ -50,13 +52,13 @@ public class LambertConformalConicProjection extends ConicProjection {
 		projectionLatitude2 = lat_2;
 		initialize();
 	}
-	
+
 	public ProjCoordinate project(double x, double y, ProjCoordinate out) {
 		double rho;
 		if (Math.abs(Math.abs(y) - ProjectionMath.HALFPI) < 1e-10)
 			rho = 0.0;
 		else {
-			rho = c * (spherical ? 
+			rho = c * (spherical ?
 			    Math.pow(Math.tan(ProjectionMath.QUARTERPI + .5 * y), -n) :
 			      Math.pow(ProjectionMath.tsfn(y, Math.sin(y), e), n));
     }
@@ -92,8 +94,19 @@ public class LambertConformalConicProjection extends ConicProjection {
 		double cosphi, sinphi;
 		boolean secant;
 
-		if ( projectionLatitude1 == 0 )
-			projectionLatitude1 = projectionLatitude2 = projectionLatitude;
+		// Old code:
+		// if ( projectionLatitude1 == 0 )
+			// projectionLatitude1 = projectionLatitude2 = projectionLatitude;
+
+		// https://github.com/OSGeo/PROJ/blob/e3d7e18f988230973ced5163fa2581b6671c8755/src/projections/lcc.cpp#L89-L96
+		// if there is no lat2 set it to lat1
+		if (projectionLatitude2 == 0) {
+			projectionLatitude2 = projectionLatitude1;
+			// if there is no lat0, set it to lat1
+			if(projectionLatitude == 0)
+				projectionLatitude = projectionLatitude1;
+		}
+
 
 		if (Math.abs(projectionLatitude1 + projectionLatitude2) < 1e-10)
 			throw new ProjectionException();
@@ -124,7 +137,7 @@ public class LambertConformalConicProjection extends ConicProjection {
 				c * Math.pow(Math.tan(ProjectionMath.QUARTERPI + .5 * projectionLatitude), -n);
 		}
 	}
-	
+
 	/**
 	 * Returns true if this projection is conformal
 	 */
