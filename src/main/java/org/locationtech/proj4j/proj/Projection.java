@@ -642,6 +642,13 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     /**
      * Sets the alpha value.
      */
+    public void setAlpha( double alpha ) {
+        this.alpha = alpha;
+    }
+    
+    /**
+     * Sets the alpha value.
+     */
     public void setAlphaDegrees( double alpha ) {
         this.alpha = DTR * alpha;
     }
@@ -655,12 +662,19 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     {
         return alpha;
     }
-
+    
+    /**
+     * Sets the lonc value.
+     */
+    public void setLonC( double lonc ) {
+        this.lonc = lonc;
+    }
+    
     /**
      * Sets the lonc value.
      */
     public void setLonCDegrees( double lonc ) {
-        this.lonc = DTR * lonc;
+    	this.lonc = DTR * lonc;
     }
 
     /**
@@ -817,6 +831,14 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     }
 
     public void setGamma(double gamma) {
+        // no-op, overridden for Oblique Mercator
+    }
+    
+    public void setGammaDegrees(double gamma) {
+    	setGamma(DTR * gamma);
+    }
+
+    public void setNoUoff(boolean no_uoff) {
         // no-op, overridden for Oblique Mercator
     }
 

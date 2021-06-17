@@ -44,6 +44,7 @@ public class Proj4JSTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:3573", 9.84375, 61.875, 2923052.02009, 1054885.46559, 0.1);
         checkTransformToGeo("EPSG:27200",2464770.343667, 6056137.861919,172.465,-40.7,0.1);
         checkTransformFromGeo("EPSG:27200",172.465,-40.7, 2464780.81,6056330.22,0.1);
+        checkTransformFromGeo("EPSG:3375", 101.70979078430528, 3.06268465621428, 412597.532715, 338944.957259, 0.1);
     }
 
 //    @Test
