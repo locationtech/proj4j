@@ -67,7 +67,7 @@ public class Proj4Keyword {
     public static final String nadgrids = "nadgrids";
     public static final String no_defs = "no_defs";
     public static final String wktext = "wktext";
-    public static final String no_uoff = "no_uoff"; // TODO: Implement no_uoff parameter
+    public static final String no_uoff = "no_uoff";
 
 
     private static Set<String> supportedParams = null;

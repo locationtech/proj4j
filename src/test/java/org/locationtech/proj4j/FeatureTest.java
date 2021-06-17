@@ -44,10 +44,10 @@ public class FeatureTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:27563", 3.005, 43.89, 653704.865208, 176887.660037);
     }
 
-//    @Test
-    public void NOTSUPPORTED_testGamma() {
+    @Test
+    public void testGamma() {
         // from Proj4.JS
-        checkTransformFromGeo("EPSG:2057", -53.0, 5.0, -1.160832226E7, 1.828261223E7, 0.1);
+    	checkTransformFromWGS84("EPSG:2057", -53.0, 5.0, -1.160832226E7, 1.828261223E7, 0.1);
     }
 
     @Test
