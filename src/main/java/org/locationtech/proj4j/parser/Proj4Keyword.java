@@ -111,12 +111,12 @@ public class Proj4Keyword {
             supportedParams.add(axis);
 
             supportedParams.add(gamma);       // Just for Oblique Mercator projection
+            supportedParams.add(no_uoff);     // Just for Oblique Mercator projection
             supportedParams.add(zone);        // Just for Transverse Mercator projection
 
             supportedParams.add(title);       // no-op
             supportedParams.add(no_defs);     // no-op
             supportedParams.add(wktext);      // no-op
-            supportedParams.add(no_uoff);     // no-op
         }
         return supportedParams;
     }
