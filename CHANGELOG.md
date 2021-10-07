@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Adjustment to OSGB36 datum transform e.g. EPSG: 27700
+
 ## [1.1.3] - 2021-06-17
 
 ### Fixed
