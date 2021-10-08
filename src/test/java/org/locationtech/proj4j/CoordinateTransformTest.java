@@ -217,6 +217,10 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:21781", 8.23, 46.82, 660309.34, 185586.30, 0.1);
         checkTransformFromWGS84("EPSG:27700", -8.82, 49.79, -90619.28789678006, 10097.131147458786, 0.0);
         checkTransformToWGS84("EPSG:27700", 612435.55, 1234954.16, 1.9200000236235546, 60.93999999543101, 0.0);
+        checkTransformToWGS84("EPSG:27700", 327420.988668, 690284.547110, -3.1683134533969364, 56.0998025292667, 0.0);
+        checkTransformFromWGS84("EPSG:3857", -3.1683134533969364, 56.0998025292667, -352695.04030562507, 7578309.225014557, 0.0);
+        // TODO https://github.com/locationtech/proj4j/issues/32
+        //checkTransform("EPSG:27700", 327420.988668, 690284.547110, "EPSG:3857", -352695.04030562507, 7578309.225014557, 0.0);
     }
 
     @Test
