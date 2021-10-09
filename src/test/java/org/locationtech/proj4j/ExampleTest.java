@@ -17,9 +17,11 @@ package org.locationtech.proj4j;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.locationtech.proj4j.datum.Datum;
 
 import java.io.IOException;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -221,12 +223,15 @@ public class ExampleTest {
     @Test
     public void epsgWebMercatorLegacyTest() {
         CRSFactory csFactory = new CRSFactory();
+        String parameters = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs";
         try {
-            String code = csFactory.readEpsgFromParameters("+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs");
+            String code = csFactory.readEpsgFromParameters(parameters);
             Assert.assertEquals(Integer.parseInt(code), 3857);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        CoordinateReferenceSystem crs = csFactory.createFromParameters("EPSG:3857", parameters);
+        assertTrue(crs.getDatum().getTransformType() != Datum.TYPE_GRIDSHIFT);
     }
 
     private boolean isInTolerance(ProjCoordinate p, double x, double y, double tolerance) {

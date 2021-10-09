@@ -314,6 +314,7 @@ public final class Grid implements Serializable {
             for (String gridName : grids.split(",")) {
                 boolean optional = gridName.startsWith("@");
                 if (optional) gridName = gridName.substring(1);
+                if (gridName.equals("null")) return null;
                 try {
                     mergeGridFile(gridName, gridlist);
                 } catch (IOException e) {
