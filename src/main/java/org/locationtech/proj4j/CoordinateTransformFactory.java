@@ -68,11 +68,12 @@ public class CoordinateTransformFactory {
      */
     private boolean checkNotWGS(CoordinateReferenceSystem sourceCRS, CoordinateReferenceSystem targetCRS) {
     	boolean notWGS = false;
-    	Datum sourceDatum = sourceCRS.getDatum();
-    	Datum targetDatum = targetCRS.getDatum();
-    	if(sourceDatum != null && targetDatum != null && !sourceDatum.equals(targetDatum)) {
-    		notWGS = (sourceDatum.hasTransformToWGS84() && !targetCRS.isGeographic())
-    				|| (targetDatum.hasTransformToWGS84() && !sourceCRS.isGeographic());
+    	if(!sourceCRS.isGeographic() && !targetCRS.isGeographic()) {
+    		Datum sourceDatum = sourceCRS.getDatum();
+    		Datum targetDatum = targetCRS.getDatum();
+    		if(sourceDatum != null && targetDatum != null && !sourceDatum.equals(targetDatum)) {
+    			notWGS = sourceDatum.hasTransformToWGS84() || targetDatum.hasTransformToWGS84();
+    		}
     	}
     	return notWGS;
     }
