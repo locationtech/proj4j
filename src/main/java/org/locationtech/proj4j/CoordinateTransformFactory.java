@@ -15,6 +15,8 @@
  */
 package org.locationtech.proj4j;
 
+import org.locationtech.proj4j.datum.Datum;
+
 /**
  * Creates {@link CoordinateTransform}s
  * from source and target {@link CoordinateReferenceSystem}s.
@@ -32,9 +34,47 @@ public class CoordinateTransformFactory {
      *
      * @param sourceCRS the source CoordinateReferenceSystem
      * @param targetCRS the target CoordinateReferenceSystem
-     * @return a tranformation from the source CRS to the target CRS
+     * @return a transformation from the source CRS to the target CRS
      */
     public CoordinateTransform createTransform(CoordinateReferenceSystem sourceCRS, CoordinateReferenceSystem targetCRS) {
-        return new BasicCoordinateTransform(sourceCRS, targetCRS);
+    	CoordinateTransform transform = null;
+    	if(checkNotWGS(sourceCRS, targetCRS)) {
+    		CoordinateReferenceSystem wgs84 = new CRSFactory().createFromName("EPSG:4326");
+    		transform = createTransform(sourceCRS, wgs84, targetCRS);
+    	}else {
+    		transform = new BasicCoordinateTransform(sourceCRS, targetCRS);
+    	}
+    	return transform;
     }
+    
+    /**
+     * Creates a transformation from a source CRS, through an intermediary, to a target CRS
+     *
+     * @param sourceCRS the source CoordinateReferenceSystem
+     * @param intmCRS the intermediary CoordinateReferenceSystem
+     * @param targetCRS the target CoordinateReferenceSystem
+     * @return a transformation from the source CRS to the target CRS
+     */
+    public CoordinateTransform createTransform(CoordinateReferenceSystem sourceCRS, 
+    		CoordinateReferenceSystem intmCRS, CoordinateReferenceSystem targetCRS) {
+    	return new CompoundCoordinateTransform(sourceCRS, intmCRS, targetCRS);
+    }
+    
+    /**
+     * Check if CRS datum WGS84 transformations exist between non WGS84 datums
+     * @param sourceCRS the source CoordinateReferenceSystem
+     * @param targetCRS the target CoordinateReferenceSystem
+     * @return true it not WGS84 transformations when required
+     */
+    private boolean checkNotWGS(CoordinateReferenceSystem sourceCRS, CoordinateReferenceSystem targetCRS) {
+    	boolean notWGS = false;
+    	Datum sourceDatum = sourceCRS.getDatum();
+    	Datum targetDatum = targetCRS.getDatum();
+    	if(sourceDatum != null && targetDatum != null && !sourceDatum.equals(targetDatum)) {
+    		notWGS = (sourceDatum.hasTransformToWGS84() && !targetCRS.isGeographic())
+    				|| (targetDatum.hasTransformToWGS84() && !sourceCRS.isGeographic());
+    	}
+    	return notWGS;
+    }
+    
 }
