@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Adjustment to OSGB36 datum transform e.g. EPSG: 27700
+- Datum toWGS84 transformations of non geographic Coordinate Reference Systems e.g. EPSG: 27700 [#32](https://github.com/locationtech/proj4j/issues/32)
 - +nadgrids=@null support e.g. EPSG: 3857
 
 ## [1.1.3] - 2021-06-17

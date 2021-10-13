@@ -165,6 +165,10 @@ public class Datum implements java.io.Serializable {
 
     public boolean hasTransformToWGS84() {
         int transformType = getTransformType();
+        return isTransformToWGS84(transformType);
+    }
+
+    public static boolean isTransformToWGS84(int transformType) {
         return transformType == TYPE_3PARAM || transformType == TYPE_7PARAM;
     }
 

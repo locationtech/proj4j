@@ -70,6 +70,12 @@ public class BasicCoordinateTransform implements CoordinateTransform {
                                     CoordinateReferenceSystem tgtCRS) {
         this.srcCRS = srcCRS;
         this.tgtCRS = tgtCRS;
+        Datum srcDatum = srcCRS.getDatum();
+        Datum tgtDatum = tgtCRS.getDatum();
+        int srcTransformType = srcDatum.getTransformType();
+        int tgtTransformType = tgtDatum.getTransformType();
+        boolean srcTransformToWGS84 = Datum.isTransformToWGS84(srcTransformType);
+        boolean tgtTransformToWGS84 = Datum.isTransformToWGS84(tgtTransformType);
 
         // compute strategy for transformation at initialization time, to make transformation more efficient
         // this may include precomputing sets of parameters
@@ -77,25 +83,39 @@ public class BasicCoordinateTransform implements CoordinateTransform {
         doInverseProjection = (srcCRS != CoordinateReferenceSystem.CS_GEO);
         doForwardProjection = (tgtCRS != CoordinateReferenceSystem.CS_GEO);
         doDatumTransform = doInverseProjection && doForwardProjection
-                && srcCRS.getDatum() != tgtCRS.getDatum();
+                && srcCRS.getDatum() != tgtCRS.getDatum()
+                && !srcCRS.getDatum().isEqual(tgtCRS.getDatum())
+                && (srcTransformToWGS84 || tgtTransformToWGS84 ||
+                        (srcTransformType != Datum.TYPE_UNKNOWN && tgtTransformType != Datum.TYPE_UNKNOWN));
 
         if (doDatumTransform) {
 
-            boolean isEllipsoidEqual = srcCRS.getDatum().getEllipsoid().isEqual(tgtCRS.getDatum().getEllipsoid());
-            transformViaGeocentric = ! isEllipsoidEqual || srcCRS.getDatum().hasTransformToWGS84()
-                    || tgtCRS.getDatum().hasTransformToWGS84();
+            Ellipsoid srcEllipsoid = srcDatum.getEllipsoid();
+            Ellipsoid tgtEllipsoid = tgtDatum.getEllipsoid();
+
+            transformViaGeocentric = ! srcEllipsoid.isEqual(tgtEllipsoid)
+                    || srcTransformToWGS84 || tgtTransformToWGS84;
 
             if (transformViaGeocentric) {
-                srcGeoConv = new GeocentricConverter(srcCRS.getDatum().getEllipsoid());
-                tgtGeoConv = new GeocentricConverter(tgtCRS.getDatum().getEllipsoid());
 
-                if (srcCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
-                    srcGeoConv.overrideWithWGS84Params();
+                if (srcTransformToWGS84 || tgtCRS.isGeographic()) {
+                    srcGeoConv = new GeocentricConverter(srcEllipsoid);
+                    if (srcTransformType == Datum.TYPE_GRIDSHIFT) {
+                        srcGeoConv.overrideWithWGS84Params();
+                    }
+                }else {
+                    srcGeoConv = new GeocentricConverter(Ellipsoid.WGS84);
                 }
 
-                if (tgtCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
-                    tgtGeoConv.overrideWithWGS84Params();
+                if (tgtTransformToWGS84 || srcCRS.isGeographic()) {
+                    tgtGeoConv = new GeocentricConverter(tgtEllipsoid);
+                    if (tgtTransformType == Datum.TYPE_GRIDSHIFT) {
+                        tgtGeoConv.overrideWithWGS84Params();
+                    }
+                }else {
+                    tgtGeoConv = new GeocentricConverter(Ellipsoid.WGS84);
                 }
+
             }
 
         } else {
@@ -164,13 +184,6 @@ public class BasicCoordinateTransform implements CoordinateTransform {
      * @param pt the point containing the input and output values
      */
     private void datumTransform(ProjCoordinate pt) {
-        /* -------------------------------------------------------------------- */
-        /*      Short cut if the datums are identical.                          */
-        /* -------------------------------------------------------------------- */
-        if (srcCRS.getDatum().isEqual(tgtCRS.getDatum())
-                || srcCRS.getDatum().getTransformType() == Datum.TYPE_UNKNOWN
-                || tgtCRS.getDatum().getTransformType() == Datum.TYPE_UNKNOWN)
-            return;
 
         if (srcCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
             srcCRS.getDatum().shift(pt);
