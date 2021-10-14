@@ -98,22 +98,16 @@ public class BasicCoordinateTransform implements CoordinateTransform {
 
             if (transformViaGeocentric) {
 
-                if (srcTransformToWGS84 || tgtCRS.isGeographic()) {
-                    srcGeoConv = new GeocentricConverter(srcEllipsoid);
-                    if (srcTransformType == Datum.TYPE_GRIDSHIFT) {
-                        srcGeoConv.overrideWithWGS84Params();
-                    }
-                }else {
-                    srcGeoConv = new GeocentricConverter(Ellipsoid.WGS84);
+                srcGeoConv = new GeocentricConverter(srcEllipsoid);
+                if(srcTransformType == Datum.TYPE_GRIDSHIFT
+                        || (!srcTransformToWGS84 && !tgtCRS.isGeographic())) {
+                    srcGeoConv.overrideWithWGS84Params();
                 }
 
-                if (tgtTransformToWGS84 || srcCRS.isGeographic()) {
-                    tgtGeoConv = new GeocentricConverter(tgtEllipsoid);
-                    if (tgtTransformType == Datum.TYPE_GRIDSHIFT) {
-                        tgtGeoConv.overrideWithWGS84Params();
-                    }
-                }else {
-                    tgtGeoConv = new GeocentricConverter(Ellipsoid.WGS84);
+                tgtGeoConv = new GeocentricConverter(tgtEllipsoid);
+                if(tgtTransformType == Datum.TYPE_GRIDSHIFT
+                        || (!tgtTransformToWGS84 && !srcCRS.isGeographic())) {
+                    tgtGeoConv.overrideWithWGS84Params();
                 }
 
             }
