@@ -79,28 +79,43 @@ public class BasicCoordinateTransform implements CoordinateTransform {
         doDatumTransform = doInverseProjection && doForwardProjection
                 && srcCRS.getDatum() != tgtCRS.getDatum();
 
+        boolean geocentric = false;
+
         if (doDatumTransform) {
 
             boolean isEllipsoidEqual = srcCRS.getDatum().getEllipsoid().isEqual(tgtCRS.getDatum().getEllipsoid());
-            transformViaGeocentric = ! isEllipsoidEqual || srcCRS.getDatum().hasTransformToWGS84()
+            geocentric = ! isEllipsoidEqual || srcCRS.getDatum().hasTransformToWGS84()
                     || tgtCRS.getDatum().hasTransformToWGS84();
 
-            if (transformViaGeocentric) {
+            if (geocentric) {
                 srcGeoConv = new GeocentricConverter(srcCRS.getDatum().getEllipsoid());
                 tgtGeoConv = new GeocentricConverter(tgtCRS.getDatum().getEllipsoid());
 
-                if (srcCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
-                    srcGeoConv.overrideWithWGS84Params();
-                }
+                int srcTransformType = srcCRS.getDatum().getTransformType();
+                int tgtTransformType = tgtCRS.getDatum().getTransformType();
 
-                if (tgtCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
-                    tgtGeoConv.overrideWithWGS84Params();
+                if (srcTransformType == Datum.TYPE_GRIDSHIFT || tgtTransformType == Datum.TYPE_GRIDSHIFT) {
+
+	                if (srcTransformType == Datum.TYPE_GRIDSHIFT) {
+	                    srcGeoConv.overrideWithWGS84Params();
+	                }
+
+	                if (tgtTransformType == Datum.TYPE_GRIDSHIFT) {
+	                    tgtGeoConv.overrideWithWGS84Params();
+	                }
+
+	                if(srcGeoConv.isEqual(tgtGeoConv)) {
+	                    geocentric = false;
+	                    srcGeoConv = null;
+	                    tgtGeoConv = null;
+	                }
+
                 }
             }
 
-        } else {
-        	transformViaGeocentric=false;
         }
+
+        transformViaGeocentric = geocentric;
     }
 
     @Override
