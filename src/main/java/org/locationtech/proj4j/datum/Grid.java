@@ -91,6 +91,8 @@ public final class Grid implements Serializable {
 
         for (Grid grid : grids) {
             ConversionTable table = grid.table;
+            // don't shift if the grid is invalid
+            // https://github.com/OSGeo/PROJ/blob/5.2.0/src/pj_gridlist.c#L88
             if(table == null) continue;
             double epsilon = (Math.abs(table.del.phi) + Math.abs(table.del.lam)) / 10000d;
             // Skip tables that don't match our point at all

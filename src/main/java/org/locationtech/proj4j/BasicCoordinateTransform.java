@@ -104,6 +104,8 @@ public class BasicCoordinateTransform implements CoordinateTransform {
 	                    tgtGeoConv.overrideWithWGS84Params();
 	                }
 
+	                // After WGS84 params override, check if geocentric transform is still required
+	                // https://github.com/OSGeo/PROJ/blob/5.2.0/src/pj_transform.c#L892
 	                if(srcGeoConv.isEqual(tgtGeoConv)) {
 	                    geocentric = false;
 	                    srcGeoConv = null;
@@ -187,6 +189,10 @@ public class BasicCoordinateTransform implements CoordinateTransform {
                 || tgtCRS.getDatum().getTransformType() == Datum.TYPE_UNKNOWN)
             return;
 
+        /* -------------------------------------------------------------------- */
+        /*	If this datum requires grid shifts, then apply it to geodetic    */
+        /*      coordinates.                                                    */
+        /* -------------------------------------------------------------------- */
         if (srcCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
             srcCRS.getDatum().shift(pt);
         }
@@ -217,7 +223,9 @@ public class BasicCoordinateTransform implements CoordinateTransform {
             tgtGeoConv.convertGeocentricToGeodetic(pt);
         }
 
-
+        /* -------------------------------------------------------------------- */
+        /*      Apply grid shift to destination if required.                    */
+        /* -------------------------------------------------------------------- */
         if (tgtCRS.getDatum().getTransformType() == Datum.TYPE_GRIDSHIFT) {
             tgtCRS.getDatum().inverseShift(pt);
         }

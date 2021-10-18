@@ -60,6 +60,7 @@ public class GeocentricConverter implements java.io.Serializable {
     double ep2;
 
     public GeocentricConverter(Ellipsoid ellipsoid) {
+        // Preserve the ellipsoid value precisions
         this(ellipsoid.getA(), ellipsoid.getB(), ellipsoid.getEccentricitySquared());
     }
 
@@ -78,7 +79,9 @@ public class GeocentricConverter implements java.io.Serializable {
     }
 
     public boolean isEqual(GeocentricConverter gc) {
-        return this.a == gc.a && (this.e2 == gc.e2 || this.b == gc.b);
+        // Check if geocentricly equal
+        // https://github.com/OSGeo/PROJ/blob/5.2.0/src/pj_transform.c#L892
+        return this.a == gc.a && this.e2 == gc.e2;
     }
 
     /**
