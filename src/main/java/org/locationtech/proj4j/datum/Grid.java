@@ -91,6 +91,9 @@ public final class Grid implements Serializable {
 
         for (Grid grid : grids) {
             ConversionTable table = grid.table;
+            // don't shift if the grid is invalid
+            // https://github.com/OSGeo/PROJ/blob/5.2.0/src/pj_gridlist.c#L88
+            if(table == null) continue;
             double epsilon = (Math.abs(table.del.phi) + Math.abs(table.del.lam)) / 10000d;
             // Skip tables that don't match our point at all
             if (table.ll.phi - epsilon > input.phi
@@ -314,7 +317,6 @@ public final class Grid implements Serializable {
             for (String gridName : grids.split(",")) {
                 boolean optional = gridName.startsWith("@");
                 if (optional) gridName = gridName.substring(1);
-                if (gridName.equals("null")) return null;
                 try {
                     mergeGridFile(gridName, gridlist);
                 } catch (IOException e) {
@@ -331,6 +333,7 @@ public final class Grid implements Serializable {
         grid.gridName = gridName;
         grid.format = "missing";
         grid.gridOffset = 0;
+        if (gridName.equals("null")) return grid;
         try(DataInputStream gridDefinition = resolveGridDefinition(gridName)) {
             if (gridDefinition == null) {
                 throw new IOException("Unknown grid: " + gridName);
