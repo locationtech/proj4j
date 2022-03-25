@@ -1,4 +1,4 @@
-# Proj4J [![GitHub Action Status](https://github.com/locationtech/proj4j/workflows/CI/badge.svg)](https://github.com/locationtech/proj4j/actions) 
+# Proj4J [![GitHub Action Status](https://github.com/locationtech/proj4j/workflows/CI/badge.svg)](https://github.com/locationtech/proj4j/actions) [![Maven Central](https://img.shields.io/maven-central/v/org.locationtech.proj4j/proj4j)](https://search.maven.org/search?q=g:org.locationtech.proj4j%20AND%20a:proj4j)
 
 Proj4J is a Java library for converting coordinates between different geospatial coordinate reference systems.
 It is designed to be compatible with `proj.4` parameters and derives some of its implementation from the `proj.4` sources.
@@ -17,7 +17,7 @@ To include Proj4J in a Maven project, add a dependency block like the following:
 
 ```xml
 <properties>
-    <proj4j.version>1.1.3</proj4j.version>
+    <proj4j.version><latest version></proj4j.version>
 </properties>
 <dependency>
     <groupId>org.locationtech.proj4j</groupId>
@@ -25,6 +25,7 @@ To include Proj4J in a Maven project, add a dependency block like the following:
     <version>${proj4j.version}</version>
 </dependency>
 ```
+where `<latest version>` refers to the version indicated by the badge above.
 
 ### Using Proj4J with Gradle
 
@@ -32,9 +33,10 @@ To include Proj4J in a Gradle project, add a dependency block like the following
 
 ```
 dependencies {
-    implementation 'org.locationtech.proj4j:proj4j:1.1.3'
+    implementation 'org.locationtech.proj4j:proj4j:<latest version>'
 }
 ```
+where `<latest version>` refers to the version indicated by the badge above.
 
 ### Basic Usage
 
