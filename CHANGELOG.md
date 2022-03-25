@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fix Grid equals [#78](https://github.com/locationtech/proj4j/pull/78)
+
 ## [1.1.4] - 2021-11-03
 
 ### Fixed
