@@ -304,6 +304,9 @@ public final class Grid implements Serializable {
         m00 = m01 = 1d - frct.lam;
         m11 *= frct.phi;
         m01 *= frct.phi;
+        frct.phi = 1d - frct.phi;
+        m00 *= frct.phi;
+        m10 *= frct.phi;
         val.lam = m00 * f00.lam + m10 * f10.lam + m01 * f01.lam + m11 * f11.lam;
         val.phi = m00 * f00.phi + m10 * f10.phi + m01 * f01.phi + m11 * f11.phi;
         return val;
