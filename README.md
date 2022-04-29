@@ -77,7 +77,7 @@ wgsToUtm.transform(new ProjCoordinate(lon, lat), result);
 
 `mvn clean install`
 
-## Publish to maven central
+## Publish to Maven Central
 
 `mvn -Dmaven.test.skip=true -Pcentral clean package deploy`
 
