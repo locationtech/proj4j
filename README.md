@@ -77,6 +77,10 @@ wgsToUtm.transform(new ProjCoordinate(lon, lat), result);
 
 `mvn clean install`
 
+## Publish to maven central
+
+`mvn -Dmaven.test.skip=true -Pcentral clean package deploy`
+
 ## Contributing
 
 If you are interested in contributing to Proj4J please read the [**Contributing Guide**](CONTRIBUTING.md).
