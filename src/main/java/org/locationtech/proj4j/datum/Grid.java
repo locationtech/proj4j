@@ -91,6 +91,9 @@ public final class Grid implements Serializable {
 
         for (Grid grid : grids) {
             ConversionTable table = grid.table;
+            // don't shift if the grid is invalid
+            // https://github.com/OSGeo/PROJ/blob/5.2.0/src/pj_gridlist.c#L88
+            if(table == null) continue;
             double epsilon = (Math.abs(table.del.phi) + Math.abs(table.del.lam)) / 10000d;
             // Skip tables that don't match our point at all
             if (table.ll.phi - epsilon > input.phi
@@ -301,6 +304,9 @@ public final class Grid implements Serializable {
         m00 = m01 = 1d - frct.lam;
         m11 *= frct.phi;
         m01 *= frct.phi;
+        frct.phi = 1d - frct.phi;
+        m00 *= frct.phi;
+        m10 *= frct.phi;
         val.lam = m00 * f00.lam + m10 * f10.lam + m01 * f01.lam + m11 * f11.lam;
         val.phi = m00 * f00.phi + m10 * f10.phi + m01 * f01.phi + m11 * f11.phi;
         return val;
@@ -330,6 +336,7 @@ public final class Grid implements Serializable {
         grid.gridName = gridName;
         grid.format = "missing";
         grid.gridOffset = 0;
+        if (gridName.equals("null")) return grid;
         try(DataInputStream gridDefinition = resolveGridDefinition(gridName)) {
             if (gridDefinition == null) {
                 throw new IOException("Unknown grid: " + gridName);
@@ -384,17 +391,17 @@ public final class Grid implements Serializable {
         if (that instanceof Grid) {
             Grid g = (Grid) that;
             if (gridName == null && g.gridName != null) return false;
-            if (!gridName.equals(g.gridName)) return false;
+            if (gridName != null && !gridName.equals(g.gridName)) return false;
             if (fileName == null && g.fileName != null) return false;
-            if (!fileName.equals(g.fileName)) return false;
+            if (fileName != null && !fileName.equals(g.fileName)) return false;
             if (format == null && g.format != null) return false;
-            if (!format.equals(g.format)) return false;
+            if (format != null && !format.equals(g.format)) return false;
             if (table == null && g.table != null) return false;
-            if (!table.equals(g.table)) return false;
+            if (table != null && !table.equals(g.table)) return false;
             if (next == null && g.next != null) return false;
-            if (!next.equals(g.next)) return false;
+            if (next != null && !next.equals(g.next)) return false;
             if (child == null && g.child != null) return false;
-            if (!child.equals(g.child)) return false;
+            if (child != null && !child.equals(g.child)) return false;
             return true;
         } else {
             return false;

@@ -23,6 +23,10 @@ import org.locationtech.proj4j.util.ProjectionUtil;
 
 public class MetaCRSTestCase {
 
+    public static String FAILING = "failing";
+    public static String PASSING = "passing";
+    public static String ERROR = "error";
+
     private static final CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
 
     private boolean verbose = true;
@@ -138,6 +142,10 @@ public class MetaCRSTestCase {
 
     public void setCache(CRSCache crsCache) {
         this.crsCache = crsCache;
+    }
+
+    public String getTestMethod() {
+        return this.testMethod;
     }
 
     public boolean execute(CRSFactory csFactory) {

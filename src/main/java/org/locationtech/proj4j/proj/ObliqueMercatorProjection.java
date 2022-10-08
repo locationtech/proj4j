@@ -34,7 +34,7 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 	private final static double TOL	= 1.0e-7;
 
 	private double lamc, lam1, phi1, lam2, phi2, Gamma, al, bl, el, singam, cosgam, sinrot, cosrot, u_0;
-	private boolean ellips, rot;
+	private boolean ellips, rot, no_uoff;
 
 	public ObliqueMercatorProjection() {
 		ellipsoid = Ellipsoid.WGS84;
@@ -64,7 +64,7 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 
 	public void initialize() {
 		super.initialize();
-		double con, com, cosphi0, d, f, h, l, sinphi0, p, j;
+		double con, com, cosphi0, d, f, h, l, sinphi0, p, j, gamma0;
 
 		//FIXME-setup rot, alpha, longc,lon/lat1/2
 		rot = true;
@@ -72,6 +72,8 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 
     // true if alpha provided
     int azi = Double.isNaN(alpha) ? 0 : 1;
+    // true if gamma provided
+    int gzi = Double.isNaN(Gamma) ? 0 : 1;
 		if (azi != 0) { // alpha specified
 			if (Math.abs(alpha) <= TOL ||
 				Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) <= TOL ||
@@ -116,10 +118,18 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 			al = scaleFactor;
 			el = d = f = 1.;
 		}
-		if (azi != 0) {
-			Gamma = Math.asin(Math.sin(alpha) / d);
+		if (azi != 0 || gzi != 0) {
+			if (azi != 0) {
+				gamma0 = Math.asin(Math.sin(alpha) / d);
+				if(gzi == 0) {
+					Gamma = alpha;
+				}
+			}else {
+				gamma0 = Gamma;
+				alpha = Math.asin(d * Math.sin(gamma0));
+			}
 			projectionLongitude = lamc - Math.asin((.5 * (f - 1. / f)) *
-			   Math.tan(Gamma)) / bl;
+					   Math.tan(gamma0)) / bl;
 		} else {
 			if (!spherical) {
 				h = Math.pow(ProjectionMath.tsfn(phi1, Math.sin(phi1), e), bl);
@@ -138,18 +148,17 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 				lam2 += ProjectionMath.TWOPI;
 			projectionLongitude = ProjectionMath.normalizeLongitude(.5 * (lam1 + lam2) - Math.atan(
 			   j * Math.tan(.5 * bl * (lam1 - lam2)) / p) / bl);
-			Gamma = Math.atan(2. * Math.sin(bl * ProjectionMath.normalizeLongitude(lam1 - projectionLongitude)) /
+			gamma0 = Math.atan(2. * Math.sin(bl * ProjectionMath.normalizeLongitude(lam1 - projectionLongitude)) /
 			   (f - 1. / f));
-			alpha = Math.asin(d * Math.sin(Gamma));
+			Gamma = Math.asin(d * Math.sin(gamma0));
+			alpha = Gamma;
 		}
-		singam = Math.sin(Gamma);
-		cosgam = Math.cos(Gamma);
-//		f = MapMath.param(params, "brot_conv").i ? Gamma : alpha;
-		f = alpha;//FIXME
-		sinrot = Math.sin(f);
-		cosrot = Math.cos(f);
-//		u_0 = MapMath.param(params, "bno_uoff").i ? 0. :
-		u_0 = false ? 0. ://FIXME
+		singam = Math.sin(gamma0);
+		cosgam = Math.cos(gamma0);
+		sinrot = Math.sin(Gamma);
+		cosrot = Math.cos(Gamma);
+		
+		u_0 = no_uoff ? 0. :
 			Math.abs(al * Math.atan(Math.sqrt(d * d - 1.) / cosrot) / bl);
 		if (projectionLatitude < 0.)
 			u_0 = - u_0;
@@ -157,6 +166,10 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 
     @Override public void setGamma(double gamma) {
         this.Gamma = gamma;
+    }
+    
+    @Override public void setNoUoff(boolean no_uoff) {
+    	this.no_uoff = no_uoff;
     }
 
 	public ProjCoordinate project(double lam, double phi, ProjCoordinate xy) {

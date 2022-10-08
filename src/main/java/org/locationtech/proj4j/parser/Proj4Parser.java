@@ -122,9 +122,11 @@ public class Proj4Parser {
             s = (String) params.get(Proj4Keyword.k);
         if (s != null)
             projection.setScaleFactor(Double.parseDouble(s));
+        if (params.containsKey(Proj4Keyword.no_uoff))
+            projection.setNoUoff(true);
         s = (String) params.get(Proj4Keyword.gamma);
         if (s != null)
-            projection.setGamma(Double.parseDouble(s) * ProjectionMath.DTR);
+            projection.setGammaDegrees(Double.parseDouble(s));
 
         s = (String) params.get(Proj4Keyword.units);
         if (s != null) {

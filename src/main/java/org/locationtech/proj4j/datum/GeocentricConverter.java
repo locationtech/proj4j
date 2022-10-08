@@ -60,21 +60,28 @@ public class GeocentricConverter implements java.io.Serializable {
     double ep2;
 
     public GeocentricConverter(Ellipsoid ellipsoid) {
-        this(ellipsoid.getA(), ellipsoid.getB());
+        // Preserve the ellipsoid value precisions
+        this(ellipsoid.getA(), ellipsoid.getB(), ellipsoid.getEccentricitySquared());
     }
 
-    public GeocentricConverter(double a, double b) {
+    public GeocentricConverter(double a, double b, double e2) {
         this.a = a;
         this.b = b;
         a2 = a * a;
         b2 = b * b;
-        e2 = (a2 - b2) / a2;
+        this.e2 = e2;
         ep2 = (a2 - b2) / b2;
     }
 
     public void overrideWithWGS84Params() {
         this.a = Ellipsoid.WGS84.getA();
         this.e2 = Ellipsoid.WGS84.getEccentricitySquared();
+    }
+
+    public boolean isEqual(GeocentricConverter gc) {
+        // Check if geocentricly equal
+        // https://github.com/OSGeo/PROJ/blob/5.2.0/src/pj_transform.c#L892
+        return this.a == gc.a && this.e2 == gc.e2;
     }
 
     /**

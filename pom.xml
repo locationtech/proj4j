@@ -3,7 +3,12 @@
 
     <groupId>org.locationtech.proj4j</groupId>
     <artifactId>proj4j</artifactId>
-    <version>${revision}</version>
+    <!-- Version is set here explicitly, since Jenkins doesn't work with the jgitver plugin.
+         See https://github.com/locationtech/proj4j/issues/57 for more details.
+
+         Alternatively, it could be set to <version>${revision}</version> and overrided at start `mvn -Drevision=1.1.4-SNAPSHOT install` 
+         jgitver plugin always overrides the version set here. -->
+    <version>1.1.6-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Proj4J</name>
     <url>https://github.com/locationtech/proj4j</url>
@@ -24,12 +29,17 @@
         <developer>
             <id>echeipesh</id>
             <name>Eugene Cheipesh</name>
-            <url>http://github.com/echeipesh/</url>
+            <url>https://github.com/echeipesh</url>
         </developer>
         <developer>
             <id>lossyrob</id>
             <name>Rob Emanuele</name>
-            <url>http://github.com/lossyrob/</url>
+            <url>https://github.com/lossyrob</url>
+        </developer>
+        <developer>
+            <id>pomadchin</id>
+            <name>Grigory Pomadchin</name>
+            <url>https://github.com/pomadchin</url>
         </developer>
     </developers>
 
@@ -51,7 +61,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

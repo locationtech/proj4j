@@ -59,9 +59,8 @@ public class Proj4VariousTest extends BaseCoordinateTransformTest {
                 "+proj=latlong +ellps=bessel", p("0dE  0dN 4.000"), 1e-5);
     }
 
-//    @Test
-    public void FAIL_test3ParamToRawSameEllipsoid2() {
-        // fails - not sure why, possibly missing towgs not handled in same way as PROJ4?
+    @Test
+    public void test3ParamToRawSameEllipsoid2() {
         checkTransform(
                 "+proj=latlong +ellps=bessel +towgs84=5,0,0", p("79d00'00.000W 45d00'00.000N 0.0"),
                 "+proj=latlong +ellps=bessel", p("79dW  45dN 0.000"), 1e-5);

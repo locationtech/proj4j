@@ -72,7 +72,7 @@ public class Datum implements java.io.Serializable {
     public static final Datum HERMANNSKOGEL = new Datum("hermannskogel", 577.326, 90.129, 463.919, 5.137, 1.474, 5.297, 2.4232, Ellipsoid.BESSEL, "Hermannskogel");
     public static final Datum IRE65 = new Datum("ire65", 482.530, -130.596, 564.557, -1.042, -0.214, -0.631, 8.15, Ellipsoid.MOD_AIRY, "Ireland 1965");
     public static final Datum NZGD49 = new Datum("nzgd49", 59.47, -5.04, 187.44, 0.47, -0.1, 1.024, -4.5993, Ellipsoid.INTERNATIONAL, "New Zealand Geodetic Datum 1949");
-    public static final Datum OSEB36 = new Datum("OSGB36", 446.448, -125.157, 542.060, 0.1502, 0.2470, 0.8421, -20.4894, Ellipsoid.AIRY, "Airy 1830");
+    public static final Datum OSGB36 = new Datum("OSGB36", 446.448, -125.157, 542.06, 0.15, 0.247, 0.842, -20.489, Ellipsoid.AIRY, "Airy 1830");
 
     static {
         Datum temp = new Datum("NAD27", new ArrayList<Grid>(), Ellipsoid.CLARKE_1866, "North_American_Datum_1927");

@@ -42,8 +42,8 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
   */
     }
 
-//    @Test
-    public void FAIL_testEPSG_27700() {
+    @Test
+    public void testEPSG_27700() {
         checkTransform("EPSG:4326", -2.89, 55.4, "EPSG:27700", 343733.1404, 612144.530677, 0.1);
         checkTransformAndInverse(
                 "EPSG:4326", -2.0301713578021983, 53.35168607080468,
@@ -180,6 +180,7 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
 
     @Test
     public void testEPSG_4326() {
+        // this test is asjusted to match proj4s behavior
         checkTransformAndInverse(
                 "EPSG:4326", -126.54, 54.15,
                 "EPSG:3005", 964813.103719, 1016486.305862,
@@ -187,11 +188,11 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
 
         checkTransformAndInverse(
                 "EPSG:32633", 249032.839239894, 7183612.30572229,
-                "EPSG:4326", 9.735465995810884, 64.68347938257097,
+                "EPSG:4326", 9.735465995870696, 64.68347938261206,
                 0.000001, 0.3 * APPROX_METRE_IN_DEGREES);
 
         checkTransformAndInverse(
-                "EPSG:32636", 500000, 4649776.22482,
+                "EPSG:32636", 500000, 4649776.224819178,
                 "EPSG:4326", 33, 42,
                 0.000001, 20 * APPROX_METRE_IN_DEGREES);
     }
@@ -214,6 +215,18 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:2736", 34.0, -21.0, 603934.39, 7677664.39, 0.1);
         checkTransformFromGeo("EPSG:26916", -86.6056, 34.579, 536173.11, 3826428.04, 0.1);
         checkTransformFromGeo("EPSG:21781", 8.23, 46.82, 660309.34, 185586.30, 0.1);
+        checkTransformFromWGS84("EPSG:27700", -8.82, 49.79, -90619.28789678006, 10097.131147458786, 0.0);
+        checkTransformToWGS84("EPSG:27700", 612435.55, 1234954.16, 1.9200000236235546, 60.93999999543101, 0.0);
+        checkTransformToWGS84("EPSG:27700", 327420.988668, 690284.547110, -3.1683134533969364, 56.0998025292667, 0.0);
+        checkTransformFromWGS84("EPSG:3857", -3.1683134533969364, 56.0998025292667, -352695.04030562507, 7578309.225014557, 0.0);
+        checkTransform("EPSG:27700", 327420.988668, 690284.547110, "EPSG:3857", -352695.04030562507, 7578309.225014557, 0.0);
+        checkTransform("EPSG:3857", -352695.04030562507, 7578309.225014557, "EPSG:27700", 327420.988668, 690284.547110, 0.001);
+        checkTransform("EPSG:31469", 5439627.33, 5661628.09, "EPSG:3857", 1573657.37, 6636624.41, 0.01);
+        checkTransform("EPSG:3857", 1573657.37, 6636624.41, "EPSG:31469", 5439627.33, 5661628.09, 0.01);
+        checkTransform("EPSG:2056", 2600670.52, 1199667.32, "EPSG:3857", 829045.23, 5933605.15, 0.01);
+        checkTransform("EPSG:3857", 829045.23, 5933605.15, "EPSG:2056", 2600670.52, 1199667.32, 0.01);
+        checkTransform("EPSG:3857", -20037508.342789244, -20037366.780895382, "EPSG:4055", -180.0, -85.01794318500549, 0.001);
+        checkTransform("EPSG:4055", -180.0, -85.01794318500549, "EPSG:3857", -20037508.342789244, -20037366.780895382, 0.0);
     }
 
     @Test
