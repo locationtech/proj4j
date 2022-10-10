@@ -19,6 +19,8 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.geodesic.Geodesic;
+import org.locationtech.proj4j.geodesic.GeodesicData;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.ProjectionMath;
@@ -35,6 +37,7 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 	private double He;
 	private double G;
 	private double sinphi0, cosphi0;
+	private Geodesic geodesic;
 	
 	public EquidistantAzimuthalProjection() {
 		this(Math.toRadians(90.0), Math.toRadians(0.0));
@@ -81,6 +84,8 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 				N1 = 1. / Math.sqrt(1. - es * sinphi0 * sinphi0);
 				G = sinphi0 * (He = e / Math.sqrt(one_es));
 				He *= cosphi0;
+				geodesic = new Geodesic(this.ellipsoid.getA(), (this.ellipsoid.getA() -
+						this.ellipsoid.getB()) / this.ellipsoid.getA());
 				break;
 			}
 		}
@@ -124,7 +129,7 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 				break;
 			}
 		} else {
-			double  coslam, cosphi, sinphi, rho, s, H, H2, c, Az, t, ct, st, cA, sA;
+			double  coslam, cosphi, sinphi, rho;
 
 			coslam = Math.cos(lam);
 			cosphi = Math.cos(phi);
@@ -143,22 +148,15 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 					xy.x = xy.y = 0.;
 					break;
 				}
-				t = Math.atan2(one_es * sinphi + es * N1 * sinphi0 *
-					Math.sqrt(1. - es * sinphi * sinphi), cosphi);
-				ct = Math.cos(t); st = Math.sin(t);
-				Az = Math.atan2(Math.sin(lam) * ct, cosphi0 * st - sinphi0 * coslam * ct);
-				cA = Math.cos(Az); sA = Math.sin(Az);
-				s = ProjectionMath.asin( Math.abs(sA) < TOL ?
-					(cosphi0 * st - sinphi0 * coslam * ct) / cA :
-					Math.sin(lam) * ct / sA );
-				H = He * cA;
-				H2 = H * H;
-				c = N1 * s * (1. + s * s * (- H2 * (1. - H2)/6. +
-					s * ( G * H * (1. - 2. * H2 * H2) / 8. +
-					s * ((H2 * (4. - 7. * H2) - 3. * G * G * (1. - 7. * H2)) /
-					120. - s * G * H / 48.))));
-				xy.x = c * sA;
-				xy.y = c * cA;
+
+				GeodesicData g = geodesic.Inverse(
+								Math.toDegrees(projectionLatitude),
+								Math.toDegrees(projectionLongitude),
+								Math.toDegrees(phi),
+								Math.toDegrees(lam + projectionLongitude));
+				double azi1 = Math.toRadians(g.azi1);
+				xy.x = g.s12 * Math.sin(azi1) / geodesic.EquatorialRadius();
+				xy.y = g.s12 * Math.cos(azi1) / geodesic.EquatorialRadius();
 				break;
 			}
 		}
@@ -200,8 +198,7 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 				lp.x = Math.atan2(x, y);
 			}
 		} else {
-			double c, Az, cosAz, A, B, D, E, F, psi, t;
-			int i;
+			double c;
 
 			if ((c = ProjectionMath.distance(x, y)) < EPS10) {
 				lp.y = projectionLatitude;
@@ -209,22 +206,18 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 				return (lp);
 			}
 			if (mode == OBLIQUE || mode == EQUATOR) {
-				cosAz = Math.cos(Az = Math.atan2(x, y));
-				t = cosphi0 * cosAz;
-				B = es * t / one_es;
-				A = - B * t;
-				B *= 3. * (1. - A) * sinphi0;
-				D = c / N1;
-				E = D * (1. - D * D * (A * (1. + A) / 6. + B * (1. + 3.*A) * D / 24.));
-				F = 1. - E * E * (A / 2. + B * E / 6.);
-				psi = ProjectionMath.asin(sinphi0 * Math.cos(E) + t * Math.sin(E));
-				lp.x = ProjectionMath.asin(Math.sin(Az) * Math.sin(E) / Math.cos(psi));
-				if ((t = Math.abs(psi)) < EPS10)
-					lp.y = 0.;
-				else if (Math.abs(t - ProjectionMath.HALFPI) < 0.)
-					lp.y = ProjectionMath.HALFPI;
-				else
-					lp.y = Math.atan((1. - es * F * sinphi0 / Math.sin(psi)) * Math.tan(psi) / one_es);
+				double x2 = x * geodesic.EquatorialRadius();
+				double y2 = y * geodesic.EquatorialRadius();
+				double azi1 = Math.atan2(x2, y2);
+				double s12 = Math.sqrt(x2 * x2 + y2 * y2);
+				GeodesicData g = geodesic.Direct(
+								Math.toDegrees(projectionLatitude),
+								Math.toDegrees(projectionLongitude),
+								Math.toDegrees(azi1),
+								s12);
+				lp.y = Math.toRadians(g.lat2);
+				lp.x = Math.toRadians(g.lon2);
+				lp.x -= projectionLongitude;
 			} else {
 				lp.y = ProjectionMath.inv_mlfn(mode == NORTH_POLE ? Mp - c : Mp + c, es, en);
 				lp.x = Math.atan2(x, mode == NORTH_POLE ? -y : y);
