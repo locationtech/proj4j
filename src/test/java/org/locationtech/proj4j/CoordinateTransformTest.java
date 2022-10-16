@@ -124,6 +124,8 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
     @Test
     public void testRobinson() {
         checkTransform("+proj=latlong +datum=WGS84", -30, 40, "+proj=robin +datum=WGS84", -2612095.95, 4276351.58, 2e-1);
+        checkTransformFromWGS84("ESRI:54030", -30., 40., -2612095.954698802, 4276351.583838239);
+        checkTransformToWGS84("ESRI:54030", -2612095.954698802, 4276351.583838239, -30., 40., 1E-4);
     }
 
     @Test
