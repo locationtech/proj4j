@@ -90,7 +90,7 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <failOnError>false</failOnError>
+                            <failOnError>true</failOnError>
                             <failOnWarnings>false</failOnWarnings>
                         </configuration>
                     </execution>
