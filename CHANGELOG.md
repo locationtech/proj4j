@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix EquidistantAzimuthalProjection through add geodesic package [#84](https://github.com/locationtech/proj4j/issues/84)
+- Fix RobinsonProjection [#87](https://github.com/locationtech/proj4j/issues/87)
+
 ## [1.1.5] - 2022-03-25
 
 ### Fixed

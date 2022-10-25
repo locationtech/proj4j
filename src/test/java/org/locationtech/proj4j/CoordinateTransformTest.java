@@ -124,6 +124,8 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
     @Test
     public void testRobinson() {
         checkTransform("+proj=latlong +datum=WGS84", -30, 40, "+proj=robin +datum=WGS84", -2612095.95, 4276351.58, 2e-1);
+        checkTransformFromWGS84("ESRI:54030", -30., 40., -2612095.954698802, 4276351.583838239);
+        checkTransformToWGS84("ESRI:54030", -2612095.954698802, 4276351.583838239, -30., 40., 1E-4);
     }
 
     @Test
@@ -157,6 +159,12 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         checkTransformFromWGS84("EPSG:3005", -126.54, 54.15, 964813.103719, 1016486.305862);
         // # NAD83(CSRS) / BC Albers
         checkTransformFromWGS84("EPSG:3153", -127.0, 52.11, 931625.9111828626, 789252.646454557);
+    }
+
+    @Test
+    public void testEquidistantAzimuthal() {
+        checkTransformFromWGS84("ESRI:54032", 120., 40., 8995111.253396044, 8710143.05796729);
+        checkTransformToWGS84("ESRI:54032", 8995111.253396044, 8710143.05796729, 120., 40., 1E-4);
     }
 
     @Test
@@ -215,7 +223,7 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         checkTransformFromGeo("EPSG:2736", 34.0, -21.0, 603934.39, 7677664.39, 0.1);
         checkTransformFromGeo("EPSG:26916", -86.6056, 34.579, 536173.11, 3826428.04, 0.1);
         checkTransformFromGeo("EPSG:21781", 8.23, 46.82, 660309.34, 185586.30, 0.1);
-        checkTransformFromWGS84("EPSG:27700", -8.82, 49.79, -90619.28789678006, 10097.131147458786, 0.0);
+        checkTransformFromWGS84("EPSG:27700", -8.82, 49.79, -90619.28789678006, 10097.131147458786, 1E-4);
         checkTransformToWGS84("EPSG:27700", 612435.55, 1234954.16, 1.9200000236235546, 60.93999999543101, 0.0);
         checkTransformToWGS84("EPSG:27700", 327420.988668, 690284.547110, -3.1683134533969364, 56.0998025292667, 0.0);
         checkTransformFromWGS84("EPSG:3857", -3.1683134533969364, 56.0998025292667, -352695.04030562507, 7578309.225014557, 0.0);
