@@ -131,6 +131,8 @@ public final class Grid implements Serializable {
             }
 
             output = nad_cvt(input, inverse, table);
+
+            if (!Double.isNaN(output.lam)) break;
         }
 
         if (!Double.isNaN(output.lam)) {
