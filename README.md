@@ -38,6 +38,21 @@ dependencies {
 ```
 where `<latest version>` refers to the version indicated by the badge above.
 
+### Proj4j EPSG
+
+Proj4J-EPSG module distributes a portion of the EPSG dataset. This artifact is released the [EPSG database distribution license](https://raw.githubusercontent.com/locationtech/proj4j/master/LICENSE.EPSG).
+```xml
+<properties>
+    <proj4j.version><latest version></proj4j.version>
+</properties>
+<dependency>
+    <groupId>org.locationtech.proj4j</groupId>
+    <artifactId>proj4j-epsg</artifactId>
+    <version>${proj4j.version}</version>
+</dependency>
+```
+where `<latest version>` refers to the version indicated by the badge above.
+
 ### Basic Usage
 
 The following examples give a quick intro on how to use Proj4J in common
@@ -80,6 +95,8 @@ wgsToUtm.transform(new ProjCoordinate(lon, lat), result);
 ## Publish to Maven Central
 
 `mvn -Dmaven.test.skip=true -Pcentral clean package deploy`
+
+For more details see [HOWTORELEASE.txt](./HOWTORELEASE.txt).
 
 ## Contributing
 
