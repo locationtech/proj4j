@@ -11728,3 +11728,5 @@
 <8349> +proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +vunits=m +no_defs  <>
 # GR96 + GVR2016 height
 <8350> +proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +vunits=m +no_defs  <>
+# WGS 84 (G873)
+<9054> +proj=longlat +datum=WGS84 +no_defs  <>
