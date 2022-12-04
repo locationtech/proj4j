@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix RobinsonProjection [#87](https://github.com/locationtech/proj4j/issues/87)
 - Backport: Stop after successfully applying grid [#91](https://github.com/locationtech/proj4j/pull/91)
 
+### Added
+- Added support for EPSG:9054 [#93](https://github.com/locationtech/proj4j/pull/93)
+- Split projects into proj4j and proj4j-epsg [#92](https://github.com/locationtech/proj4j/pull/92)
+
 ## [1.1.5] - 2022-03-25
 
 ### Fixed
