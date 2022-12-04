@@ -235,6 +235,7 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
         checkTransform("EPSG:3857", 829045.23, 5933605.15, "EPSG:2056", 2600670.52, 1199667.32, 0.01);
         checkTransform("EPSG:3857", -20037508.342789244, -20037366.780895382, "EPSG:4055", -180.0, -85.01794318500549, 0.001);
         checkTransform("EPSG:4055", -180.0, -85.01794318500549, "EPSG:3857", -20037508.342789244, -20037366.780895382, 0.0);
+        checkTransform("EPSG:9054", 103.095703, 36.421282, "EPSG:3857", 11476561.160934567, 4358745.039558878, 0.0);
     }
 
     @Test
