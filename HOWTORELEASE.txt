@@ -1,0 +1,86 @@
+Steps for Making a Proj4J Release
+==============================================================================
+
+:Author: Grigory Pomadchin
+:Contact: https://github.com/pomadchin
+:Date: 11/28/2022
+
+This document describes the process to releasing a new version of Proj4J.
+
+General Notes
+------------------------------------------------------------------------------
+
+1) Proj4J project release
+    What you need:
+        - an account on sonatype (https://issues.sonatype.org/secure/Signup!default.jspa)
+        - configured ~/.m2/settings.xml file (a simple example below):
+            <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                      xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                          http://maven.apache.org/xsd/settings-1.0.0.xsd">
+              <localRepository/>
+              <interactiveMode/>
+              <usePluginRegistry/>
+              <offline/>
+              <pluginGroups/>
+              <servers>
+                <server>
+                  <id>sonatype_snapshots</id>
+                  <username>...</username>
+                  <password>...</password>
+                </server>
+                <server>
+                  <id>sonatype_releases</id>
+                  <username>...</username>
+                  <password>...</password>
+                </server>
+                <server>
+                  <id>ossrh</id>
+                  <username>...</username>
+                  <password>...</password>
+                </server>
+              </servers>
+              <mirrors/>
+              <proxies/>
+              <profiles/>
+              <activeProfiles/>
+            </settings>
+
+    Cheat sheet:
+        - All commands are can be described via the following template:
+            mvn -P{eclipse | central} {-Dmaven.test.skip=true | } {-pl <module> | } {install, deploy, ...}
+
+    The description of the Sonatype publish process:
+        - Snaphots:
+            Versioning:
+                - Release versions are derived from the latest (not lightweight) tag version and the branch name if applicable. Each tag should start with v,
+                  i.e. v2.3.0. The snapshot tag happens on commits that follow the tag, and contain git commit hash.
+            Snapshot can be published without PGP sign, it is published to a snapshot repo and allows immediate snaphot updates.
+            Publish to a local repo:
+                - mvn -Pcentral -Dmaven.test.skip=true install
+            Publish to sonatype:
+                - mvn -Pcentral -Dmaven.test.skip=true deploy
+            Publish to eclipse:
+                - mvn -Peclipse -Dmaven.test.skip=true deploy
+
+        - Releases:
+            Versioning:
+                - Release versions are derived from the latest (not lightweight) tag version. Each tag should start with v,
+                  i.e. v2.3.0.
+            Snapshot can not be published without PGP signature, verify that you have up to date GPG keys set.
+            Publish to a local repo:
+                - mvn -Pcentral -Dmaven.test.skip=true install
+            Publish to sonatype:
+                - mvn -Pcentral -Dmaven.test.skip=true deploy
+            Publish to eclipse:
+                - mvn -Peclipse -Dmaven.test.skip=true deploy
+            Staging means a special repository in a pre released condition.
+                - Go into staging repos panel: https://oss.sonatype.org/#stagingRepositories (log in using sonatype user / pwd)
+                - Filter by the package name (proj4j) and select matching staging repo
+                - Press Close button on the top of the table with repos. It runs packages
+                  validation and closes staging repo in a successful case
+                - After successful close press the Release button
+            Summary:
+                - Run mvn -Pcentral -Dmaven.test.skip=true deploy to publish everything to sonatype
+                - Go to sonatype panel https://oss.sonatype.org/#stagingRepositories and release jars
+                - Await ~10 minutes to have jars published to maven central
