@@ -3,7 +3,7 @@
 
     <groupId>org.locationtech.proj4j</groupId>
     <artifactId>proj4j</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.2.1</version>
     <packaging>bundle</packaging>
     <name>Proj4J</name>
     <url>https://github.com/locationtech/proj4j</url>
