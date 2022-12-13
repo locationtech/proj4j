@@ -91,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
 [Unreleased]: https://github.com/locationtech/proj4j/compare/v1.2.2...HEAD
-[1.2.1]: https://github.com/locationtech/proj4j/compare/v1.2.1...v1.2.2
+[1.2.2]: https://github.com/locationtech/proj4j/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/locationtech/proj4j/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/locationtech/proj4j/compare/v1.1.5...v1.2.0
 [1.1.5]: https://github.com/locationtech/proj4j/compare/v1.1.4...v1.1.5
