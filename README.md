@@ -13,11 +13,13 @@ Proj4J artifacts are available on maven central.
 
 ### Using Proj4J with Maven
 
-To include Proj4J in a Maven project, add a dependency block like the following:
+**!Important!** As of `1.2.2` version, `proj4-core` contains no EPSG Licensed files. 
+In order to make proj4j properly operate, it makes sense to consider `proj4-epsg` dependency usage.
 
+To include Proj4J in a Maven project, add a dependency block like the following:
 ```xml
 <properties>
-    <proj4j.version><latest version></proj4j.version>
+    <proj4j.version>{latest version}</proj4j.version>
 </properties>
 <dependency>
     <groupId>org.locationtech.proj4j</groupId>
@@ -25,25 +27,16 @@ To include Proj4J in a Maven project, add a dependency block like the following:
     <version>${proj4j.version}</version>
 </dependency>
 ```
-where `<latest version>` refers to the version indicated by the badge above.
+where `{latest version}` refers to the version indicated by the badge above.
 
-### Using Proj4J with Gradle
+#### Proj4j EPSG
 
-To include Proj4J in a Gradle project, add a dependency block like the following:
+`Proj4J-EPSG` module distributes a portion of the EPSG dataset. This artifact is released the [EPSG database distribution license](https://raw.githubusercontent.com/locationtech/proj4j/master/LICENSE.EPSG).
 
-```
-dependencies {
-    implementation 'org.locationtech.proj4j:proj4j:<latest version>'
-}
-```
-where `<latest version>` refers to the version indicated by the badge above.
-
-### Proj4j EPSG
-
-Proj4J-EPSG module distributes a portion of the EPSG dataset. This artifact is released the [EPSG database distribution license](https://raw.githubusercontent.com/locationtech/proj4j/master/LICENSE.EPSG).
+To include `Proj4J-EPSG` in a Maven project, add a dependency block like the following:
 ```xml
 <properties>
-    <proj4j.version><latest version></proj4j.version>
+    <proj4j.version>{latest version}</proj4j.version>
 </properties>
 <dependency>
     <groupId>org.locationtech.proj4j</groupId>
@@ -51,7 +44,18 @@ Proj4J-EPSG module distributes a portion of the EPSG dataset. This artifact is r
     <version>${proj4j.version}</version>
 </dependency>
 ```
-where `<latest version>` refers to the version indicated by the badge above.
+where `{latest version}` refers to the version indicated by the badge above.
+
+### Using Proj4J with Gradle
+
+To include Proj4J in a Gradle project, add a dependency block like the following:
+
+```
+dependencies {
+    implementation 'org.locationtech.proj4j:proj4j:{latest version}'
+}
+```
+where `{latest version}` refers to the version indicated by the badge above.
 
 ### Basic Usage
 
