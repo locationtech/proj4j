@@ -33,33 +33,33 @@ public class KrovakProjection extends Projection {
 
     // TODO: should be set on parsing https://github.com/OSGeo/PROJ/blob/e3d7e18f988230973ced5163fa2581b6671c8755/src/projections/krovak.cpp#L219
     boolean czech = false;
+    private double s45, alfa, k, ro0, ad, s0, n;
 
-	public KrovakProjection() {
-		minLatitude = Math.toRadians(-60);
-		maxLatitude = Math.toRadians(60);
-		minLongitude = Math.toRadians(-90);
-		maxLongitude = Math.toRadians(90);
-		initialize();
-	}
-	
+    public KrovakProjection() {
+        minLatitude = Math.toRadians(-60);
+        maxLatitude = Math.toRadians(60);
+        minLongitude = Math.toRadians(-90);
+        maxLongitude = Math.toRadians(90);
+        initialize();
+    }
+
     @Override
-	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-        /* Constants, identical to inverse transform function */
-        double s45, s90, e2, e, alfa, uq, u0, g, k, k1, n0, ro0, ad, a, s0, n;
-        double gfi, u, fi0, deltav, s, d, eps, ro;
+    public void initialize() {
+        super.initialize();
 
+        double s90, fi0, e2, uq, u0, g, k1, n0;
 
         s45 = 0.785398163397448;    /* 45deg */
         s90 = 2 * s45;
         fi0 = projectionLatitude;    /* Latitude of projection centre 49deg 30' */
 
-        /* Ellipsoid is used as Parameter in for.c and inv.c, therefore a must 
+        /* Ellipsoid is used as Parameter in for.c and inv.c, therefore a must
            be set to 1 here.
            Ellipsoid Bessel 1841 a = 6377397.155m 1/f = 299.1528128,
            e2=0.006674372230614;
            */
-        a =  1; /* 6377397.155; */
-        /* e2 = P->es;*/       /* 0.006674372230614; */
+        a = 1; /* 6377397.155; */
+        /* e2 = P->es; */      /* 0.006674372230614; */
         e2 = 0.006674372230614;
         e = sqrt(e2);
 
@@ -77,7 +77,11 @@ public class KrovakProjection extends Projection {
         n = sin(s0);
         ro0 = k1 * n0 / tan(s0);
         ad = s90 - uq;
+    }
 
+    @Override
+    public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
+        double gfi, u, deltav, s, d, eps, ro;
         /* Transformation */
 
         gfi =pow ( ((1. + e * sin(lpphi)) /
@@ -109,45 +113,13 @@ public class KrovakProjection extends Projection {
         /* calculate lat/lon from xy */
 
         /* Constants, identisch wie in der Umkehrfunktion */
-        double s45, s90, fi0, e2, e, alfa, uq, u0, g, k, k1, n0, ro0, ad, a, s0, n;
-        double u, deltav, s, d, eps, ro, fi1, xy0;
+        double u, deltav, s, d, eps, ro, fi1;
         int ok;
-
-        s45 = 0.785398163397448;    /* 45deg */
-        s90 = 2 * s45;
-        fi0 = projectionLatitude;    /* Latitude of projection centre 49deg 30' */
-
-
-        /* Ellipsoid is used as Parameter in for.c and inv.c, therefore a must 
-           be set to 1 here.
-           Ellipsoid Bessel 1841 a = 6377397.155m 1/f = 299.1528128,
-           e2=0.006674372230614;
-           */
-        a = 1; /* 6377397.155; */
-        /* e2 = P->es; */      /* 0.006674372230614; */
-        e2 = 0.006674372230614;
-        e = sqrt(e2);
-
-        alfa = sqrt(1. + (e2 * pow(cos(fi0), 4)) / (1. - e2));
-        uq = 1.04216856380474;      /* DU(2, 59, 42, 42.69689) */
-        u0 = asin(sin(fi0) / alfa);
-        g = pow(   (1. + e * sin(fi0)) / (1. - e * sin(fi0)) , alfa * e / 2.  );
-
-        k = tan( u0 / 2. + s45) / pow  (tan(fi0 / 2. + s45) , alfa) * g;
-
-        k1 = scaleFactor;
-        n0 = a * sqrt(1. - e2) / (1. - e2 * pow(sin(fi0), 2));
-        s0 = 1.37008346281555;       /* Latitude of pseudo standard parallel 78deg 30'00" N */
-        n = sin(s0);
-        ro0 = k1 * n0 / tan(s0);
-        ad = s90 - uq;
-
 
         /* Transformation */
         /* revert y, x*/
-        xy0 = dst.x;
-        dst.x = dst.y;
-        dst.y = xy0;
+        dst.x = y;
+        dst.y = x;
 
         if(!czech) {
           dst.x *= -1.0;
@@ -186,7 +158,7 @@ public class KrovakProjection extends Projection {
         return dst;
     }
 
-	public String toString() {
-		return "Krovak";
-	}
+    public String toString() {
+        return "Krovak";
+    }
 }
