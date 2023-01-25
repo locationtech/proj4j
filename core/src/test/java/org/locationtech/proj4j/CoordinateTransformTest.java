@@ -267,4 +267,19 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
 //    runInverseTransform("EPSG:28992",    148312.15, 457804.79, 698.48,    5.29, 52.11);
     }
 
+    @Test
+    public void testEPSG_2065() {
+        checkTransformAndInverse(
+                "EPSG:4326", 14.3954134, 50.0596485,
+                "EPSG:2065", -745064.3097223851, -1045825.2153938366,
+                0.001, 0.6 * APPROX_METRE_IN_DEGREES);
+    }
+
+    @Test
+    public void testEPSG_5514() {
+        checkTransformAndInverse(
+                "EPSG:4326", 14.42, 50.075,
+                "EPSG:5514", -743093.7321490766, -1044381.7725184687,
+                0.001, 0.4 * APPROX_METRE_IN_DEGREES);
+    }
 }
