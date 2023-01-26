@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix the inverse Krovak transformation [#97](https://github.com/locationtech/proj4j/pull/97)
+
 ## [1.2.2] - 2022-12-12
 
 ### Fixed
