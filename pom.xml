@@ -8,7 +8,7 @@
 
          Alternatively, it could be set to <version>${revision}</version> and overrided at start `mvn -Drevision=1.1.4-SNAPSHOT install` 
          jgitver plugin always overrides the version set here. -->
-    <version>1.2.3</version>
+    <version>1.2.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Proj4J Root</name>
     <url>https://github.com/locationtech/proj4j</url>
