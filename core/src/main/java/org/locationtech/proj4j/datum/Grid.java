@@ -146,7 +146,7 @@ public final class Grid implements Serializable {
          * ASCII info
          */
         public String id;
-		/**
+        /**
          * Cell size
          */
         public PolarCoordinate del;
@@ -336,8 +336,8 @@ public final class Grid implements Serializable {
         grid.gridOffset = 0;
 
         if (gridName.equals("null")) {
-			return grid;
-		}
+            return grid;
+        }
 
         try(DataInputStream gridDefinition = resolveGridDefinition(gridName)) {
             if (gridDefinition == null) {
@@ -347,26 +347,26 @@ public final class Grid implements Serializable {
             gridDefinition.mark(header.length);
             gridDefinition.readFully(header);
             gridDefinition.reset();
-			if (CTABLEV2.testHeader(header)) {
-				grid.format = "ctable2";
-				gridDefinition.mark(1024);
-				grid.table = CTABLEV2.init(gridDefinition);
-				gridDefinition.reset();
-				CTABLEV2.load(gridDefinition, grid);
-			} else if (NTV1.testHeader(header)) {
-					grid.format = "ntv1";
-					gridDefinition.mark(1024);
-					grid.table = NTV1.init(gridDefinition);
-					gridDefinition.reset();
-					NTV1.load(gridDefinition, grid);
-			} else if (NTV2.testHeader(header)) {
-					grid.format = "ntv2";
-					gridDefinition.mark(1024);
-					grid.table = NTV2.init(gridDefinition);
-					gridDefinition.reset();
-					NTV2.load(gridDefinition, grid);
-			}
-		}
+            if (CTABLEV2.testHeader(header)) {
+                grid.format = "ctable2";
+                gridDefinition.mark(1024);
+                grid.table = CTABLEV2.init(gridDefinition);
+                gridDefinition.reset();
+                CTABLEV2.load(gridDefinition, grid);
+            } else if (NTV1.testHeader(header)) {
+                    grid.format = "ntv1";
+                    gridDefinition.mark(1024);
+                    grid.table = NTV1.init(gridDefinition);
+                    gridDefinition.reset();
+                    NTV1.load(gridDefinition, grid);
+            } else if (NTV2.testHeader(header)) {
+                    grid.format = "ntv2";
+                    gridDefinition.mark(1024);
+                    grid.table = NTV2.init(gridDefinition);
+                    gridDefinition.reset();
+                    NTV2.load(gridDefinition, grid);
+            }
+        }
         return grid;
     }
 
