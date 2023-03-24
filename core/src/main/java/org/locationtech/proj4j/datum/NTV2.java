@@ -29,8 +29,8 @@ import org.locationtech.proj4j.util.PolarCoordinate;
 /**
  * Parser for the "National Transformation" v2 format
  *
- * Very basic implementation: - only files with 1 subfile are supported - gridshift type is supposed to be in
- * seconds - only little-endian is supported ("Australian"-NTv2, as opposed to "Canadian")
+ * Very basic implementation: only files with 1 subfile are supported, gridshift type is supposed to be in
+ * seconds
  *
  * Header structure:
  * <pre>
@@ -85,6 +85,7 @@ public final class NTV2 {
     private static final int SUB_HEADER_SIZE = 176;
     private static final int VALUES_PER_CELL = 4;
 
+    private static final int NUM_OREC = 8;
     private static final int S_LAT = 72;
     private static final int N_LAT = 88;
     private static final int E_LONG = 104;
@@ -118,18 +119,22 @@ public final class NTV2 {
         if (!testHeader(buf)) {
             throw new Error("Not a NTv2 file");
         }
-
+        ByteOrder endian = guessByteOrder(buf);
+    
         buf = new byte[SUB_HEADER_SIZE];
         instream.readFully(buf);
 
         Grid.ConversionTable table = new Grid.ConversionTable();
         table.id = "NTv2 Grid Shift File";
         // lower left
-        table.ll = new PolarCoordinate(-doubleFromBytes(buf, W_LONG) * SEC_RAD, doubleFromBytes(buf, S_LAT) * SEC_RAD);
+        table.ll = new PolarCoordinate(-doubleFromBytes(buf, W_LONG, endian) * SEC_RAD, 
+                                        doubleFromBytes(buf, S_LAT, endian) * SEC_RAD);
         // upper right
-        PolarCoordinate ur = new PolarCoordinate(-doubleFromBytes(buf, E_LONG) * SEC_RAD, doubleFromBytes(buf, N_LAT) * SEC_RAD);
+        PolarCoordinate ur = new PolarCoordinate(-doubleFromBytes(buf, E_LONG, endian) * SEC_RAD, 
+                                                doubleFromBytes(buf, N_LAT, endian) * SEC_RAD);
         // "creative" way to store a pair of values
-        table.del = new PolarCoordinate(doubleFromBytes(buf, LONG_INC) * SEC_RAD, doubleFromBytes(buf, LAT_INC) * SEC_RAD);
+        table.del = new PolarCoordinate(doubleFromBytes(buf, LONG_INC, endian) * SEC_RAD, 
+                                        doubleFromBytes(buf, LAT_INC, endian) * SEC_RAD);
         table.lim = new IntPolarCoordinate(
             (int) (Math.abs(ur.lam - table.ll.lam) / table.del.lam + 0.5) + 1,
             (int) (Math.abs(ur.phi - table.ll.phi) / table.del.phi + 0.5) + 1);
@@ -148,7 +153,11 @@ public final class NTV2 {
         int cols = grid.table.lim.lam;
         int rows = grid.table.lim.phi;
 
-        instream.skipBytes(HEADER_SIZE + SUB_HEADER_SIZE);
+        byte[] buf = new byte[HEADER_SIZE];
+        instream.readFully(buf);
+        ByteOrder endian = guessByteOrder(buf);
+
+        instream.skipBytes(SUB_HEADER_SIZE);
 
         FloatPolarCoordinate[] tmp_cvs = new FloatPolarCoordinate[cols * rows];
 
@@ -157,7 +166,7 @@ public final class NTV2 {
 
         for (int row = 0; row < rows; row++) {
             instream.readFully(byteBuff);
-            ByteBuffer.wrap(byteBuff).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(row_buff);
+            ByteBuffer.wrap(byteBuff).order(endian).asFloatBuffer().get(row_buff);
             for (int col = 0; col < cols; col++) {
                 // only process the shift values, ignoring accuracy values
                 tmp_cvs[row * cols + (cols - col - 1)] = new FloatPolarCoordinate(
@@ -168,8 +177,26 @@ public final class NTV2 {
         grid.table.cvs = tmp_cvs;
     }
 
-    private static double doubleFromBytes(byte[] b, int offset) {
-        return ByteBuffer.wrap(b, offset, Double.BYTES).order(ByteOrder.LITTLE_ENDIAN).getDouble();
+    /**
+     * Guess byte order / endianness by checking first bytes in header
+     * 
+     * @param header
+     * @return endianness
+     */
+    private static ByteOrder guessByteOrder(byte[] header) {
+        ByteBuffer buffer = ByteBuffer.wrap(header, NUM_OREC, Integer.BYTES);
+        if (buffer.order(ByteOrder.BIG_ENDIAN).getInt() == 11) {
+            return ByteOrder.BIG_ENDIAN;
+        }
+		buffer = ByteBuffer.wrap(header, NUM_OREC, Integer.BYTES);
+        if (buffer.order(ByteOrder.LITTLE_ENDIAN).getInt() == 11) {
+            return ByteOrder.LITTLE_ENDIAN;
+        }
+        throw new Error("Could not determine endianness");
+    }
+
+    private static double doubleFromBytes(byte[] b, int offset, ByteOrder order) {
+        return ByteBuffer.wrap(b, offset, Double.BYTES).order(order).getDouble();
     }
 
 }
