@@ -1,4 +1,4 @@
-/** *****************************************************************************
+/*******************************************************************************
  * Copyright 2023 FPS BOSA
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -188,7 +188,7 @@ public final class NTV2 {
         if (buffer.order(ByteOrder.BIG_ENDIAN).getInt() == 11) {
             return ByteOrder.BIG_ENDIAN;
         }
-		buffer = ByteBuffer.wrap(header, NUM_OREC, Integer.BYTES);
+        buffer = ByteBuffer.wrap(header, NUM_OREC, Integer.BYTES);
         if (buffer.order(ByteOrder.LITTLE_ENDIAN).getInt() == 11) {
             return ByteOrder.LITTLE_ENDIAN;
         }
