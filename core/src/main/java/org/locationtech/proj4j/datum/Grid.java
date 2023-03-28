@@ -31,10 +31,6 @@ import org.locationtech.proj4j.util.IntPolarCoordinate;
 import org.locationtech.proj4j.util.PolarCoordinate;
 import org.locationtech.proj4j.util.ProjectionMath;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-
 /**
  * A Grid represents a geodetic datum defining some mapping between a
  * coordinate system referenced to the surface of the earth and spherical
@@ -151,11 +147,11 @@ public final class Grid implements Serializable {
          */
         public String id;
         /**
-         * Lower left corner coordinates
+         * Cell size
          */
         public PolarCoordinate del;
         /**
-         * Cell size
+         * Lower left corner coordinates
          */
         public PolarCoordinate ll;
         /**
@@ -317,7 +313,7 @@ public final class Grid implements Serializable {
 
     // This method corresponds to the pj_gridlist_from_nadgrids function in proj.4
     public static List<Grid> fromNadGrids(String grids) throws IOException {
-        List<Grid> gridlist = new ArrayList<Grid>();
+        List<Grid> gridlist = new ArrayList<>();
         synchronized (Grid.class) {
             for (String gridName : grids.split(",")) {
                 boolean optional = gridName.startsWith("@");
@@ -338,7 +334,11 @@ public final class Grid implements Serializable {
         grid.gridName = gridName;
         grid.format = "missing";
         grid.gridOffset = 0;
-        if (gridName.equals("null")) return grid;
+
+        if (gridName.equals("null")) {
+            return grid;
+        }
+
         try(DataInputStream gridDefinition = resolveGridDefinition(gridName)) {
             if (gridDefinition == null) {
                 throw new IOException("Unknown grid: " + gridName);
@@ -353,15 +353,20 @@ public final class Grid implements Serializable {
                 grid.table = CTABLEV2.init(gridDefinition);
                 gridDefinition.reset();
                 CTABLEV2.load(gridDefinition, grid);
+            } else if (NTV1.testHeader(header)) {
+                    grid.format = "ntv1";
+                    gridDefinition.mark(1024);
+                    grid.table = NTV1.init(gridDefinition);
+                    gridDefinition.reset();
+                    NTV1.load(gridDefinition, grid);
+            } else if (NTV2.testHeader(header)) {
+                    grid.format = "ntv2";
+                    gridDefinition.mark(1024);
+                    grid.table = NTV2.init(gridDefinition);
+                    gridDefinition.reset();
+                    NTV2.load(gridDefinition, grid);
             }
-            if (NTV1.testHeader(header)) {
-                grid.format = "ntv1";
-                gridDefinition.mark(1024);
-                grid.table = NTV1.init(gridDefinition);
-                gridDefinition.reset();
-                NTV1.load(gridDefinition, grid);
-            }
-		}
+        }
         return grid;
     }
 
