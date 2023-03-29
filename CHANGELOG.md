@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GH-89: initial support for NTv2 [#98](https://github.com/locationtech/proj4j/pull/98)
+
 ## [1.2.3] - 2023-01-25
 
 ### Fixed
