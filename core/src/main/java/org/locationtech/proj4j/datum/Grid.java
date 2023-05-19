@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.BufferedInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -377,7 +378,7 @@ public final class Grid implements Serializable {
         File file = new File(gridName);
         if (file.exists()) return new DataInputStream(new FileInputStream(file));
         InputStream resource = Grid.class.getResourceAsStream("/proj4/nad/" + gridName);
-        if (resource != null) return new DataInputStream(resource);
+        if (resource != null) return new DataInputStream(new BufferedInputStream(resource));
 
         return null;
     }
