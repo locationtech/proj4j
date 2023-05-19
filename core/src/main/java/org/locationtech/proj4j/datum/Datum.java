@@ -265,4 +265,8 @@ public class Datum implements java.io.Serializable {
     public void inverseShift(ProjCoordinate xy) {
         Grid.shift(grids, true, xy);
     }
+
+    public void setGrids(List<Grid> grids) {
+        this.grids = grids;
+    }
 }
