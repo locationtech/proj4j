@@ -50,6 +50,7 @@ public class Proj4Parser {
         parseDatum(params, datumParam);
         parseEllipsoid(params, datumParam);
         Datum datum = datumParam.getDatum();
+        datum.setGrids(datumParam.getGrids());
         Ellipsoid ellipsoid = datum.getEllipsoid();
         // TODO: this makes a difference - why?
         // which is better?

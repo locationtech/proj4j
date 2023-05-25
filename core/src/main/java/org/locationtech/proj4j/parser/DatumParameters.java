@@ -139,4 +139,8 @@ public class DatumParameters {
     public double getES() {
         return es;
     }
+
+    public List<Grid> getGrids() {
+        return grids;
+    }
 }
