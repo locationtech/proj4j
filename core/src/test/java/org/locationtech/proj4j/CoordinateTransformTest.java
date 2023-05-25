@@ -282,4 +282,12 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
                 "EPSG:5514", -743093.7321490766, -1044381.7725184687,
                 0.001, 0.4 * APPROX_METRE_IN_DEGREES);
     }
+
+    @Test
+    public void testEPSG_27250() {
+        checkTransform(
+                "+proj=latlong +datum=WGS84", 174.7772114, -41.2887953,
+                "+proj=tmerc +lat_0=-36.87986527777778 +lon_0=174.7643393611111 +k=0.9999 +x_0=300000 +y_0=700000 +datum=nzgd49 +units=m +towgs84=59.47,-5.04,187.44,0.47,-0.1,1.024,-4.5993 +nadgrids=nzgd2kgrid0005.gsb +no_defs", 301062.2010778899, 210376.65974323952,
+                0.001);
+    }
 }
