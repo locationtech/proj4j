@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2023-05-30
+
 ### Added
 - Parsing NTv2 Improvement [#99](https://github.com/locationtech/proj4j/pull/99)
 - GH-89: initial support for NTv2 [#98](https://github.com/locationtech/proj4j/pull/98)
@@ -99,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix possible `null` dereference [#16](https://github.com/locationtech/proj4j/pull/16)
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
-[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/locationtech/proj4j/compare/v1.2.3...v1.3.0
 [1.2.3]: https://github.com/locationtech/proj4j/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/locationtech/proj4j/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/locationtech/proj4j/compare/v1.2.0...v1.2.1
