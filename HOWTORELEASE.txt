@@ -45,6 +45,25 @@ General Notes
               <profiles/>
               <activeProfiles/>
             </settings>
+        - selected signing key i.e. in the each module pom.xml via the gpg configuration tags:
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <version>3.0.1</version>
+              <executions>
+                <execution>
+                  <id>sign-artifacts</id>
+                  <phase>verify</phase>
+                  <goals>
+                    <goal>sign</goal>
+                  </goals>
+                  <configuration>
+                    <keyname>KEYID</keyname>
+                    <passphrase>passphrase</passphrase>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
 
     Cheat sheet:
         - All commands are can be described via the following template:
