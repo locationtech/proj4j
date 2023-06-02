@@ -105,7 +105,7 @@ public class Proj4FileReader {
 
     /**
      * Gets the list of PROJ.4 parameters which define
-     * the coordinate system specified by <tt>name</tt>.
+     * the coordinate system specified by <code>name</code>.
      *
      * @param crsName the name of the coordinate system
      * @return the PROJ.4 projection parameters which define the coordinate system

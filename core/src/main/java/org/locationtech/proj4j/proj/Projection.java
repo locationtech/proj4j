@@ -370,7 +370,7 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
 
     /**
      * Tests whether this projection has an inverse.
-     * If this method returns <tt>true</tt>
+     * If this method returns <code>true</code>
      * then the {@link #inverseProject(ProjCoordinate, ProjCoordinate)}
      * and {@link #inverseProjectRadians(ProjCoordinate, ProjCoordinate)}
      * methods will return meaningful results.
