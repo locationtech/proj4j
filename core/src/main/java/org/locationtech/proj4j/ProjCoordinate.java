@@ -57,7 +57,7 @@ public class ProjCoordinate implements Serializable {
 
     /**
      * The Z ordinate for this point.
-     * If this variable has the value <tt>Double.NaN</tt>
+     * If this variable has the value <code>Double.NaN</code>
      * then this coordinate does not have a Z value.
      * <p>
      * Note: This member variable
@@ -178,7 +178,7 @@ public class ProjCoordinate implements Serializable {
     /**
      * Sets the value of this coordinate to
      * be equal to the given ordinates.
-     * The Z ordinate is set to <tt>NaN</tt>.
+     * The Z ordinate is set to <code>NaN</code>.
      *
      * @param x the x ordinate
      * @param y the y ordinate
@@ -340,7 +340,7 @@ public class ProjCoordinate implements Serializable {
 
     /**
      * Returns a string representing the ProjPoint in the format:
-     * <tt>ProjCoordinate[X Y Z]</tt>.
+     * <code>ProjCoordinate[X Y Z]</code>.
      * <p>
      * Example:
      * <pre>
@@ -362,8 +362,8 @@ public class ProjCoordinate implements Serializable {
 
     /**
      * Returns a string representing the ProjPoint in the format:
-     * <tt>[X Y]</tt>
-     * or <tt>[X, Y, Z]</tt>.
+     * <code>[X Y]</code>
+     * or <code>[X, Y, Z]</code>.
      * Z is not displayed if it is NaN.
      * <p>
      * Example:

@@ -27,7 +27,7 @@ import java.io.IOException;
  * This is the primary way of creating coordinate systems
  * for carrying out projections transformations.
  * <p>
- * <tt>CoordinateReferenceSystem</tt>s can be used to
+ * <code>CoordinateReferenceSystem</code>s can be used to
  * define {@link CoordinateTransform}s to perform transformations
  * on {@link ProjCoordinate}s.
  *
@@ -52,24 +52,24 @@ public class CRSFactory {
 
     /**
      * Creates a {@link CoordinateReferenceSystem} (CRS) from a well-known name.
-     * CRS names are of the form: "<tt>authority:code</tt>",
+     * CRS names are of the form: "<code>authority:code</code>",
      * with the components being:
      * <ul>
-     * <li><b><tt>authority</tt></b> is a code for a namespace supported by
+     * <li><b><code>authority</code></b> is a code for a namespace supported by
      * PROJ.4.
      * Currently supported values are
-     * <tt>EPSG</tt>,
-     * <tt>ESRI</tt>,
-     * <tt>WORLD</tt>,
-     * <tt>NA83</tt>,
-     * <tt>NAD27</tt>.
-     * If no authority is provided, the <tt>EPSG</tt> namespace is assumed.
-     * <li><b><tt>code</tt></b> is the id of a coordinate system in the authority namespace.
-     * For example, in the <tt>EPSG</tt> namespace a code is an integer value
+     * <code>EPSG</code>,
+     * <code>ESRI</code>,
+     * <code>WORLD</code>,
+     * <code>NA83</code>,
+     * <code>NAD27</code>.
+     * If no authority is provided, the <code>EPSG</code> namespace is assumed.
+     * <li><b><code>code</code></b> is the id of a coordinate system in the authority namespace.
+     * For example, in the <code>EPSG</code> namespace a code is an integer value
      * which identifies a CRS definition in the EPSG database.
      * (Codes are read and handled as strings).
      * </ul>
-     * An example of a valid CRS name is <tt>EPSG:3005</tt>.
+     * An example of a valid CRS name is <code>EPSG:3005</code>.
      * <p>
      *
      * @param name the name of a coordinate system, with optional authority prefix
@@ -95,7 +95,7 @@ public class CRSFactory {
      * +proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +units=m
      * </pre>
      *
-     * @param name     a name for this coordinate system (may be <tt>null</tt> for an anonymous coordinate system)
+     * @param name     a name for this coordinate system (may be <code>null</code> for an anonymous coordinate system)
      * @param paramStr a PROJ.4 projection parameter string
      * @return the specified {@link CoordinateReferenceSystem}
      * @throws UnsupportedParameterException if a given PROJ.4 parameter is not supported
@@ -110,7 +110,7 @@ public class CRSFactory {
      * Creates a {@link CoordinateReferenceSystem}
      * defined by an array of PROJ.4 projection parameters.
      * PROJ.4 parameters are generally of the form
-     * "<tt>+name=value</tt>".
+     * "<code>+name=value</code>".
      *
      * @param name   a name for this coordinate system (may be null)
      * @param params an array of PROJ.4 projection parameters
@@ -148,7 +148,7 @@ public class CRSFactory {
      * Finds a EPSG Code
      * defined by an array of PROJ.4 projection parameters.
      * PROJ.4 parameters are generally of the form
-     * "<tt>+name=value</tt>".
+     * "<code>+name=value</code>".
      *
      * @param params an array of PROJ.4 projection parameters
      * @return s String EPSG code
