@@ -53,6 +53,7 @@ To include Proj4J in a Gradle project, add a dependency block like the following
 ```
 dependencies {
     implementation 'org.locationtech.proj4j:proj4j:{latest version}'
+    implementation 'org.locationtech.proj4j:proj4j-epsg:{latest version}'
 }
 ```
 where `{latest version}` refers to the version indicated by the badge above.
