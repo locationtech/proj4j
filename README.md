@@ -11,10 +11,10 @@ Proj4J is a project in the [LocationTech](http://www.locationtech.org) working g
 
 Proj4J artifacts are available on maven central.
 
-### Using Proj4J with Maven
-
 **!Important!** As of `1.2.2` version, `proj4-core` contains no EPSG Licensed files. 
 In order to make proj4j properly operate, it makes sense to consider `proj4-epsg` dependency usage.
+
+### Using Proj4J with Maven
 
 To include Proj4J in a Maven project, add a dependency block like the following:
 ```xml
@@ -47,9 +47,6 @@ To include `Proj4J-EPSG` in a Maven project, add a dependency block like the fol
 where `{latest version}` refers to the version indicated by the badge above.
 
 ### Using Proj4J with Gradle
-
-**!Important!** As of `1.2.2` version, `proj4-core` contains no EPSG Licensed files. 
-In order to make proj4j properly operate, it makes sense to consider `proj4-epsg` dependency usage.
 
 To include Proj4J in a Gradle project, add a dependency block like the following:
 
