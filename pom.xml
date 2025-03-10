@@ -197,6 +197,7 @@
     <modules>
         <module>core</module>
         <module>epsg</module>
+        <module>geoapi</module>
     </modules>
 
     <properties>
