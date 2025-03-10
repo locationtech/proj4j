@@ -21,7 +21,6 @@ import org.opengis.referencing.cs.EllipsoidalCS;
 
 /**
  * Wraps a PROJ4J implementation behind the equivalent GeoAPI interface.
- * The CRS is assumed two-dimensional.
  *
  * @author Martin Desruisseaux (Geomatys)
  */
@@ -30,8 +29,8 @@ final class GeographicCRSWrapper extends AbstractCRS implements EllipsoidalCS, G
     /**
      * Creates a new wrapper for the given PROJ4J implementation.
      */
-    GeographicCRSWrapper(final org.locationtech.proj4j.CoordinateReferenceSystem impl) {
-        super(impl);
+    GeographicCRSWrapper(org.locationtech.proj4j.CoordinateReferenceSystem impl, boolean is3D) {
+        super(impl, is3D);
     }
 
     /**

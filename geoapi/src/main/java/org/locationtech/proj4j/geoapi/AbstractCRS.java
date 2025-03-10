@@ -28,21 +28,20 @@ import org.opengis.referencing.datum.GeodeticDatum;
 
 /**
  * Wraps a PROJ4J implementation behind the equivalent GeoAPI interface.
- * The CRS is assumed two-dimensional.
  *
  * @author Martin Desruisseaux (Geomatys)
  */
 @SuppressWarnings("serial")
 abstract class AbstractCRS extends Wrapper implements SingleCRS, CoordinateSystem, Serializable {
     /**
-     * The number of dimensions of the CRS.
-     */
-    private static final int BIDIMENSIONAL = 2;
-
-    /**
      * The wrapped PROJ4 implementation.
      */
-    private final org.locationtech.proj4j.CoordinateReferenceSystem impl;
+    final org.locationtech.proj4j.CoordinateReferenceSystem impl;
+
+    /**
+     * Whether this CRS is three-dimensional instead of two-dimensional.
+     */
+    final boolean is3D;
 
     /**
      * The coordinate system axes, computed and cached when first requested.
@@ -55,23 +54,29 @@ abstract class AbstractCRS extends Wrapper implements SingleCRS, CoordinateSyste
     /**
      * Creates a new wrapper for the given PROJ4J implementation.
      */
-    AbstractCRS(final org.locationtech.proj4j.CoordinateReferenceSystem impl) {
+    AbstractCRS(final org.locationtech.proj4j.CoordinateReferenceSystem impl, final boolean is3D) {
         this.impl = impl;
+        this.is3D = is3D;
     }
 
     /**
      * Wraps the given implementation.
      *
      * @param  impl the implementation to wrap, or {@code null}
+     * @param  is3D whether to return a three-dimensional CRS instead of a two-dimensional one
      * @return the wrapper, or {@code null} if the given implementation was null
      */
-    static AbstractCRS wrap(final org.locationtech.proj4j.CoordinateReferenceSystem impl) {
+    static AbstractCRS wrap(final org.locationtech.proj4j.CoordinateReferenceSystem impl, final boolean is3D) {
         if (impl != null) {
             final Projection proj = impl.getProjection();
             if (proj == null || proj.isGeographic()) {
-                return new GeographicCRSWrapper(impl);
+                return new GeographicCRSWrapper(impl, is3D);
             } else {
-                // TODO
+                /*
+                 * TODO: there is a possibility that the PROJ4J `projection` is actually for something
+                 * else than a map projection. But there is apparently no easy way to determine that.
+                 */
+                return new ProjectedCRSWrapper(impl, is3D);
             }
         }
         return null;
@@ -111,11 +116,11 @@ abstract class AbstractCRS extends Wrapper implements SingleCRS, CoordinateSyste
     }
 
     /**
-     * {@return the number of dimensions, which is fixed to 2}.
+     * {@return the number of dimensions, which is 2 or 3}.
      */
     @Override
     public final int getDimension() {
-        return BIDIMENSIONAL;
+        return is3D ? TRIDIMENSIONAL : BIDIMENSIONAL;
     }
 
     /**
@@ -147,7 +152,7 @@ abstract class AbstractCRS extends Wrapper implements SingleCRS, CoordinateSyste
         Axis[] axes = this.axes;
         if (axes == null) {
             final Axis[] axesForAllDirections = axesForAllDirections();
-            axes = Arrays.copyOfRange(axesForAllDirections, Axis.INDEX_OF_EAST, axesForAllDirections.length);
+            axes = Arrays.copyOfRange(axesForAllDirections, Axis.INDEX_OF_EAST, Axis.INDEX_OF_EAST + getDimension());
             final Projection proj = impl.getProjection();
             if (proj != null) {
                 final AxisOrder order = proj.getAxisOrder();

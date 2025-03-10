@@ -15,12 +15,16 @@
  */
 package org.locationtech.proj4j.geoapi;
 
+import org.locationtech.proj4j.CoordinateTransform;
+import org.locationtech.proj4j.ProjCoordinate;
+import org.opengis.geometry.DirectPosition;
 import org.opengis.referencing.crs.GeographicCRS;
 import org.opengis.referencing.crs.ProjectedCRS;
 import org.opengis.referencing.crs.SingleCRS;
 import org.opengis.referencing.datum.Ellipsoid;
 import org.opengis.referencing.datum.GeodeticDatum;
 import org.opengis.referencing.datum.PrimeMeridian;
+import org.opengis.referencing.operation.CoordinateOperation;
 
 
 /**
@@ -46,10 +50,11 @@ public final class Wrappers {
      * be changed after construction.</p>
      *
      * @param  impl the implementation to wrap, or {@code null}
+     * @param  is3D whether to return a three-dimensional CRS instead of a two-dimensional one
      * @return the view, or {@code null} if the given implementation was null
      */
-    public static SingleCRS geoapi(final org.locationtech.proj4j.CoordinateReferenceSystem impl) {
-        return AbstractCRS.wrap(impl);
+    public static SingleCRS geoapi(final org.locationtech.proj4j.CoordinateReferenceSystem impl, boolean is3D) {
+        return AbstractCRS.wrap(impl, is3D);
     }
 
     /**
@@ -89,5 +94,32 @@ public final class Wrappers {
      */
     public static PrimeMeridian geoapi(final org.locationtech.proj4j.datum.PrimeMeridian impl) {
         return PrimeMeridianWrapper.wrap(impl);
+    }
+
+    /**
+     * Wraps the given PROJ4J coordinate transform behind the equivalent GeoAPI interface.
+     * The returned object is a <em>view</em>: if any {@code impl} value is changed after this method call,
+     * those changes will be reflected immediately in the returned view. Note that referencing objects
+     * should be immutable. Therefore, it is recommended to not apply any change on {@code impl}.
+     *
+     * @param  impl the implementation to wrap, or {@code null}
+     * @param  is3D whether to return a three-dimensional operation instead of a two-dimensional one
+     * @return the view, or {@code null} if the given implementation was null
+     */
+    public static CoordinateOperation geoapi(final CoordinateTransform impl, final boolean is3D) {
+        return TransformWrapper.wrap(impl, is3D);
+    }
+
+    /**
+     * Wraps the given PROJ4J coordinate tuple behind the equivalent GeoAPI interface.
+     * The returned object is a <em>view</em>: if any {@code impl} value is changed after this method call,
+     * those changes will be reflected immediately in the returned view. Conversely, setting a value in the
+     * returned view set the corresponding value in the given implementation.
+     *
+     * @param  impl the implementation to wrap, or {@code null}
+     * @return the view, or {@code null} if the given implementation was null
+     */
+    public static DirectPosition geoapi(final ProjCoordinate impl) {
+        return PositionWrapper.wrap(impl);
     }
 }

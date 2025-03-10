@@ -32,7 +32,17 @@ import org.opengis.util.InternationalString;
  *
  * @author Martin Desruisseaux (Geomatys)
  */
-abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
+abstract class Wrapper implements ReferenceIdentifier {
+    /**
+     * The default number of dimensions of the CRS.
+     */
+    static final int BIDIMENSIONAL = 2;
+
+    /**
+     * The number of dimensions when a non-NaN <var>z</var> coordinate value is provided.
+     */
+    static final int TRIDIMENSIONAL = 3;
+
     /**
      * Creates a new wrapper.
      */
@@ -84,8 +94,11 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
      * {@return the primary object name}. This method returns {@code this},
      * with the expectation that users will follow with {@link #getCode()}.
      * Subclasses shall return the actual object name in {@code getCode()}.
+     *
+     * <p>This is a method declared in the {@link IdentifiedObject} interface.
+     * It is implemented in this base class for the convenience of subclasses
+     * that indirectly implement {@code IdentifiedObject}.</p>
      */
-    @Override
     public final ReferenceIdentifier getName() {
         return this;
     }
@@ -94,8 +107,11 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
      * {@return other names of this object}.
      * In the EPSG database, this is usually the short name.
      * The default implementation assumes that there is none.
+     *
+     * <p>This is a method declared in the {@link IdentifiedObject} interface.
+     * It is implemented in this base class for the convenience of subclasses
+     * that indirectly implement {@code IdentifiedObject}.</p>
      */
-    @Override
     public Collection<GenericName> getAlias() {
         return Collections.emptyList();
     }
@@ -103,8 +119,11 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
     /**
      * {@return all identifiers (usually EPSG codes) of this object}.
      * The default implementation assumes that there is none.
+     *
+     * <p>This is a method declared in the {@link IdentifiedObject} interface.
+     * It is implemented in this base class for the convenience of subclasses
+     * that indirectly implement {@code IdentifiedObject}.</p>
      */
-    @Override
     public Set<ReferenceIdentifier> getIdentifiers() {
         return Collections.emptySet();
     }
@@ -112,6 +131,9 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
     /**
      * {@return the scope of usage of this object}.
      * If unknown, ISO 19111 requires that we return "not known".
+     *
+     * <p>This method is not declared directly in the {@link IdentifiedObject} interface,
+     * but appears in datum and coordinate operation sub-interfaces.</p>
      */
     public InternationalString getScope() {
         return LocalizedString.UNKNOWN;
@@ -120,6 +142,9 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
     /**
      * {@return the domain of validity of this object}.
      * The default implementation assumes that there is none.
+     *
+     * <p>This method is not declared directly in the {@link IdentifiedObject} interface,
+     * but appears in datum and coordinate operation sub-interfaces.</p>
      */
     public Extent getDomainOfValidity() {
         return null;
@@ -128,8 +153,11 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
     /**
      * {@return optional remarks about this object}.
      * The default implementation assumes that there is none.
+     *
+     * <p>This is a method declared in the {@link IdentifiedObject} interface.
+     * It is implemented in this base class for the convenience of subclasses
+     * that indirectly implement {@code IdentifiedObject}.</p>
      */
-    @Override
     public InternationalString getRemarks() {
         return null;
     }
@@ -137,8 +165,11 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
     /**
      * {@return a WKT representation of this object}.
      * The default implementation assumes that there is none.
+     *
+     * <p>This is a method declared in the {@link IdentifiedObject} interface.
+     * It is implemented in this base class for the convenience of subclasses
+     * that indirectly implement {@code IdentifiedObject}.</p>
      */
-    @Override
     public String toWKT() throws UnsupportedOperationException {
         throw new UnsupportedOperationException("Not supported.");
     }
@@ -147,7 +178,7 @@ abstract class Wrapper implements IdentifiedObject, ReferenceIdentifier {
      * {@return the string representation of the wrapped PROJ4J object}.
      */
     @Override
-    public final String toString() {
+    public String toString() {
         return implementation().toString();
     }
 
