@@ -25,7 +25,7 @@ import javax.measure.spi.SystemOfUnits;
 
 /**
  * Predefined constants for the units of measurement.
- * The actual JSR-363 implementation is left at user's choice.
+ * The actual JSR-385 implementation is left at user's choice.
  *
  * @author  Martin Desruisseaux (Geomatys)
  */
@@ -100,8 +100,8 @@ final class Units {
     }
 
     /**
-     * Returns the given JSR-363 unit of measurement as a PROJ4J instance.
-     * Note that there is no method in the reverse direction (from PROJ4J to JSR-363)
+     * Returns the given JSR-385 unit of measurement as a PROJ4J instance.
+     * Note that there is no method in the reverse direction (from PROJ4J to JSR-385)
      * because current PROJ4J does not tell us whether the unit is linear or angular.
      *
      * @param  unit  the unit of measurement

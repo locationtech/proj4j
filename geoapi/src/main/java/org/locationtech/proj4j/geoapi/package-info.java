@@ -21,7 +21,7 @@
  * argument and returns a view of that object as a GeoAPI type.
  *
  * <h2>Dependency to a Unit of Measurement library</h2>
- * This module requires a JSR-363 (Units of Measurement) implementation
+ * This module requires a JSR-385 (Units of Measurement) implementation
  * to be present on the class-path or module-path.
  * The choice of an implementation is left to the user. Some implementations are
  * <a href="https://github.com/unitsofmeasurement/indriya">Indriya</a>,
