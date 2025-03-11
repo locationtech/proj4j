@@ -45,7 +45,7 @@ final class OperationMethodWrapper extends Wrapper implements OperationMethod,
     /**
      * The wrapped PROJ4 implementation.
      */
-    private final Projection impl;
+    final Projection impl;
 
     /**
      * Creates a new wrapper for the given PROJ4J implementation.
@@ -168,6 +168,8 @@ final class OperationMethodWrapper extends Wrapper implements OperationMethod,
 
     /**
      * {@return the descriptions of all parameters having a non-default value}.
+     * The check for non-default values is a heuristic rule for identifying
+     * which parameters are used by the PROJ4J {@link Projection} instance.
      */
     @Override
     public List<GeneralParameterDescriptor> descriptors() {
@@ -176,6 +178,8 @@ final class OperationMethodWrapper extends Wrapper implements OperationMethod,
 
     /**
      * {@return the values of all parameters having a non-default value}.
+     * The check for non-default values is a heuristic rule for identifying
+     * which parameters are used by the PROJ4J {@link Projection} instance.
      */
     @Override
     public List<GeneralParameterValue> values() {

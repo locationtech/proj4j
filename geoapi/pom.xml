@@ -64,6 +64,7 @@
                     <links>
                         <link>https://www.geoapi.org/3.0/javadoc/</link>
                     </links>
+                    <excludePackageNames>org.locationtech.proj4j.geoapi.spi</excludePackageNames>
                 </configuration>
             </plugin>
         </plugins>

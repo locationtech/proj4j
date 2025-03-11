@@ -36,7 +36,7 @@ final class DatumWrapper extends Wrapper implements GeodeticDatum, Serializable 
     /**
      * The wrapped PROJ4 implementation.
      */
-    private final org.locationtech.proj4j.datum.Datum impl;
+    final org.locationtech.proj4j.datum.Datum impl;
 
     /**
      * The prime meridian, or {@code null} for Greenwich

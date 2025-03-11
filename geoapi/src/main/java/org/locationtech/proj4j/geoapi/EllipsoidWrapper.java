@@ -33,7 +33,7 @@ final class EllipsoidWrapper extends Wrapper implements Ellipsoid, Serializable 
     /**
      * The wrapped PROJ4 implementation.
      */
-    private final org.locationtech.proj4j.datum.Ellipsoid impl;
+    final org.locationtech.proj4j.datum.Ellipsoid impl;
 
     /**
      * Creates a new wrapper for the given PROJ4J implementation.

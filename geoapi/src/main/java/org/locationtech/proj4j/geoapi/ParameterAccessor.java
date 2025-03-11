@@ -207,14 +207,19 @@ final class ParameterAccessor extends Wrapper implements ParameterDescriptor<Dou
 
     /**
      * {@return the minimum number of times that values for this parameter are required}.
+     * The value should be 1 for mandatory parameters and 0 for optional parameters.
+     * We consider all parameters as optional, because we don't know for sure which
+     * parameters are used by a particular PROJ4J {@link Projection} instance.
      */
     @Override
     public int getMinimumOccurs() {
-        return 1;
+        return 0;
     }
 
     /**
      * {@return the maximum number of times that values for this parameter are required}.
+     * Values greater than 1 should happen only with parameter groups, which are not used
+     * in this implementation.
      */
     @Override
     public int getMaximumOccurs() {

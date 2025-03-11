@@ -98,4 +98,28 @@ final class Units {
         }
         return unit;
     }
+
+    /**
+     * Returns the given JSR-363 unit of measurement as a PROJ4J instance.
+     * Note that there is no method in the reverse direction (from PROJ4J to JSR-363)
+     * because current PROJ4J does not tell us whether the unit is linear or angular.
+     *
+     * @param  unit  the unit of measurement
+     * @return the PROJ4J equivalent unit
+     * @throws UnconvertibleInstanceException if the unit cannot be mapped
+     */
+    final org.locationtech.proj4j.units.Unit proj4j(final Unit<?> unit) {
+        if (unit.equals(metre))  return org.locationtech.proj4j.units.Units.METRES;
+        if (unit.equals(degree)) return org.locationtech.proj4j.units.Units.DEGREES;
+        if (unit.equals(one))    return null;
+
+        String symbol = unit.getSymbol().trim();
+        if ("°".equals(symbol)) symbol = "degree";
+        org.locationtech.proj4j.units.Unit proj4j = org.locationtech.proj4j.units.Units.findUnits(symbol);
+        if (org.locationtech.proj4j.units.Units.METRES.equals(proj4j)) {
+            // PROJ4J maps every unknown unit to metres, which is unsafe from GeoAPI point of view.
+            throw new UnconvertibleInstanceException("Cannot map \"" + symbol + "\" to PROJ4 unit.");
+        }
+        return proj4j;
+    }
 }

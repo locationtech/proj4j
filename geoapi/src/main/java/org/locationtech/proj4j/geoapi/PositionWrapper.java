@@ -171,6 +171,9 @@ final class PositionWrapper extends Wrapper implements DirectPosition, Serializa
      */
     @SuppressWarnings("fallthrough")
     static ProjCoordinate unwrapOrCopy(final DirectPosition src) {
+        if (src == null) {
+            return null;
+        }
         if (src instanceof PositionWrapper) {
             return ((PositionWrapper) src).impl;
         }

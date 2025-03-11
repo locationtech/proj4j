@@ -39,7 +39,7 @@ final class PrimeMeridianWrapper extends Wrapper implements PrimeMeridian, Seria
     /**
      * The wrapped PROJ4 implementation.
      */
-    private final org.locationtech.proj4j.datum.PrimeMeridian impl;
+    final org.locationtech.proj4j.datum.PrimeMeridian impl;
 
     /**
      * Creates a new wrapper for the given PROJ4J implementation.

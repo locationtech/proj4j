@@ -24,6 +24,7 @@ import org.locationtech.proj4j.ProjCoordinate;
 import org.opengis.geometry.DirectPosition;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.GeographicCRS;
 import org.opengis.referencing.crs.ProjectedCRS;
 import org.opengis.referencing.datum.GeodeticDatum;
@@ -36,11 +37,11 @@ import org.opengis.referencing.cs.CoordinateSystemAxis;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.OperationMethod;
 import org.opengis.referencing.operation.Projection;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import org.opengis.referencing.operation.TransformException;
+import org.locationtech.proj4j.datum.AxisOrder;
+import org.opengis.util.FactoryException;
+
+import static org.junit.Assert.*;
 
 
 /**
@@ -53,6 +54,13 @@ public final class WrappersTest {
      * Creates a new test case.
      */
     public WrappersTest() {
+    }
+
+    /**
+     * {@return a factory to use for testing CRS creation}.
+     */
+    private static CRSAuthorityFactory crsFactory() {
+        return Wrappers.geoapi(new CRSFactory());
     }
 
     /**
@@ -75,12 +83,13 @@ public final class WrappersTest {
     /**
      * Tests the creation of a geographic CRS.
      * This method verifies the datum (including its dependencies) and the coordinate system.
+     *
+     * @throws FactoryException if the CRS cannot be created
      */
     @Test
-    public void testGeographicCRS() {
+    public void testGeographicCRS() throws FactoryException {
         final Unit<Angle> degree = Units.getInstance().degree;
-        final CRSFactory crsFactory = new CRSFactory();
-        final GeographicCRS crs = (GeographicCRS) Wrappers.geoapi(crsFactory.createFromName("EPSG:4326"), false);
+        final GeographicCRS crs = crsFactory().createGeographicCRS("EPSG:4326");
         assertEquals("EPSG:4326", crs.getName().getCode());
 
         /*
@@ -106,6 +115,7 @@ public final class WrappersTest {
          * Verify axis name, abbreviation, direction and unit.
          */
         final EllipsoidalCS cs = crs.getCoordinateSystem();
+        assertEquals(AxisOrder.ENU, Wrappers.axisOrder(cs));
         assertEquals(2, cs.getDimension());
 
         CoordinateSystemAxis axis = cs.getAxis(0);
@@ -128,14 +138,14 @@ public final class WrappersTest {
      * This method verifies the datum, the coordinate system and the projection parameters.
      * Opportunistically tests the transformation of a point.
      *
+     * @throws FactoryException if the CRS cannot be created
      * @throws TransformException if an error occurred while testing the projection of a point
      */
     @Test
-    public void testProjectedCRS() throws TransformException {
+    public void testProjectedCRS() throws FactoryException, TransformException {
         final Unit<Angle> degree = Units.getInstance().degree;
         final Unit<Length> metre = Units.getInstance().metre;
-        final CRSFactory crsFactory = new CRSFactory();
-        final ProjectedCRS crs = (ProjectedCRS) Wrappers.geoapi(crsFactory.createFromName("EPSG:2154"), false);
+        final ProjectedCRS crs = crsFactory().createProjectedCRS("EPSG:2154");
         assertEquals("EPSG:2154", crs.getName().getCode());
 
         /*
@@ -159,6 +169,7 @@ public final class WrappersTest {
          * Verify axis name, abbreviation, direction and unit.
          */
         final CartesianCS cs = crs.getCoordinateSystem();
+        assertEquals(AxisOrder.ENU, Wrappers.axisOrder(cs));
         assertEquals(2, cs.getDimension());
 
         CoordinateSystemAxis axis = cs.getAxis(0);
