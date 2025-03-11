@@ -28,6 +28,12 @@
             <version>3.0.2</version>
         </dependency>
         <dependency>
+            <groupId>org.opengis</groupId>
+            <artifactId>geoapi-conformance</artifactId>
+            <version>3.0.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.locationtech.proj4j</groupId>
             <artifactId>proj4j</artifactId>
             <version>${project.version}</version>

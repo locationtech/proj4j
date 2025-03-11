@@ -34,7 +34,12 @@ import org.opengis.util.ScopedName;
  * @author Martin Desruisseaux (Geomatys)
  */
 @SuppressWarnings("serial")
-final class Alias implements LocalName, Serializable {
+final class Alias implements LocalName, NameSpace, Serializable {
+    /**
+     * Name of the global name space.
+     */
+    private static final Alias GLOBAL = new Alias("global");
+
     /**
      * The name to provide as an alias.
      */
@@ -59,9 +64,12 @@ final class Alias implements LocalName, Serializable {
         return (name != null) ? Collections.singletonList(new Alias(name)) : Collections.emptyList();
     }
 
+    /**
+     * {@return the global namespace}.
+     */
     @Override
     public NameSpace scope() {
-        return null;
+        return this;
     }
 
     @Override
@@ -121,5 +129,18 @@ final class Alias implements LocalName, Serializable {
     @Override
     public int hashCode() {
         return name.hashCode() ^ getClass().hashCode();
+    }
+
+    @Override
+    public boolean isGlobal() {
+        return true;
+    }
+
+    /**
+     * {@return the name of the global name space}.
+     */
+    @Override
+    public GenericName name() {
+        return GLOBAL;
     }
 }

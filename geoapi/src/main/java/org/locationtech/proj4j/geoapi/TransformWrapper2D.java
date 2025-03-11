@@ -100,9 +100,10 @@ class TransformWrapper2D extends TransformWrapper implements MathTransform2D {
                           double[] dstPts, int dstOff, int numPts) throws TransformException
     {
         checkNumPts(numPts);
-        if (srcPts == dstPts && srcOff > dstOff) {
+        if (srcPts == dstPts && srcOff < dstOff) {
+            // If there is an overlap, we need a copy.
             int end = srcOff + numPts * BIDIMENSIONAL;
-            if (end < dstOff) {
+            if (end > dstOff) {
                 srcPts = Arrays.copyOfRange(srcPts, srcOff, end);
                 srcOff = 0;
             }
@@ -132,9 +133,10 @@ class TransformWrapper2D extends TransformWrapper implements MathTransform2D {
                           float[] dstPts, int dstOff, int numPts) throws TransformException
     {
         checkNumPts(numPts);
-        if (srcPts == dstPts && srcOff > dstOff) {
+        if (srcPts == dstPts && srcOff < dstOff) {
+            // If there is an overlap, we need a copy.
             int end = srcOff + numPts * BIDIMENSIONAL;
-            if (end < dstOff) {
+            if (end > dstOff) {
                 srcPts = Arrays.copyOfRange(srcPts, srcOff, end);
                 srcOff = 0;
             }

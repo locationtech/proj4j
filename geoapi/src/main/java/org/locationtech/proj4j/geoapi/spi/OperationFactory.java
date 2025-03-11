@@ -38,6 +38,11 @@ import org.opengis.util.FactoryException;
  */
 public final class OperationFactory implements CoordinateOperationFactory {
     /**
+     * The unique instance returned by {@link #provider()}.
+     */
+    private static final CoordinateOperationFactory INSTANCE = Wrappers.geoapi(new CoordinateTransformFactory());
+
+    /**
      * Where to delegate all operations.
      */
     private final CoordinateOperationFactory proxy;
@@ -53,9 +58,10 @@ public final class OperationFactory implements CoordinateOperationFactory {
 
     /**
      * {@return the factory backed by PROJ4J}.
+     * This is the method that should be invoked when using Java 9+ module system.
      */
     public static CoordinateOperationFactory provider() {
-        return Wrappers.geoapi(new CoordinateTransformFactory());
+        return INSTANCE;
     }
 
     @Override

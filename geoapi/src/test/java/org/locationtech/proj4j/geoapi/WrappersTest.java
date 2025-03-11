@@ -21,6 +21,7 @@ import javax.measure.quantity.Length;
 import org.junit.Test;
 import org.locationtech.proj4j.CRSFactory;
 import org.locationtech.proj4j.ProjCoordinate;
+import org.locationtech.proj4j.datum.AxisOrder;
 import org.opengis.geometry.DirectPosition;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.parameter.ParameterValueGroup;
@@ -38,8 +39,8 @@ import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.OperationMethod;
 import org.opengis.referencing.operation.Projection;
 import org.opengis.referencing.operation.TransformException;
-import org.locationtech.proj4j.datum.AxisOrder;
 import org.opengis.util.FactoryException;
+import org.opengis.test.Validators;
 
 import static org.junit.Assert.*;
 
@@ -78,6 +79,9 @@ public final class WrappersTest {
         assertEquals(6378388,    ellipsoid.getSemiMajorAxis(), 0);
         assertEquals(6356911.95, ellipsoid.getSemiMinorAxis(), 0.005);
         assertEquals(297,        ellipsoid.getInverseFlattening(), 5E-10);
+
+        // Verification by GeoAPI
+        Validators.validate(datum);
     }
 
     /**
@@ -131,6 +135,9 @@ public final class WrappersTest {
         assertEquals(AxisDirection.NORTH, axis.getDirection());
         assertEquals(degree, axis.getUnit());
         assertSame(axis, cs.getAxis(1));
+
+        // Verification by GeoAPI
+        Validators.validate(crs);
     }
 
     /**
@@ -231,5 +238,9 @@ public final class WrappersTest {
         assertEquals(2, pt.getDimension());
         assertEquals(46.5, pt.getOrdinate(1), 1E-9);
         assertEquals( 3.0, pt.getOrdinate(0), 1E-9);
+
+        // Verification by GeoAPI
+        // Disabled because one of the test is a bit too strict. This is fixed in GeoAPI 3.1.
+        // Validators.validate(crs);
     }
 }

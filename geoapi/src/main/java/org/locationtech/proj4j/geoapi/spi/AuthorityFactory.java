@@ -38,6 +38,11 @@ import org.opengis.util.InternationalString;
  */
 public final class AuthorityFactory implements CRSAuthorityFactory {
     /**
+     * The unique instance returned by {@link #provider()}.
+     */
+    private static final CRSAuthorityFactory INSTANCE = Wrappers.geoapi(new CRSFactory());
+
+    /**
      * Where to delegate all operations.
      */
     private final CRSAuthorityFactory proxy;
@@ -53,9 +58,10 @@ public final class AuthorityFactory implements CRSAuthorityFactory {
 
     /**
      * {@return the factory backed by PROJ4J}.
+     * This is the method that should be invoked when using Java 9+ module system.
      */
     public static CRSAuthorityFactory provider() {
-        return Wrappers.geoapi(new CRSFactory());
+        return INSTANCE;
     }
 
     @Override
