@@ -1,0 +1,79 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+      <groupId>org.locationtech.proj4j</groupId>
+      <artifactId>proj4j-modules</artifactId>
+      <version>1.3.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>org.locationtech.proj4j</groupId>
+    <artifactId>proj4j-geoapi</artifactId>
+    <packaging>jar</packaging>
+    <name>GeoAPI wrappers</name>
+    <description>GeoAPI wrappers for viewing PROJ4J as a GeoAPI implementation.</description>
+
+    <developers>
+        <developer>
+            <id>desruisseaux</id>
+            <name>Martin Desruisseaux</name>
+            <url>https://github.com/desruisseaux</url>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.opengis</groupId>
+            <artifactId>geoapi</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.opengis</groupId>
+            <artifactId>geoapi-conformance</artifactId>
+            <version>3.0.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.proj4j</groupId>
+            <artifactId>proj4j</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.proj4j</groupId>
+            <artifactId>proj4j-epsg</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>tech.uom</groupId>
+            <artifactId>seshat</artifactId>
+            <version>1.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <author>false</author>
+                    <noqualifier>all</noqualifier>
+                    <quiet>true</quiet>
+                    <breakiterator>true</breakiterator>
+                    <links>
+                        <link>https://www.geoapi.org/3.0/javadoc/</link>
+                    </links>
+                    <excludePackageNames>org.locationtech.proj4j.geoapi.spi</excludePackageNames>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
