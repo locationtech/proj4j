@@ -67,7 +67,7 @@ General Notes
 
     Cheat sheet:
         - All commands are can be described via the following template:
-            mvn -P{eclipse | central} {-Dmaven.test.skip=true | } {-pl <module> | } {install, deploy, ...}
+            mvn -P{eclipse | central} {-Dmaven.test.skip=true | } {-pl <module> | } {install, deploy, ...} {-Dmaven.install.skip={false|true}}
 
     The description of the Sonatype publish process:
         - Snaphots:

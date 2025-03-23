@@ -68,9 +68,11 @@ public class LambertConformalConicProjection extends ConicProjection {
 	}
 
 	public ProjCoordinate projectInverse(double x, double y, ProjCoordinate out) {
+		// https://github.com/OSGeo/PROJ/blob/9.6/src/projections/lcc.cpp#L49-L53
 		x /= scaleFactor;
 		y /= scaleFactor;
-		double rho = ProjectionMath.distance(x, y = rho0 - y);
+		y = rho0 - y;
+		double rho = ProjectionMath.distance(x, y);
 		if (rho != 0) {
 			if (n < 0.0) {
 				rho = -rho;
@@ -78,9 +80,9 @@ public class LambertConformalConicProjection extends ConicProjection {
 				y = -y;
 			}
 			if (spherical)
-				out.y = 2.0 * Math.atan(Math.pow(c / rho, 1.0/n)) - ProjectionMath.HALFPI;
+				out.y = 2.0 * Math.atan(Math.pow(c / rho, 1.0 / n)) - ProjectionMath.HALFPI;
 			else
-				out.y = ProjectionMath.phi2(Math.pow(rho / c, 1.0/n), e);
+				out.y = ProjectionMath.phi2(Math.pow(rho / c, 1.0 / n), e);
 			out.x = Math.atan2(x, y) / n;
 		} else {
 			out.x = 0.0;
