@@ -155,8 +155,9 @@ public class BasicCoordinateTransform implements CoordinateTransform {
 
         srcCRS.getProjection().getPrimeMeridian().toGreenwich(tgt);
 
+        // 'fix' commented out, see https://github.com/locationtech/proj4j/issues/116
         // fixes bug where computed Z value sticks around
-        tgt.clearZ();
+        // tgt.clearZ();
 
         if (doDatumTransform) {
             datumTransform(tgt);

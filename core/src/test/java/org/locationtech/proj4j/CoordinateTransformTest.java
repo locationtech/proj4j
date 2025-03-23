@@ -290,4 +290,14 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
                 "+proj=tmerc +lat_0=-36.87986527777778 +lon_0=174.7643393611111 +k=0.9999 +x_0=300000 +y_0=700000 +datum=nzgd49 +units=m +towgs84=59.47,-5.04,187.44,0.47,-0.1,1.024,-4.5993 +nadgrids=nzgd2kgrid0005.gsb +no_defs", 301062.2010778899, 210376.65974323952,
                 0.001);
     }
+
+    // https://github.com/locationtech/proj4j/issues/116
+    @Test
+    public void testEPSG_2994() {
+        checkTransform(
+                "EPSG:2994", new ProjCoordinate(635788, 850485, 81),
+                "+proj=geocent +datum=WGS84",
+                new ProjCoordinate(-2505627.3608, -3847384.25836, 4412472.6628),
+                0.001);
+    }
 }
