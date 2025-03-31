@@ -10,7 +10,7 @@
     <groupId>org.locationtech.proj4j</groupId>
     <artifactId>proj4j-geoapi</artifactId>
     <packaging>jar</packaging>
-    <name>GeoAPI wrappers</name>
+    <name>Proj4J GeoAPI</name>
     <description>GeoAPI wrappers for viewing PROJ4J as a GeoAPI implementation.</description>
 
     <developers>

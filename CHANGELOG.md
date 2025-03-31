@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2025-03-31
+
 ### Fixed 
 - LCC ProjectInverse adjustment, BasicCoordinateTransform.transform cleanup [#117](https://github.com/locationtech/proj4j/pull/117)
 
