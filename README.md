@@ -5,13 +5,13 @@ It is designed to be compatible with `proj.4` parameters and derives some of its
 
 Proj4J is a project in the [LocationTech](http://www.locationtech.org) working group of the Eclipse Foundation.
 
-![LocationTech](locationtech_mark.png) 
+![LocationTech](locationtech_mark.png)
 
 ## User Guide
 
 Proj4J artifacts are available on maven central.
 
-**!Important!** As of `1.2.2` version, `proj4-core` contains no EPSG Licensed files. 
+**!Important!** As of `1.2.2` version, `proj4-core` contains no EPSG Licensed files.
 In order to make proj4j properly operate, it makes sense to consider `proj4-epsg` dependency usage.
 
 ### Using Proj4J with Maven
@@ -46,6 +46,25 @@ To include `Proj4J-EPSG` in a Maven project, add a dependency block like the fol
 ```
 where `{latest version}` refers to the version indicated by the badge above.
 
+#### Using Proj4j with GeoAPI
+
+`Proj4j-GeoAPI` module provides wrappers for using Proj4J behind [GeoAPI](https://www.geoapi.org/) interfaces.
+GeoAPI is a set of Java interfaces derived from OGC/ISO standards
+for using different implementations of metadata and referencing services through a standard API.
+To include the module in a Maven project, add a dependency block like the following:
+```xml
+<properties>
+    <proj4j.version>{latest version}</proj4j.version>
+</properties>
+<dependency>
+    <groupId>org.locationtech.proj4j</groupId>
+    <artifactId>proj4j-geoapi</artifactId>
+    <version>${proj4j.version}</version>
+</dependency>
+```
+where `{latest version}` refers to the version indicated by the badge above.
+Usage examples are available on the [GeoAPI site](https://www.geoapi.org/java/examples/usage.html).
+
 ### Using Proj4J with Gradle
 
 To include Proj4J in a Gradle project, add a dependency block like the following:
@@ -67,6 +86,19 @@ To include `Proj4J-EPSG` in a Gradle project, add the following line to the depe
     implementation 'org.locationtech.proj4j:proj4j-epsg:{latest version}'
 ```
 where `{latest version}` refers to the version indicated by the badge above.
+
+#### Using Proj4j with GeoAPI
+
+`Proj4j-GeoAPI` module provides wrappers for using Proj4J behind [GeoAPI](https://www.geoapi.org/) interfaces.
+GeoAPI is a set of Java interfaces derived from OGC/ISO standards
+for using different implementations of metadata and referencing services through a standard API.
+To include the module in a Gradle project, add the following line to the dependency block:
+
+```
+    implementation 'org.locationtech.proj4j:proj4j-geoapi:{latest version}'
+```
+where `{latest version}` refers to the version indicated by the badge above.
+Usage examples are available on the [GeoAPI site](https://www.geoapi.org/java/examples/usage.html).
 
 ### Basic Usage
 
