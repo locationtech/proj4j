@@ -28,4 +28,8 @@ public class InvalidValueException extends Proj4jException {
 	public InvalidValueException(String message) {
 		super(message);
 	}
+
+	public InvalidValueException(String message, Exception cause) {
+		super(message, cause);
+	}
 }

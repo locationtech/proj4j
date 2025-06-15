@@ -34,4 +34,8 @@ public class Proj4jException extends RuntimeException
 	public Proj4jException(String message) {
 		super(message);
 	}
+
+	public Proj4jException(String message, Exception cause) {
+		super(message, cause);
+	}
 }
