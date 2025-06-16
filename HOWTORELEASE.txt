@@ -12,7 +12,8 @@ General Notes
 
 1) Proj4J project release
     What you need:
-        - an account on sonatype (https://issues.sonatype.org/secure/Signup!default.jspa)
+        - (new) an account on central (https://central.sonatype.com/publishing/deployments)
+        - (old) an account on sonatype (https://issues.sonatype.org/secure/Signup!default.jspa)
         - configured ~/.m2/settings.xml file (a simple example below):
             <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -36,6 +37,11 @@ General Notes
                 </server>
                 <server>
                   <id>ossrh</id>
+                  <username>...</username>
+                  <password>...</password>
+                </server>
+                <server>
+                  <id>central</id>
                   <username>...</username>
                   <password>...</password>
                 </server>
