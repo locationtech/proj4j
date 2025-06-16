@@ -376,7 +376,7 @@ public final class Grid implements Serializable {
         // search path for grid definition files, but for now we only check the
         // working directory and the classpath (in that order.)
         File file = new File(gridName);
-        if (file.exists()) return new DataInputStream(new FileInputStream(file));
+        if (file.exists()) return new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
         InputStream resource = Grid.class.getResourceAsStream("/proj4/nad/" + gridName);
         if (resource != null) return new DataInputStream(new BufferedInputStream(resource));
 

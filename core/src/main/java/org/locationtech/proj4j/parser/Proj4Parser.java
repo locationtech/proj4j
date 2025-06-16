@@ -205,7 +205,7 @@ public class Proj4Parser {
             try {
                 datumParam.setGrids(Grid.fromNadGrids(nadgrids));
             } catch (IOException e) {
-                throw new InvalidValueException("Unknown nadgrid: " + nadgrids);
+                throw new InvalidValueException("Unknown nadgrid: " + nadgrids, e);
             }
         }
     }

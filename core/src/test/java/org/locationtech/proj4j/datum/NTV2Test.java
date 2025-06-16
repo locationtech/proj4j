@@ -24,6 +24,8 @@ import org.locationtech.proj4j.CoordinateTransform;
 import org.locationtech.proj4j.CoordinateTransformFactory;
 import org.locationtech.proj4j.ProjCoordinate;
 
+import java.net.URISyntaxException;
+
 /**
  * Using grid shifts for Catalonia
  * @see https://geoinquiets.cat/
@@ -76,5 +78,19 @@ public class NTV2Test {
 
         Assert.assertTrue(expected2.areXOrdinatesEqual(result2, 0.001) &&
                           expected2.areYOrdinatesEqual(result2, 0.001));
+    }
+
+    @Test
+    public void nadGridExternalTest() throws URISyntaxException {
+        String path = this.getClass().getResource("/proj4/nad/100800401.gsb").toURI().getPath();
+        CRSFactory crsFactory = new CRSFactory();
+
+        CoordinateReferenceSystem tmercWithNadGridV2 =
+                crsFactory.createFromParameters("EPSG:2100",
+                        "+proj=tmerc +lat_0=0 +lon_0=24 +k=0.9996 +x_0=500000 +y_0=0 +ellps=GRS80 +towgs84=-199.87,74.79,246.62,0,0,0,0 +units=m +nadgrids="
+                                + path + " +no_defs"
+                );
+
+        Assert.assertEquals(Datum.TYPE_GRIDSHIFT, tmercWithNadGridV2.getDatum().getTransformType());
     }
 }
