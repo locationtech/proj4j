@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-05-24
+
+### Fixed
+- Transformation one projection to another in one step should not skip the datum shift [#128](https://github.com/locationtech/proj4j/pull/128)
+- GRS80 should be recognized as a WGS84 transformation type [#127](https://github.com/locationtech/proj4j/pull/127)
+
+### Added
+- JPMS Automatic-Module-Name to JAR manifest [#123](https://github.com/locationtech/proj4j/pull/123)
+
 ## [1.4.1] - 2025-06-15
 
 ### Fixed 
@@ -114,7 +123,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix possible `null` dereference [#16](https://github.com/locationtech/proj4j/pull/16)
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
-[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/locationtech/proj4j/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/locationtech/proj4j/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/locationtech/proj4j/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/locationtech/proj4j/compare/v1.2.3...v1.3.0
