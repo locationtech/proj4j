@@ -128,7 +128,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix possible `null` dereference [#16](https://github.com/locationtech/proj4j/pull/16)
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
-[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.4.3...HEAD
+[1.4.3]: https://github.com/locationtech/proj4j/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/locationtech/proj4j/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/locationtech/proj4j/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/locationtech/proj4j/compare/v1.3.0...v1.4.0
