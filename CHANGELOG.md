@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-06-02
+
 ### Added
 - JPMS Automatic-Module-Name to the core and epsg JAR manifests [#129](https://github.com/locationtech/proj4j/pull/129)
 
