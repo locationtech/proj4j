@@ -48,6 +48,7 @@
                         <_nouses>true</_nouses>
                         <_snapshot>${osgi-version-qualifier}</_snapshot>
                         <Bundle-SymbolicName>${bundle-symbolicname}</Bundle-SymbolicName>
+                        <Automatic-Module-Name>org.locationtech.proj4j</Automatic-Module-Name>
                         <Import-Package />
                     </instructions>
                     <niceManifest>true</niceManifest>
