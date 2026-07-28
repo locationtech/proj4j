@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Oblique Mercator: compute the natural-origin (uc) offset from the central-line azimuth (`+alpha`) instead of the rectified bearing (`+gamma`), so the projection centre maps to the false easting/northing when `+gamma` differs from `+alpha` (e.g. an explicit `+gamma=0` with a non-zero azimuth)
+
 ## [1.4.3] - 2026-06-02
 
 ### Added
