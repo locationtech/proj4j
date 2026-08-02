@@ -14,6 +14,7 @@
     <description>Java port of the Proj.4 library for coordinate reprojection</description>
 
     <properties>
+        <proj4j.legal.dir>${project.basedir}/..</proj4j.legal.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <bundle-symbolicname>org.locationtech.proj4j</bundle-symbolicname>
         <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
@@ -50,6 +51,9 @@
                         <Bundle-SymbolicName>${bundle-symbolicname}</Bundle-SymbolicName>
                         <Automatic-Module-Name>org.locationtech.proj4j</Automatic-Module-Name>
                         <Import-Package />
+                        <!-- BND builds the JAR itself and ignores anything the resources plugin
+                             copies into target/classes, so the legal files are named explicitly. -->
+                        <Include-Resource>{maven-resources}, META-INF/LICENSE=${proj4j.legal.dir}/LICENSE, META-INF/NOTICE.md=${proj4j.legal.dir}/NOTICE.md</Include-Resource>
                     </instructions>
                     <niceManifest>true</niceManifest>
                 </configuration>

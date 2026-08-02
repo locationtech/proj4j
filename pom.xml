@@ -117,6 +117,36 @@
                 <version>3.4.1</version>
             </plugin>
 
+            <!-- The Eclipse Foundation requires the license and notice files to be present in the
+                 root of every distribution artifact; for JARs they belong in META-INF.
+                 See https://www.eclipse.org/projects/handbook/#legaldoc-distribution -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-legal-files</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${proj4j.legal.dir}</directory>
+                                    <includes>
+                                        <include>LICENSE</include>
+                                        <include>NOTICE.md</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Maven Central Publish -->
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -194,6 +224,8 @@
     </modules>
 
     <properties>
+        <!-- Root of the repository, where the legal files live. Overridden by each module. -->
+        <proj4j.legal.dir>${project.basedir}</proj4j.legal.dir>
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
         <maven.package.skip>true</maven.package.skip>

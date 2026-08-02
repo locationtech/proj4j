@@ -13,6 +13,10 @@
     <name>Proj4J EPSG</name>
     <description>Java port of the Proj.4 library for coordinate reprojection</description>
 
+    <properties>
+        <proj4j.legal.dir>${project.basedir}/..</proj4j.legal.dir>
+    </properties>
+
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -26,6 +30,33 @@
 
     <build>
         <plugins>
+            <!-- This module is the only one distributing EPSG dataset resources, so it also
+                 carries the EPSG Terms of Use alongside the inherited LICENSE and NOTICE.md. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-epsg-legal-files</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${proj4j.legal.dir}</directory>
+                                    <includes>
+                                        <include>LICENSE.EPSG</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
