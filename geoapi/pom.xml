@@ -13,6 +13,10 @@
     <name>Proj4J GeoAPI</name>
     <description>GeoAPI wrappers for viewing PROJ4J as a GeoAPI implementation.</description>
 
+    <properties>
+        <proj4j.legal.dir>${project.basedir}/..</proj4j.legal.dir>
+    </properties>
+
     <developers>
         <developer>
             <id>desruisseaux</id>
