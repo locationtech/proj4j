@@ -94,10 +94,9 @@ public class BonneProjection extends Projection {
 
 		double c;
 
-//		phi1 = pj_param(params, "rlat_1").f;
-		phi1 = ProjectionMath.HALFPI;
+		phi1 = projectionLatitude1;
 		if (Math.abs(phi1) < EPS10)
-			throw new ProjectionException("-23");
+			throw new ProjectionException("Invalid value for lat_1: |lat_1| should be > 0");
 		if (!spherical) {
 			en = ProjectionMath.enfn(es);
 			m1 = ProjectionMath.mlfn(phi1, am1 = Math.sin(phi1),

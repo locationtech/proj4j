@@ -33,8 +33,8 @@ public class DatumShiftTest {
   @Test
   public void gk3ToUtm32Zn() {
 
-    String epsg31467Parameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=1.0 +x_0=3500000.0 +y_0=0.0 +datum=potsdam +a=6377397.155 +f=299.1528128 +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7 +pm=greenwich +units=m +no_defs";
-    String utm32znParameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=0.9996 +x_0=3.25E7 +y_0=0.0 +a=6378137.0 +f=298.257222 +pm=Greenwich +units=m +no_defs";
+    String epsg31467Parameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=1.0 +x_0=3500000.0 +y_0=0.0 +datum=potsdam +a=6377397.155 +rf=299.1528128 +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7 +pm=greenwich +units=m +no_defs";
+    String utm32znParameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=0.9996 +x_0=3.25E7 +y_0=0.0 +a=6378137.0 +rf=298.257222 +pm=Greenwich +units=m +no_defs";
 
     CoordinateReferenceSystem etrsCrs = crsFactory.createFromName("EPSG:4258");
     CoordinateReferenceSystem wgs84Crs = crsFactory.createFromName("EPSG:4326");
@@ -62,8 +62,8 @@ public class DatumShiftTest {
   @Test
   public void debug() {
     
-    String epsg31467Parameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=1.0 +x_0=3500000.0 +y_0=0.0 +datum=potsdam +a=6377397.155 +f=299.1528128 +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7 +pm=greenwich +units=m +no_defs";
-    String utm32znParameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=0.9996 +x_0=3.25E7 +y_0=0.0 +a=6378137.0 +f=298.257222101 +pm=Greenwich +units=m +no_defs";
+    String epsg31467Parameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=1.0 +x_0=3500000.0 +y_0=0.0 +datum=potsdam +a=6377397.155 +rf=299.1528128 +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7 +pm=greenwich +units=m +no_defs";
+    String utm32znParameters = "+proj=tmerc +lat_0=0.0 +lon_0=9.0 +k_0=0.9996 +x_0=3.25E7 +y_0=0.0 +a=6378137.0 +rf=298.257222101 +pm=Greenwich +units=m +no_defs";
     
     CoordinateReferenceSystem dhdnCrs = crsFactory.createFromName("EPSG:4314");
     CoordinateReferenceSystem gk3Crs = crsFactory.createFromParameters("Anon", epsg31467Parameters);

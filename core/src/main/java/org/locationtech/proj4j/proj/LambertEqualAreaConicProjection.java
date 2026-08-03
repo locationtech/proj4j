@@ -23,6 +23,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class LambertEqualAreaConicProjection extends AlbersProjection {
 
+	private boolean south;
+
 	public LambertEqualAreaConicProjection() {
 		this( false );
 	}
@@ -30,9 +32,25 @@ public class LambertEqualAreaConicProjection extends AlbersProjection {
 	public LambertEqualAreaConicProjection( boolean south ) {
 		minLatitude = Math.toRadians(0);
 		maxLatitude = Math.toRadians(90);
+		this.south = south;
 		projectionLatitude1 = south ? -ProjectionMath.QUARTERPI : ProjectionMath.QUARTERPI;
 		projectionLatitude2 = south ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI;
 		initialize();
+	}
+
+	/**
+	 * {@code +south}: PROJ takes the second parallel at the south pole rather than the north one
+	 * ({@code phi1 = south ? -90 : 90}, with {@code +lat_1} as the other parallel).
+	 */
+	@Override
+	public void setSouthernHemisphere(boolean south) {
+		this.south = south;
+		projectionLatitude2 = south ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI;
+	}
+
+	@Override
+	public boolean getSouthernHemisphere() {
+		return south;
 	}
 
 	public String toString() {

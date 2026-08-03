@@ -20,6 +20,7 @@
 package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
+import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class MercatorProjection extends CylindricalProjection {
@@ -27,8 +28,23 @@ public class MercatorProjection extends CylindricalProjection {
 	public MercatorProjection() {
 		minLatitude = ProjectionMath.degToRad(-85);
 		maxLatitude = ProjectionMath.degToRad(85);
+		// NaN marks "+lat_ts not given"; lat_ts and k_0 are alternative ways to set the scale
+		trueScaleLatitude = Double.NaN;
 	}
-	
+
+	public void initialize() {
+		super.initialize();
+		if (!Double.isNaN(trueScaleLatitude)) {
+			double phits = Math.abs(trueScaleLatitude);
+			if (phits >= ProjectionMath.HALFPI)
+				throw new ProjectionException("Invalid value for lat_ts: |lat_ts| should be <= 90");
+			// as in PROJ: lat_ts defines the scale factor, and takes precedence over +k_0
+			scaleFactor = spherical
+					? Math.cos(phits)
+					: ProjectionMath.msfn(Math.sin(phits), Math.cos(phits), es);
+		}
+	}
+
 	public ProjCoordinate project(double lam, double phi, ProjCoordinate out) {
 		if (spherical) {
 			out.x = scaleFactor * lam;

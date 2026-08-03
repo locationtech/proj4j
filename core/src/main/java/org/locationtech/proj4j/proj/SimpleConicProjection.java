@@ -79,11 +79,12 @@ public class SimpleConicProjection extends ConicProjection {
 	public ProjCoordinate projectInverse(double xyx, double xyy, ProjCoordinate out) {
 		double rho;
 
-		rho = ProjectionMath.distance(xyx, out.y = rho_0 - xyy);
+		xyy = rho_0 - xyy;
+		rho = ProjectionMath.distance(xyx, xyy);
 		if (n < 0.) {
 			rho = - rho;
-			out.x = - xyx;
-			out.y = - xyy;
+			xyx = - xyx;
+			xyy = - xyy;
 		}
 		out.x = Math.atan2(xyx, xyy) / n;
 		switch (type) {
@@ -105,34 +106,16 @@ public class SimpleConicProjection extends ConicProjection {
 
 	public void initialize() {
 		super.initialize();
-		double del, cs, dummy;
+		double del, cs;
 
-		/* get common factors for simple conics */
-		double p1, p2, d, s;
-		int err = 0;
-
-/*FIXME
-		if (!pj_param(params, "tlat_1").i ||
-			!pj_param(params, "tlat_2").i) {
-			err = -41;
-		} else {
-			p1 = pj_param(params, "rlat_1").f;
-			p2 = pj_param(params, "rlat_2").f;
-			*del = 0.5 * (p2 - p1);
-			sig = 0.5 * (p2 + p1);
-			err = (Math.abs(*del) < EPS || Math.abs(sig) < EPS) ? -42 : 0;
-			*del = *del;
-		}
-*/
-		p1 = Math.toRadians(30);//FIXME
-		p2 = Math.toRadians(60);//FIXME
+		/* get common factors for simple conics: PROJ phi12() */
+		double p1 = projectionLatitude1;
+		double p2 = projectionLatitude2;
 		del = 0.5 * (p2 - p1);
 		sig = 0.5 * (p2 + p1);
-		err = (Math.abs(del) < EPS || Math.abs(sig) < EPS) ? -42 : 0;
-		del = del;
-
-		if (err != 0)
-			throw new ProjectionException("Error "+err);
+		if (Math.abs(del) < EPS || Math.abs(sig) < EPS)
+			throw new ProjectionException(
+				"Illegal value for lat_1 and lat_2: |lat_1 - lat_2| and |lat_1 + lat_2| should be > 0");
 
 		switch (type) {
 		case TISSOT:

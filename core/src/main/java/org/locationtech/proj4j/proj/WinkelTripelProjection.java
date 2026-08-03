@@ -23,7 +23,7 @@ package org.locationtech.proj4j.proj;
 public class WinkelTripelProjection extends AitoffProjection {
 
 	public WinkelTripelProjection() {
-		super( WINKEL, 0.636619772367581343 );
+		super( WINKEL );
 	}
 
 	public String toString() {

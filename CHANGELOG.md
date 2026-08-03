@@ -7,8 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `+f` is the flattening and `+rf` the reciprocal flattening, as in PROJ. The two were swapped, so definitions that passed a `1/f` value under `+f` (e.g. `+f=298.257222101`) built a nonsensical ellipsoid; they must now use `+rf`. PROJ rejects such a `+f` value outright
+- Transverse Mercator (`+proj=tmerc`) uses the exact Poder/Engsager algorithm for ellipsoids, which has been PROJ's default since 6.0, and accepts `+approx` to select the Evenden/Snyder series. Inside a normal zone the two agree to well under a millimetre; 40 degrees from the central meridian they differ by ~1.5 km, and beyond ~80 degrees the series returns garbage where the exact algorithm reports the point as outside the projection domain
+- Equidistant Cylindrical (`+proj=eqc`) implements the ellipsoidal method (EPSG:1028) as well as the spherical one (EPSG:1029), matching PROJ 9.8.0. Northings on an ellipsoid are now meridional arc lengths rather than `a * phi`
+
 ### Fixed
 - Oblique Mercator: compute the natural-origin (uc) offset from the central-line azimuth (`+alpha`) instead of the rectified bearing (`+gamma`), so the projection centre maps to the false easting/northing when `+gamma` differs from `+alpha` (e.g. an explicit `+gamma=0` with a non-zero azimuth)
+- Oblique Mercator: `+alpha` alone no longer behaves as `+gamma=0`, and `+gamma` alone no longer falls back to an azimuth of -45 degrees. Both parameters are now tracked as given, as PROJ does, and the two-point form (`+lat_1`/`+lon_1`/`+lat_2`/`+lon_2`) is reachable
+- Oblique Mercator: use `atan2` in the forward transform, as PROJ does; the previous `atan(y/x)` plus a fixed `+PI` correction picked the wrong branch for points more than 90 degrees from the central line, and the near-meridian fallback had a spurious `B` factor
+- `+R` defines a sphere. It used to set only the semi-major axis and leave the ellipsoid's eccentricity in place, which shifted every projection with an ellipsoidal branch (`merc`, `tmerc`, `laea`, `aea`, `cea`, `leac`, `lcc`, `stere`, `sterea`, `somerc`, `aeqd`, `omerc`, `geos`, `cass`) by tens to hundreds of kilometres
+- Mercator: `+lat_ts` was ignored; it now sets the scale factor as in PROJ (`cos(lat_ts)` on a sphere, `msfn(lat_ts)` on an ellipsoid)
+- Equal Area Cylindrical: a supplied `+k_0` was overwritten by `cos(lat_ts)` even when `+lat_ts` was absent
+- The Snyder conics (`euler`, `murd1`, `murd2`, `murd3`, `pconic`, `vitk1`) ignored `+lat_1`/`+lat_2` and used hardcoded 30/60 degree parallels; their shared inverse also used the unshifted northing in `atan2` and dropped the sign flip for a negative cone constant
+- Equidistant Conic (`+proj=eqdc`) was not PROJ's algorithm at all: it used a Lambert-Conformal-style formulation with a hardcoded eccentricity of 0.822719, a unit radius, and hardcoded standard parallels, and its inverse was never wired into the framework. Rewritten from PROJ's `eqdc.cpp`
+- Bonne: `+lat_1` was ignored and the standard parallel was pinned at 90 degrees (the Werner limit)
+- Polyconic: the ellipsoidal branch was unreachable (`spherical` was forced true), its forward transform used an uninitialised value in place of the longitude, and its inverse used `1/es` where PROJ uses `1 - es`
+- Cassini: sign error in the ellipsoidal forward easting series (`C1 - ...` instead of `C1 + ...`)
+- Rectangular Polyconic: `+lat_ts` and `+lat_0` were ignored
+- Transverse Mercator: the spherical branch applied the scale factor twice to the easting
+- Winkel Tripel: `+lat_1` was ignored, and the Winkel constant was being passed as the latitude of origin
+- Krovak: PROJ's fixed defaults (Bessel 1841, `lat_0` 49°30′N, `lon_0` 42°30′ of Ferro − 17°40′, `k_0` 0.9999) are applied when the definition omits them, and `+czech` selects the native westing/southing orientation
+- Bipolar Conic: dropped a spurious `lon_0` default of −90 degrees that PROJ does not have
+- Near-sided Perspective (`+proj=nsper`): `+h` threw `NoSuchElementException`, the aspect (oblique/equatorial/polar) was hardcoded to equatorial, and the far-side-of-the-globe domain check was commented out
+- Space Oblique Mercator for Landsat (`+proj=lsat`): `+lsat` and `+path` were rejected as unsupported and the satellite/path were hardcoded to 1/120
+- Hammer: `+W` and `+M` were rejected as unsupported, and the initialisation overwrote whatever was set with the defaults
+- Lagrange: `+W` was rejected as unsupported, and the default was 1.4 instead of PROJ's 2
+- Urmaev Flat-Polar Sinusoidal (`+proj=urmfps`): `+n` was rejected as unsupported
+- Lambert Equal Area Conic (`+proj=leac`): `+south` threw `NoSuchElementException`
+- `putp2`, `nell`, `mbtfpq`, `mbt_fps`: the Newton iteration ran on the output northing instead of the latitude, so it never converged and the unconverged latitude was used
+- `wag1`/`urmfps`, `wag2`, `mbtfpp`: the transformed latitude was computed and then discarded, and the raw latitude used in its place
+- Loximuthal: a missing `abs()` in the near-parallel test sent every point south of `+lat_1` down the wrong branch
+- Robinson: latitudes landing exactly on a 5-degree table node selected the node below through `floor()` rounding
+- `+units=ch`, `+units=fath`, `+units=link` and `+units=us-ch` were silently treated as metres because those units, though defined, were missing from the lookup table; the Indian units (`ind-yd`, `ind-ft`, `ind-ch`) were added
+
+### Added
+- `ProjAlignmentTest`, pinning 67 cases against values generated from raw PROJ pipelines and cross-checked on PROJ 9.5.1 and 9.6.0
 
 ## [1.4.3] - 2026-06-02
 

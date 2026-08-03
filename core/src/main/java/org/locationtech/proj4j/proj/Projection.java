@@ -81,6 +81,13 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     protected double projectionLatitude2 = 0.0;
 
     /**
+     * The longitudes of the two points of a two-point projection setup (+lon_1, +lon_2)
+     */
+    protected double projectionLongitude1 = 0.0;
+
+    protected double projectionLongitude2 = 0.0;
+
+    /**
      * The projection alpha value
      */
     protected double alpha = Double.NaN;
@@ -763,6 +770,9 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
 
     public void setRadius(double radius) {
         a = radius;
+        // +R defines a sphere: any eccentricity carried over from an ellipsoid no longer applies
+        e = 0;
+        es = 0;
     }
 
     /**

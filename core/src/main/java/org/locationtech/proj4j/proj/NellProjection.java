@@ -33,15 +33,15 @@ public class NellProjection extends Projection {
 
 		k = 2. * Math.sin(lpphi);
 		V = lpphi * lpphi;
-		out.y *= 1.00371 + V * (-0.0935382 + V * -0.011412);
+		double phi = lpphi * (1.00371 + V * (-0.0935382 + V * -0.011412));
 		for (i = MAX_ITER; i > 0 ; --i) {
-			out.y -= V = (lpphi + Math.sin(lpphi) - k) /
-				(1. + Math.cos(lpphi));
+			phi -= V = (phi + Math.sin(phi) - k) /
+				(1. + Math.cos(phi));
 			if (Math.abs(V) < LOOP_TOL)
 				break;
 		}
-		out.x = 0.5 * lplam * (1. + Math.cos(lpphi));
-		out.y = lpphi;
+		out.x = 0.5 * lplam * (1. + Math.cos(phi));
+		out.y = phi;
 		return out;
 	}
 

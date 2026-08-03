@@ -24,6 +24,12 @@ import org.locationtech.proj4j.datum.Datum;
 import org.locationtech.proj4j.datum.Ellipsoid;
 import org.locationtech.proj4j.datum.Grid;
 import org.locationtech.proj4j.proj.ExtendedTransverseMercatorProjection;
+import org.locationtech.proj4j.proj.HammerProjection;
+import org.locationtech.proj4j.proj.KrovakProjection;
+import org.locationtech.proj4j.proj.LandsatProjection;
+import org.locationtech.proj4j.proj.ObliqueMercatorProjection;
+import org.locationtech.proj4j.proj.LagrangeProjection;
+import org.locationtech.proj4j.proj.UrmaevFlatPolarSinusoidalProjection;
 import org.locationtech.proj4j.proj.Projection;
 import org.locationtech.proj4j.proj.TransverseMercatorProjection;
 import org.locationtech.proj4j.units.Angle;
@@ -168,10 +174,50 @@ public class Proj4Parser {
 
         // this must be done last, since behaviour depends on other params being set (eg +south)
         if (projection instanceof TransverseMercatorProjection) {
+            if (params.containsKey(Proj4Keyword.approx))
+                ((TransverseMercatorProjection) projection).setApprox(true);
             s = (String) params.get(Proj4Keyword.zone);
             if (s != null)
                 ((TransverseMercatorProjection) projection).setUTMZone(Integer
                         .parseInt(s));
+        }
+        if (projection instanceof HammerProjection) {
+            s = (String) params.get(Proj4Keyword.W);
+            if (s != null)
+                ((HammerProjection) projection).setW(Double.parseDouble(s));
+            s = (String) params.get(Proj4Keyword.M);
+            if (s != null)
+                ((HammerProjection) projection).setM(Double.parseDouble(s));
+        }
+        if (projection instanceof LagrangeProjection) {
+            s = (String) params.get(Proj4Keyword.W);
+            if (s != null)
+                ((LagrangeProjection) projection).setW(Double.parseDouble(s));
+        }
+        if (projection instanceof UrmaevFlatPolarSinusoidalProjection) {
+            s = (String) params.get(Proj4Keyword.n);
+            if (s != null)
+                ((UrmaevFlatPolarSinusoidalProjection) projection).setN(Double.parseDouble(s));
+        }
+        if (projection instanceof ObliqueMercatorProjection) {
+            s = (String) params.get(Proj4Keyword.lon_1);
+            if (s != null)
+                ((ObliqueMercatorProjection) projection).setProjectionLongitude1Degrees(parseAngle(s));
+            s = (String) params.get(Proj4Keyword.lon_2);
+            if (s != null)
+                ((ObliqueMercatorProjection) projection).setProjectionLongitude2Degrees(parseAngle(s));
+        }
+        if (projection instanceof LandsatProjection) {
+            s = (String) params.get(Proj4Keyword.lsat);
+            if (s != null)
+                ((LandsatProjection) projection).setLandsat(Integer.parseInt(s));
+            s = (String) params.get(Proj4Keyword.path);
+            if (s != null)
+                ((LandsatProjection) projection).setPath(Integer.parseInt(s));
+        }
+        if (projection instanceof KrovakProjection) {
+            if (params.containsKey(Proj4Keyword.czech))
+                ((KrovakProjection) projection).setCzech(true);
         }
         if (projection instanceof ExtendedTransverseMercatorProjection) {
             s = (String) params.get(Proj4Keyword.zone);
@@ -245,9 +291,15 @@ public class Proj4Parser {
         String s;
 
    /*
-    * // not supported by PROJ4 s = (String) params.get(Proj4Param.R); if (s !=
-    * null) a = Double.parseDouble(s);
+    * Radius of the sphere, given in meters. As in PROJ, "specifying R overrules
+    * everything": the ellipsoid is a sphere of that radius, and +ellps, +datum
+    * and the shape parameters are ignored.
     */
+        s = (String) params.get(Proj4Keyword.R);
+        if (s != null) {
+            datumParam.setR(Double.parseDouble(s));
+            return;
+        }
 
         String code = (String) params.get(Proj4Keyword.ellps);
         if (code != null) {

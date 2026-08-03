@@ -30,9 +30,9 @@ public class Wagner2Projection extends Projection {
 	private final static double C_p2 = 0.88550;
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		out.y = ProjectionMath.asin(C_p1 * Math.sin(C_p2 * lpphi));
-		out.x = C_x * lplam * Math.cos(lpphi);
-		out.y = C_y * lpphi;
+		double phi = ProjectionMath.asin(C_p1 * Math.sin(C_p2 * lpphi));
+		out.x = C_x * lplam * Math.cos(phi);
+		out.y = C_y * phi;
 		return out;
 	}
 
