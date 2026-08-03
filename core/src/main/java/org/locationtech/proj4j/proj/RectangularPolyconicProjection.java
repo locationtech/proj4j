@@ -51,12 +51,13 @@ public class RectangularPolyconicProjection extends Projection {
 
 	public void initialize() { // rpoly
 		super.initialize();
-/*FIXME
-		if ((mode = (phi1 = Math.abs(pj_param(params, "rlat_ts").f)) > EPS)) {
+		phi0 = projectionLatitude;
+		phi1 = Math.abs(trueScaleLatitude);
+		mode = phi1 > EPS;
+		if (mode) {
 			fxb = 0.5 * Math.sin(phi1);
 			fxa = 0.5 / fxb;
 		}
-*/
 	}
 
 	public String toString() {

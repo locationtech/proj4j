@@ -44,14 +44,11 @@ public class HammerProjection extends PseudoCylindricalProjection {
 
 	public void initialize() {
 		super.initialize();
+		// w and m default to .5 and 1; a supplied +W / +M must not be overwritten
 		if ((w = Math.abs(w)) <= 0.)
-			throw new ProjectionException("-27");
-		else
-			w = .5;
+			throw new ProjectionException("Invalid value for W: it should be > 0");
 		if ((m = Math.abs(m)) <= 0.)
-			throw new ProjectionException("-27");
-		else
-			m = 1.;
+			throw new ProjectionException("Invalid value for M: it should be > 0");
 		rm = 1. / m;
 		m /= w;
 		es = 0.;

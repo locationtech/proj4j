@@ -40,13 +40,14 @@ public class McBrydeThomasFlatPolarQuarticProjection extends PseudoCylindricalPr
 		int i;
 
 		c = C * Math.sin(lpphi);
+		double phi = lpphi;
 		for (i = NITER; i > 0; --i) {
-			out.y -= th1 = (Math.sin(.5*lpphi) + Math.sin(lpphi) - c) /
-				(.5*Math.cos(.5*lpphi)  + Math.cos(lpphi));
+			phi -= th1 = (Math.sin(.5*phi) + Math.sin(phi) - c) /
+				(.5*Math.cos(.5*phi)  + Math.cos(phi));
 			if (Math.abs(th1) < EPS) break;
 		}
-		out.x = FXC * lplam * (1.0 + 2. * Math.cos(lpphi)/Math.cos(0.5 * lpphi));
-		out.y = FYC * Math.sin(0.5 * lpphi);
+		out.x = FXC * lplam * (1.0 + 2. * Math.cos(phi)/Math.cos(0.5 * phi));
+		out.y = FYC * Math.sin(0.5 * phi);
 		return out;
 	}
 

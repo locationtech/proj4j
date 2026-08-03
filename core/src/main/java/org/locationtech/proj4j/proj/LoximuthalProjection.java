@@ -41,7 +41,7 @@ public class LoximuthalProjection extends PseudoCylindricalProjection {
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		double x;
 		double y = lpphi - phi1;
-		if (y < EPS)
+		if (Math.abs(y) < EPS)
 			x = lplam * cosphi1;
 		else {
 			x = ProjectionMath.QUARTERPI + 0.5 * lpphi;

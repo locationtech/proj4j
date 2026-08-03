@@ -32,24 +32,24 @@ public class PutninsP2Projection extends Projection {
 	private final static double PI_DIV_3 = 1.0471975511965977;
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		double p, c, s, V;
+		double p, c, s, V, phi;
 		int i;
 
 		p = C_p * Math.sin(lpphi);
 		s = lpphi * lpphi;
-		out.y *= 0.615709 + s * ( 0.00909953 + s * 0.0046292 );
+		phi = lpphi * (0.615709 + s * ( 0.00909953 + s * 0.0046292 ));
 		for (i = NITER; i > 0; --i) {
-			c = Math.cos(lpphi);
-			s = Math.sin(lpphi);
-			out.y -= V = (lpphi + s * (c - 1.) - p) /
+			c = Math.cos(phi);
+			s = Math.sin(phi);
+			phi -= V = (phi + s * (c - 1.) - p) /
 				(1. + c * (c - 1.) - s * s);
 			if (Math.abs(V) < EPS)
 				break;
 		}
 		if (i == 0)
-			out.y = lpphi < 0 ? - PI_DIV_3 : PI_DIV_3;
-		out.x = C_x * lplam * (Math.cos(lpphi) - 0.5);
-		out.y = C_y * Math.sin(lpphi);
+			phi = phi < 0 ? - PI_DIV_3 : PI_DIV_3;
+		out.x = C_x * lplam * (Math.cos(phi) - 0.5);
+		out.y = C_y * Math.sin(phi);
 		return out;
 	}
 
