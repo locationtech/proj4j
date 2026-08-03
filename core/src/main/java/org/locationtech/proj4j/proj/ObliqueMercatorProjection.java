@@ -158,8 +158,12 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 		sinrot = Math.sin(Gamma);
 		cosrot = Math.cos(Gamma);
 		
+		// The natural-origin offset uses the azimuth of the central line (alpha), following Snyder's
+		// Hotine Oblique Mercator: u_c = (A / B) * atan(sqrt(D^2 - 1) / cos(alpha_c)). Using the
+		// rectified bearing (Gamma) here misplaces the projection centre whenever Gamma != alpha,
+		// e.g. for definitions with an explicit "+gamma=0" and a non-zero azimuth.
 		u_0 = no_uoff ? 0. :
-			Math.abs(al * Math.atan(Math.sqrt(d * d - 1.) / cosrot) / bl);
+			Math.abs(al * Math.atan(Math.sqrt(d * d - 1.) / Math.cos(alpha)) / bl);
 		if (projectionLatitude < 0.)
 			u_0 = - u_0;
 	}

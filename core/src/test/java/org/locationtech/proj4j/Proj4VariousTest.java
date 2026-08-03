@@ -91,6 +91,19 @@ public class Proj4VariousTest extends BaseCoordinateTransformTest {
                 1e-5);
     }
 
+    @Test
+    public void testObliqueMercatorExplicitGamma() {
+        // Hotine Oblique Mercator with an explicit "+gamma=0" and a non-zero azimuth. The natural
+        // origin offset must place the projection centre (lonc, lat_0) exactly at the false
+        // easting/northing; a regression here shifted the centre by ~2.5 km. Reference coordinates
+        // computed with PROJ.
+        String omerc =
+                "+proj=omerc +lat_0=-20 +lonc=140 +alpha=30 +gamma=0 +k=1 +x_0=200000 +y_0=300000 +ellps=GRS80 +units=m";
+        checkTransform("+proj=latlong +ellps=GRS80", p("140 -20"), omerc, p("200000.00 300000.00"), 1e-2);
+        checkTransform("+proj=latlong +ellps=GRS80", p("140.5 -20.2"), omerc, p("256366.4343 306886.2489"), 1e-2);
+        checkTransform("+proj=latlong +ellps=GRS80", p("139.7 -19.8"), omerc, p("161721.1705 303433.2577"), 1e-2);
+    }
+
     // disabled - gamma param not implemented
 //    @Test
     public void XXX_testRSOBorneo() {
