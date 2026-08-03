@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Loximuthal: a missing `abs()` in the near-parallel test sent every point south of `+lat_1` down the wrong branch
 - Robinson: latitudes landing exactly on a 5-degree table node selected the node below through `floor()` rounding
 - `+units=ch`, `+units=fath`, `+units=link` and `+units=us-ch` were silently treated as metres because those units, though defined, were missing from the lookup table; the Indian units (`ind-yd`, `ind-ft`, `ind-ch`) were added
+- `+vunits` and `+vto_meter` are accepted instead of raising `UnsupportedParameterException`. The EPSG resource ships 158 compound (horizontal + vertical) definitions carrying `+vunits`, so 144 of them - `OSGB36 / British National Grid + ODN height`, `Amersfoort / RD New + NAP height`, the `ETRS89 / NTM zone N`, `ETRS89 / UTM zone N` and `NAD83(CSRS) / UTM zone N` families, `SWEREF99 xx + RH2000`, `Tokyo + JSLD`, and others - could not be constructed at all. The vertical unit is recorded but **not** applied: proj4j carries the vertical ordinate in metres, as it did before. The horizontal transform is unaffected either way, which is all PROJ does with it for the 2D part
 
 ### Added
 - `ProjAlignmentTest`, pinning 67 cases against values generated from raw PROJ pipelines and cross-checked on PROJ 9.5.1 and 9.6.0

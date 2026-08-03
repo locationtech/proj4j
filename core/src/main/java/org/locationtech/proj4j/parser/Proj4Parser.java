@@ -148,6 +148,22 @@ public class Proj4Parser {
         s = (String) params.get(Proj4Keyword.to_meter);
         if (s != null)
             projection.setFromMetres(1.0 / Double.parseDouble(s));
+
+        /*
+         * Vertical unit of a compound (horizontal + vertical) CRS. Recorded so those definitions
+         * parse - the EPSG resource ships 158 of them - but not applied: proj4j keeps the vertical
+         * ordinate in metres. The horizontal transform PROJ performs is the same either way.
+         */
+        s = (String) params.get(Proj4Keyword.vunits);
+        if (s != null) {
+            Unit vunit = Units.findUnits(s);
+            if (vunit != null)
+                projection.setVerticalUnit(vunit);
+        }
+
+        s = (String) params.get(Proj4Keyword.vto_meter);
+        if (s != null)
+            projection.setVerticalFromMetres(1.0 / Double.parseDouble(s));
         
         s = (String) params.get(Proj4Keyword.h);
         if (s != null) {

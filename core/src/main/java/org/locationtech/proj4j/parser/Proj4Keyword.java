@@ -59,6 +59,8 @@ public class Proj4Keyword {
 
     public static final String south = "south";
     public static final String to_meter = "to_meter";
+    public static final String vunits = "vunits";
+    public static final String vto_meter = "vto_meter";
     public static final String towgs84 = "towgs84";
     public static final String units = "units";
     public static final String x_0 = "x_0";
@@ -116,6 +118,8 @@ public class Proj4Keyword {
             supportedParams.add(south);
             supportedParams.add(towgs84);
             supportedParams.add(to_meter);
+            supportedParams.add(vunits);      // vertical unit of a compound CRS; parsed, not applied
+            supportedParams.add(vto_meter);   // vertical unit of a compound CRS; parsed, not applied
             supportedParams.add(units);
             supportedParams.add(nadgrids);
             supportedParams.add(pm);
