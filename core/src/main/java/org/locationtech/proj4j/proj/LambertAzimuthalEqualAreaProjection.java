@@ -22,9 +22,43 @@ package org.locationtech.proj4j.proj;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.AuthalicLat;
+import org.locationtech.proj4j.util.FastStrictTrig;
 import org.locationtech.proj4j.util.MathHelpers;
 import org.locationtech.proj4j.util.ProjectionMath;
 
+/**
+ * Lambert Azimuthal Equal Area, {@code 9.8.1:src/projections/laea.cpp}.
+ *
+ * <h2>fdlibm trigonometry</h2>
+ *
+ * <p>Every {@code sin} and {@code cos} in this class — all 26 of them, in
+ * {@link #initialize()}, {@link #project_s}, {@link #project_e},
+ * {@link #projectInverse_s} and {@link #projectInverse_e} — goes through
+ * {@link FastStrictTrig} rather than {@link Math}. {@code Math.sin}/{@code cos}/{@code tan} are
+ * {@code @IntrinsicCandidate}: HotSpot substitutes a platform-specific implementation, so they
+ * differ in the last bit between architectures. {@code FastStrictTrig} is a bit-identical,
+ * allocation-free transcription of the fdlibm algorithm {@link StrictMath} uses; see its class
+ * documentation for why {@code StrictMath} itself is not called.
+ *
+ * <p>Measured, not assumed. At the spherical north-polar aspect the hard argument-reduction case
+ * {@code lplam = 3.1179938779914944} (just under {@code pi}) gave
+ *
+ * <pre>
+ *   AArch64  Math.cos       -&gt; 0xbfeffdb812a39370
+ *   x86-64   Math.cos       -&gt; 0xbfeffdb812a39371
+ *   both     StrictMath.cos -&gt; 0xbfeffdb812a39371
+ * </pre>
+ *
+ * so a bit-pinned test captured on an Apple-silicon machine failed on Intel. The
+ * {@code StrictMath} value is also the <em>more accurate</em> one here: it is delta 0.0 against
+ * PROJ 9.8.1, where the AArch64 intrinsic sat 1.86e-9 m low. {@code Math.sin} happens to agree
+ * across both architectures at these arguments, which is why only {@code y} moved — that is
+ * coincidence, not safety, since {@code sin} is intrinsified too.
+ *
+ * <p>{@code Math.sqrt}, {@code Math.abs}, {@code Math.asin} and {@code Math.atan2} are
+ * deliberately left alone: none is an intrinsic candidate whose result can differ from
+ * {@code StrictMath}, so converting them would move values for no benefit.
+ */
 public class LambertAzimuthalEqualAreaProjection extends Projection {
 
   private static final long serialVersionUID = 2680576002433982735L;
@@ -99,15 +133,15 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
 	        break;
 	      case OBLIQ:
 	        rq = Math.sqrt(.5 * qp);
-	        sinphi = Math.sin(phi0);
+	        sinphi = FastStrictTrig.sin(phi0);
 	        // 9.8.1:laea.cpp:283-285 takes the authalic latitude of phi0 through the
 	        // direct phi -> xi series and then its sine and cosine, rather than
 	        // sinb1 = q/qp with cosb1 = sqrt(1 - sinb1^2). The asin form loses relative
 	        // accuracy near the poles, which is why upstream stopped using it.
-	        final double b1 = authalic.forward(phi0, sinphi, Math.cos(phi0));
-	        sinb1 = Math.sin(b1);
-	        cosb1 = Math.cos(b1);
-	        dd = Math.cos(phi0) / (Math.sqrt(1. - es * sinphi * sinphi) *
+	        final double b1 = authalic.forward(phi0, sinphi, FastStrictTrig.cos(phi0));
+	        sinb1 = FastStrictTrig.sin(b1);
+	        cosb1 = FastStrictTrig.cos(b1);
+	        dd = FastStrictTrig.cos(phi0) / (Math.sqrt(1. - es * sinphi * sinphi) *
 	           rq * cosb1);
 	        ymf = (xmf = rq) / dd;
 	        xmf *= dd;
@@ -115,8 +149,8 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
 	      }
 	    } else {
 	      if (mode == OBLIQ) {
-	        sinph0 = Math.sin(phi0);
-	        cosph0 = Math.cos(phi0);
+	        sinph0 = FastStrictTrig.sin(phi0);
+	        cosph0 = FastStrictTrig.cos(phi0);
 	      }
 	    }
 	 	}
@@ -134,9 +168,9 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
     public void project_s(double lplam, double lpphi, ProjCoordinate out) {
       double  coslam, cosphi, sinphi;
 
-      sinphi = Math.sin(lpphi);
-      cosphi = Math.cos(lpphi);
-      coslam = Math.cos(lplam);
+      sinphi = FastStrictTrig.sin(lpphi);
+      cosphi = FastStrictTrig.cos(lpphi);
+      coslam = FastStrictTrig.cos(lplam);
       switch (mode) {
       case EQUIT:
       case OBLIQ:
@@ -146,7 +180,7 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
           out.y = 1. + sinph0 * sinphi + cosph0 * cosphi * coslam;
 
         if (out.y <= EPS10) throw new ProjectionException("F");
-        out.x = (out.y = Math.sqrt(2. / out.y)) * cosphi * Math.sin(lplam);
+        out.x = (out.y = Math.sqrt(2. / out.y)) * cosphi * FastStrictTrig.sin(lplam);
         out.y *= mode == EQUIT ? sinphi :
            cosph0 * sinphi - sinph0 * cosphi * coslam;
         break;
@@ -155,8 +189,8 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
       case S_POLE:
         if (Math.abs(lpphi + phi0) < EPS10) throw new ProjectionException("F");;
         out.y = ProjectionMath.QUARTERPI - lpphi * .5;
-        out.y = 2. * (mode == S_POLE ? Math.cos(out.y) : Math.sin(out.y));
-        out.x = out.y * Math.sin(lplam);
+        out.y = 2. * (mode == S_POLE ? FastStrictTrig.cos(out.y) : FastStrictTrig.sin(out.y));
+        out.x = out.y * FastStrictTrig.sin(lplam);
         out.y *= coslam;
         break;
       }
@@ -165,17 +199,17 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
     public void project_e(double lplam, double lpphi, ProjCoordinate out) {
       double coslam, sinlam, sinphi, q, sinb=0.0, cosb=0.0, b=0.0;
 
-      coslam = Math.cos(lplam);
-      sinlam = Math.sin(lplam);
-      sinphi = Math.sin(lpphi);
+      coslam = FastStrictTrig.cos(lplam);
+      sinlam = FastStrictTrig.sin(lplam);
+      sinphi = FastStrictTrig.sin(lpphi);
       // 9.8.1:laea.cpp:39-46. xi is the authalic latitude from the direct phi -> xi
       // series; q is recovered as sin(xi)*qp (laea still needs the raw q for the polar
       // aspects), and sinb/cosb are sin(xi)/cos(xi) instead of q/qp and sqrt(1-sinb^2).
-      final double xi = authalic.forward(lpphi, sinphi, Math.cos(lpphi));
-      q = Math.sin(xi) * qp;
+      final double xi = authalic.forward(lpphi, sinphi, FastStrictTrig.cos(lpphi));
+      q = FastStrictTrig.sin(xi) * qp;
       if (mode == OBLIQ || mode == EQUIT) {
-        sinb = Math.sin(xi);
-        cosb = Math.cos(xi);
+        sinb = FastStrictTrig.sin(xi);
+        cosb = FastStrictTrig.cos(xi);
       }
       switch (mode) {
       case OBLIQ:
@@ -277,8 +311,8 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
       if ((lpphi = rh * .5 ) > 1.) throw new ProjectionException("I_ERROR");
       lpphi = 2. * Math.asin(lpphi);
       if (mode == OBLIQ || mode == EQUIT) {
-        sinz = Math.sin(lpphi);
-        cosz = Math.cos(lpphi);
+        sinz = FastStrictTrig.sin(lpphi);
+        cosz = FastStrictTrig.cos(lpphi);
       }
       switch (mode) {
       case EQUIT:
@@ -290,7 +324,7 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
         lpphi = Math.abs(rh) <= EPS10 ? phi0 :
           Math.asin(cosz * sinph0 + xyy * sinz * cosph0 / rh);
         xyx *= sinz * cosph0;
-        xyy = (cosz - Math.sin(lpphi) * sinph0) * rh;
+        xyy = (cosz - FastStrictTrig.sin(lpphi) * sinph0) * rh;
         break;
       case N_POLE:
         xyy = -xyy;
@@ -320,8 +354,8 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
           out.y = lpphi;
           return;
         }
-        cCe = Math.cos(sCe = 2. * Math.asin(.5 * rho / rq));
-        xyx *= (sCe = Math.sin(sCe));
+        cCe = FastStrictTrig.cos(sCe = 2. * Math.asin(.5 * rho / rq));
+        xyx *= (sCe = FastStrictTrig.sin(sCe));
         if (mode == OBLIQ) {
           q = qp * (ab = cCe * sinb1 + xyy * sCe * cosb1 / rho);
           xyy = rho * cosb1 * cCe - xyy * sinb1 * sCe;

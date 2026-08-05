@@ -23,8 +23,70 @@ import org.locationtech.proj4j.ErrorCause;
 import org.locationtech.proj4j.InvalidValueException;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.FastStrictTrig;
 import org.locationtech.proj4j.util.ProjectionMath;
 
+/**
+ * {@code +proj=lsat} &mdash; Space Oblique Mercator for Landsat
+ * ({@code 9.8.1:src/projections/som.cpp}).
+ *
+ * <h2>Why this file uses {@link FastStrictTrig} and {@link StrictMath}, not {@code Math}</h2>
+ *
+ * <p>Exactly seven {@code java.lang.Math} methods are {@code @IntrinsicCandidate} and therefore
+ * <em>platform-dependent</em>: {@code sin cos tan log log10 exp pow}. HotSpot substitutes a
+ * hand-written implementation for each, and those implementations do not agree bit-for-bit
+ * between aarch64 and x86-64. Everything else this file calls &mdash; {@code sqrt abs atan asin}
+ * &mdash; already delegates to {@code StrictMath} (or to a single hardware instruction that IEEE
+ * 754 defines exactly), is already deterministic, and is deliberately left as {@code Math}:
+ * converting it would move numbers for no benefit.
+ *
+ * <p>So all 40 platform-dependent sites are re-pointed and none of the other 25 are:
+ *
+ * <table>
+ *   <caption>the conversion, by method</caption>
+ *   <tr><th>method</th><th>sites</th><th>now</th></tr>
+ *   <tr><td>{@code sin}</td><td>19</td><td>{@link FastStrictTrig#sin(double)}</td></tr>
+ *   <tr><td>{@code cos}</td><td>15</td><td>{@link FastStrictTrig#cos(double)}</td></tr>
+ *   <tr><td>{@code tan}</td><td>4</td><td>{@link FastStrictTrig#tan(double)}</td></tr>
+ *   <tr><td>{@code log}</td><td>1</td><td>{@code StrictMath.log} &mdash; allocation-free already,
+ *       so {@code FastStrictTrig} has nothing to add and covers only the three</td></tr>
+ *   <tr><td>{@code exp}</td><td>1</td><td>{@code StrictMath.exp}, same reason</td></tr>
+ *   <tr><td>{@code sqrt abs atan asin}</td><td>25</td><td><b>unchanged</b> &mdash; already
+ *       deterministic</td></tr>
+ * </table>
+ *
+ * <h3>It moved numbers, and it moved them towards PROJ</h3>
+ *
+ * <p>This is not a pure refactor: on aarch64 the intrinsics differ from fdlibm, so output moves.
+ * Measured over the {@code RepointDump.lsatForward} graticule (lon &minus;180..180 step 5, lat
+ * &minus;80..80 step 5, {@code +proj=lsat +ellps=GRS80}, i.e. {@code +lsat=1 +path=120}),
+ * <b>152 of 2,409 points moved</b>, 166 ordinates in all. Every moved ordinate was re-run through
+ * the installed PROJ 9.8.1:
+ *
+ * <pre>
+ * cs2cs -f '%.17g' +proj=longlat +ellps=GRS80 +to +proj=lsat +lsat=1 +path=120 +ellps=GRS80
+ * </pre>
+ *
+ * <table>
+ *   <caption>agreement with PROJ 9.8.1 over the 166 moved ordinates, metres</caption>
+ *   <tr><th></th><th>after closer</th><th>before closer</th><th>ties</th>
+ *       <th>max |&Delta;|</th></tr>
+ *   <tr><td>after (this file)</td><td><b>103</b></td><td></td><td rowspan="2">2</td>
+ *       <td><b>1.49e-8</b></td></tr>
+ *   <tr><td>before ({@code Math})</td><td></td><td>61</td><td>3.73e-8</td></tr>
+ * </table>
+ *
+ * <p>So the strict version is nearer upstream on 62% of the moved ordinates and halves the worst
+ * case. The whole movement is bounded by 37 nanometres &mdash; an ulp-level reshuffle at an
+ * easting of 3.8e7 m, where one ulp is about 7.5 nm &mdash; and nothing near any {@code gie} bar.
+ * {@code LandsatInverseTest}'s 15 references from {@code proj} 9.8.1 hold at their unchanged
+ * {@code 2e-9} deg tolerance.
+ *
+ * <p>{@code RepointBitIdentityTest}'s {@code lsatForward} digest was re-pinned for this change,
+ * and only that one of its twelve; see the note there.
+ *
+ * @see FastStrictTrig
+ */
 public class LandsatProjection extends Projection {
 
 	private static final long serialVersionUID = -6304348212843606110L;
@@ -81,19 +143,20 @@ public class LandsatProjection extends Projection {
 		else if (lpphi < -ProjectionMath.HALFPI)
 			lpphi = -ProjectionMath.HALFPI;
 		lampp = lpphi >= 0. ? ProjectionMath.HALFPI : PI_HALFPI;
-		tanphi = Math.tan(lpphi);
+		tanphi = FastStrictTrig.tan(lpphi);
 		for (nn = 0;;) {
 			sav = lampp;
 			lamtp = lplam + p22 * lampp;
-			cl = Math.cos(lamtp);
+			cl = FastStrictTrig.cos(lamtp);
 			if (Math.abs(cl) < TOL)
 				lamtp -= TOL;
-			fac = lampp - Math.sin(lampp) * (cl < 0. ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI);
+			fac = lampp - FastStrictTrig.sin(lampp)
+				* (cl < 0. ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI);
 			for (l = 50; l > 0; --l) {
 				lamt = lplam + p22 * sav;
-				if (Math.abs(c = Math.cos(lamt)) < TOL)
+				if (Math.abs(c = FastStrictTrig.cos(lamt)) < TOL)
 					lamt -= TOL;
-				xlam = (one_es * tanphi * sa + Math.sin(lamt) * ca) / c;
+				xlam = (one_es * tanphi * sa + FastStrictTrig.sin(lamt) * ca) / c;
 				lamdp = Math.atan(xlam) + fac;
 				if (Math.abs(Math.abs(sav) - Math.abs(lamdp)) < TOL)
 					break;
@@ -107,18 +170,18 @@ public class LandsatProjection extends Projection {
 				lampp = ProjectionMath.HALFPI;
 		}
 		if (l != 0) {
-			sp = Math.sin(lpphi);
-			phidp = ProjectionMath.asin((one_es * ca * sp - sa * Math.cos(lpphi) * 
-				Math.sin(lamt)) / Math.sqrt(1. - es * sp * sp));
-			tanph = Math.log(Math.tan(ProjectionMath.QUARTERPI + .5 * phidp));
-			sd = Math.sin(lamdp);
+			sp = FastStrictTrig.sin(lpphi);
+			phidp = ProjectionMath.asin((one_es * ca * sp - sa * FastStrictTrig.cos(lpphi) *
+				FastStrictTrig.sin(lamt)) / Math.sqrt(1. - es * sp * sp));
+			tanph = StrictMath.log(FastStrictTrig.tan(ProjectionMath.QUARTERPI + .5 * phidp));
+			sd = FastStrictTrig.sin(lamdp);
 			sdsq = sd * sd;
-			s = p22 * sa * Math.cos(lamdp) * Math.sqrt((1. + t * sdsq)
+			s = p22 * sa * FastStrictTrig.cos(lamdp) * Math.sqrt((1. + t * sdsq)
 				 / ((1. + w * sdsq) * (1. + q * sdsq)));
 			d = Math.sqrt(xj * xj + s * s);
-			xy.x = b * lamdp + a2 * Math.sin(2. * lamdp) + a4 *
-				Math.sin(lamdp * 4.) - tanph * s / d;
-			xy.y = c1 * sd + c3 * Math.sin(lamdp * 3.) + tanph * xj / d;
+			xy.x = b * lamdp + a2 * FastStrictTrig.sin(2. * lamdp) + a4 *
+				FastStrictTrig.sin(lamdp * 4.) - tanph * s / d;
+			xy.y = c1 * sd + c3 * FastStrictTrig.sin(lamdp * 3.) + tanph * xj / d;
 		} else
 			xy.x = xy.y = Double.POSITIVE_INFINITY;
 		return xy;
@@ -143,8 +206,9 @@ public class LandsatProjection extends Projection {
 	 * {@code 1 - sin^2(phi'')(1 + u)} denominator is tested for zero, which 9.8.1 added as
 	 * {@code PROJ_ERR_COORD_TRANSFM_OUTSIDE_PROJECTION_DOMAIN} and the draft predates.
 	 *
-	 * <p>{@code Math} rather than {@code StrictMath}/{@code FastStrictTrig} throughout, to match
-	 * the forward in this same file; switching both together is a separate change.
+	 * <p>The trigonometry here is {@link FastStrictTrig}/{@link StrictMath}, not {@code Math}; see
+	 * the class javadoc. The forward was switched at the same time, so the two halves still match
+	 * each other &mdash; that is what the note this replaces was asking for.
 	 *
 	 * @param xyx the projected x ordinate, scaled as {@link #project} produces it
 	 * @param xyy the projected y ordinate
@@ -160,23 +224,23 @@ public class LandsatProjection extends Projection {
 		nn = 50;
 		do {
 			sav = lamdp;
-			sd = Math.sin(lamdp);
+			sd = FastStrictTrig.sin(lamdp);
 			sdsq = sd * sd;
-			s = p22 * sa * Math.cos(lamdp) * Math.sqrt((1. + t * sdsq)
+			s = p22 * sa * FastStrictTrig.cos(lamdp) * Math.sqrt((1. + t * sdsq)
 				 / ((1. + w * sdsq) * (1. + q * sdsq)));
-			lamdp = xyx + xyy * s / xj - a2 * Math.sin(
-				2. * lamdp) - a4 * Math.sin(lamdp * 4.) - s / xj * (
-				c1 * Math.sin(lamdp) + c3 * Math.sin(lamdp * 3.));
+			lamdp = xyx + xyy * s / xj - a2 * FastStrictTrig.sin(
+				2. * lamdp) - a4 * FastStrictTrig.sin(lamdp * 4.) - s / xj * (
+				c1 * FastStrictTrig.sin(lamdp) + c3 * FastStrictTrig.sin(lamdp * 3.));
 			lamdp /= b;
 		} while (Math.abs(lamdp - sav) >= TOL && --nn != 0);
-		sl = Math.sin(lamdp);
-		fac = Math.exp(Math.sqrt(1. + s * s / xj / xj) * (xyy -
-			c1 * sl - c3 * Math.sin(lamdp * 3.)));
+		sl = FastStrictTrig.sin(lamdp);
+		fac = StrictMath.exp(Math.sqrt(1. + s * s / xj / xj) * (xyy -
+			c1 * sl - c3 * FastStrictTrig.sin(lamdp * 3.)));
 		phidp = 2. * (Math.atan(fac) - ProjectionMath.QUARTERPI);
 		dd = sl * sl;
-		if (Math.abs(Math.cos(lamdp)) < TOL)
+		if (Math.abs(FastStrictTrig.cos(lamdp)) < TOL)
 			lamdp -= TOL;
-		spp = Math.sin(phidp);
+		spp = FastStrictTrig.sin(phidp);
 		sppsq = spp * spp;
 		final double denom = 1. - sppsq * (1. + u);
 		if (denom == 0.0) {
@@ -184,11 +248,11 @@ public class LandsatProjection extends Projection {
 					"lsat inverse of (" + xyx + ", " + xyy + ") is outside the projection "
 							+ "domain: 1 - sin^2(phi'')(1 + u) is exactly zero");
 		}
-		lamt = Math.atan(((1. - sppsq * rone_es) * Math.tan(lamdp) *
+		lamt = Math.atan(((1. - sppsq * rone_es) * FastStrictTrig.tan(lamdp) *
 			ca - spp * sa * Math.sqrt((1. + q * dd) * (
-			1. - sppsq) - sppsq * u) / Math.cos(lamdp)) / denom);
+			1. - sppsq) - sppsq * u) / FastStrictTrig.cos(lamdp)) / denom);
 		sl = lamt >= 0. ? 1. : -1.;
-		scl = Math.cos(lamdp) >= 0. ? 1. : -1;
+		scl = FastStrictTrig.cos(lamdp) >= 0. ? 1. : -1;
 		lamt -= ProjectionMath.HALFPI * (1. - scl) * sl;
 		// adjlon here, not just in the caller. lamt - p22*lamdp accumulates the satellite's
 		// along-track rotation, so this kernel legitimately returns |lam| well past pi -- at
@@ -202,8 +266,8 @@ public class LandsatProjection extends Projection {
 		if (Math.abs(sa) < TOL)
 			out.y = ProjectionMath.asinChecked(spp / Math.sqrt(one_es * one_es + es * sppsq));
 		else
-			out.y = Math.atan((Math.tan(lamdp) * Math.cos(lamt) - ca * Math.sin(lamt)) /
-				(one_es * sa));
+			out.y = Math.atan((FastStrictTrig.tan(lamdp) * FastStrictTrig.cos(lamt)
+				- ca * FastStrictTrig.sin(lamt)) / (one_es * sa));
 		return out;
 	}
 
@@ -211,20 +275,20 @@ public class LandsatProjection extends Projection {
 		double sdsq, h, s, fc, sd, sq, d__1;
 
 		lam *= DTR;
-		sd = Math.sin(lam);
+		sd = FastStrictTrig.sin(lam);
 		sdsq = sd * sd;
-		s = p22 * sa * Math.cos(lam) * Math.sqrt((1. + t * sdsq) / ((
+		s = p22 * sa * FastStrictTrig.cos(lam) * Math.sqrt((1. + t * sdsq) / ((
 			1. + w * sdsq) * (1. + q * sdsq)));
 		d__1 = 1. + q * sdsq;
 		h = Math.sqrt((1. + q * sdsq) / (1. + w * sdsq)) * ((1. + 
 			w * sdsq) / (d__1 * d__1) - p22 * ca);
 		sq = Math.sqrt(xj * xj + s * s);
 		b += fc = mult * (h * xj - s * s) / sq;
-		a2 += fc * Math.cos(lam + lam);
-		a4 += fc * Math.cos(lam * 4.);
+		a2 += fc * FastStrictTrig.cos(lam + lam);
+		a4 += fc * FastStrictTrig.cos(lam * 4.);
 		fc = mult * s * (h + xj) / sq;
-		c1 += fc * Math.cos(lam);
-		c3 += fc * Math.cos(lam * 3.);
+		c1 += fc * FastStrictTrig.cos(lam);
+		c3 += fc * FastStrictTrig.cos(lam * 3.);
 	}
 
 	/**
@@ -301,8 +365,8 @@ public class LandsatProjection extends Projection {
 			alf = DTR * 98.2;
 		}
 		p22 /= 1440.;
-		sa = Math.sin(alf);
-		ca = Math.cos(alf);
+		sa = FastStrictTrig.sin(alf);
+		ca = FastStrictTrig.cos(alf);
 		if (Math.abs(ca) < 1e-9)
 			ca = 1e-9;
 		esc = es * ca * ca;

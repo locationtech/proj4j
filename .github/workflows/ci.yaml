@@ -16,7 +16,19 @@ name: CI
 # trusted. See .github/workflows/determinism.yaml, whose Java side HAS been run locally on
 # five JDK/architecture combinations.
 
-on: [push, pull_request]
+# The push trigger is restricted to the long-lived branches on purpose. Unfiltered
+# `on: [push, pull_request]` fires TWICE for every commit on a PR branch - once as a push
+# to that branch and once as a pull_request against its base - so one commit costs two
+# full runs of this workflow, and ten across the five workflows in this directory. With
+# the filter, a topic branch is covered by the pull_request trigger alone and master/main
+# are covered by the push trigger alone. Note that the `concurrency` block below cannot
+# dedupe these two: github.ref differs between them (refs/heads/<branch> vs
+# refs/pull/<n>/merge), so they land in different concurrency groups and neither cancels
+# the other.
+on:
+  push:
+    branches: [master, main]
+  pull_request:
 
 # Superseded pushes should not queue behind each other. Cancel the in-flight run for the
 # same ref; a PR that gets three pushes in a minute costs one build, not three.
@@ -58,10 +70,16 @@ jobs:
       matrix:
         java: ['17', '21']
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0, not the default 1: the jgitver Maven extension derives the project
+      # version by walking back to the nearest tag. A depth-1 clone with no tags gives it
+      # nothing to find and every module builds as 0.0.0-SNAPSHOT. fetch-tags: true is NOT a
+      # substitute - it brings the tag objects but not the ancestry jgitver walks to reach them.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           # Changed from 'adopt' to 'temurin'. AdoptOpenJDK was renamed Eclipse Temurin in
           # 2021; 'adopt' is deprecated in setup-java and resolves to an archive that gets
@@ -69,7 +87,7 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           # The JDK suffix was added when this became a matrix: two legs saving the same
@@ -86,7 +104,7 @@ jobs:
 
       - name: Upload surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports-jdk${{ matrix.java }}
           path: '**/target/surefire-reports/**'
@@ -120,10 +138,16 @@ jobs:
     timeout-minutes: 30
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0, not the default 1: the jgitver Maven extension derives the project
+      # version by walking back to the nearest tag. A depth-1 clone with no tags gives it
+      # nothing to find and every module builds as 0.0.0-SNAPSHOT. fetch-tags: true is NOT a
+      # substitute - it brings the tag objects but not the ancestry jgitver walks to reach them.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up early-access JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           # 27 is the current early-access line (26 GA'd 2026-03). Bump this each time a
@@ -136,7 +160,7 @@ jobs:
 
       - name: Upload surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports-jdk-ea
           path: '**/target/surefire-reports/**'
@@ -159,10 +183,16 @@ jobs:
     timeout-minutes: 30
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0, not the default 1: the jgitver Maven extension derives the project
+      # version by walking back to the nearest tag. A depth-1 clone with no tags gives it
+      # nothing to find and every module builds as 0.0.0-SNAPSHOT. fetch-tags: true is NOT a
+      # substitute - it brings the tag objects but not the ancestry jgitver walks to reach them.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 8 and JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           # Both are installed; JAVA_HOME points at the last one listed (21), which is what
@@ -171,7 +201,7 @@ jobs:
             8
             21
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-jdk8rt-${{ hashFiles('**/pom.xml') }}
@@ -278,7 +308,7 @@ jobs:
 
       - name: Upload surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports-jdk8-runtime
           path: '**/target/surefire-reports/**'
@@ -377,21 +407,33 @@ jobs:
         -Duser.timezone=${{ matrix.timezone }}
         -Dfile.encoding=${{ matrix.encoding }}
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0, not the default 1: the jgitver Maven extension derives the project
+      # version by walking back to the nearest tag. A depth-1 clone with no tags gives it
+      # nothing to find and every module builds as 0.0.0-SNAPSHOT. fetch-tags: true is NOT a
+      # substitute - it brings the tag objects but not the ancestry jgitver walks to reach them.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           # runner.arch is in the key because the arm64 leg would otherwise share a cache
-          # entry with the x64 legs.
-          key: ${{ runner.os }}-${{ runner.arch }}-maven-det-${{ hashFiles('**/pom.xml') }}
+          # entry with the x64 legs. THE LOCALE IS IN THE KEY FOR THE SAME REASON, and it was
+          # the omission that actually bit: this matrix varies on locale, not architecture, so
+          # runner.arch alone left en_US/x64, tr_TR/x64 and de_DE/x64 - three of the four legs -
+          # computing one identical key and racing each other for the save. The loser logs
+          # "cache already exists" and its work is thrown away. matrix.language/matrix.country
+          # are the axis that distinguishes them; they match the artifact name below.
+          key: ${{ runner.os }}-${{ runner.arch }}-maven-det-${{ matrix.language }}_${{ matrix.country }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-maven-det-${{ matrix.language }}_${{ matrix.country }}-
             ${{ runner.os }}-${{ runner.arch }}-maven-
 
       # The Ubuntu runner images generate only C.UTF-8 and en_US.UTF-8, so LANG/LC_ALL for
@@ -409,7 +451,7 @@ jobs:
 
       - name: Upload surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           # Artifact names must be unique across a matrix and cannot contain '/'.
           name: surefire-reports-determinism-${{ matrix.language }}_${{ matrix.country }}-${{ runner.arch }}

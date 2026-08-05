@@ -276,6 +276,23 @@ can leave the tag object absent locally, and the script dies with `revision '9.8
 The `upstream-drift` job uses `fetch-depth: 1` because `actions/checkout` creates a local `master`
 branch, so no tag has to resolve there.
 
+**`fetch-depth: 0` on every *proj4j* checkout is required too, for a different reason.** The first
+real runs of these workflows all logged `version '0.0.0-SNAPSHOT' computed`. jgitver derives the
+project version by walking back from `HEAD` to the nearest reachable tag; at the default
+`fetch-depth: 1` there is no history to walk and no tags to find, so every module built as
+`0.0.0-SNAPSHOT`. All ten proj4j checkouts across the five workflows now set `fetch-depth: 0`.
+`fetch-tags: true` is *not* an alternative — it brings the tag refs but leaves the ancestry
+truncated, so the tags stay unreachable and the answer does not change. Note also that the remote
+currently has no tags at all (`git ls-remote --tags origin` is empty), so this fix only takes effect
+once the local tags are pushed; see `HOWTORELEASE.txt`.
+
+**The `push` trigger is filtered to `master`/`main` in all five workflows.** With an unfiltered
+`push` alongside `pull_request`, a single commit on a PR branch fires each workflow twice — ten runs
+across this directory per commit. `concurrency` cannot collapse them: the two events carry different
+`github.ref` values (`refs/heads/<branch>` vs `refs/pull/<n>/merge`) and therefore land in different
+concurrency groups. A topic branch is now covered by `pull_request` alone, `master`/`main` by `push`
+alone.
+
 **`git add --intent-to-add` before `git diff --exit-code`.** A plain `git diff` sees only
 modifications and deletions; a file *added* upstream would be untracked and the check would pass
 straight over it. `--intent-to-add` makes additions visible to the diff.
@@ -291,12 +308,24 @@ corpus directories have been replaced, so the diff is still the drift report.
 
 ## What has and has not been validated
 
-Validated: YAML parses (`ruby -ryaml`), action versions pinned to `actions/*` at `@v4`, no
+Validated: YAML parses (`python3 -c 'import yaml; yaml.safe_load(...)'`, every file in this
+directory), action versions pinned to `actions/*` at the current major of each — `checkout@v7`,
+`setup-java@v5`, `cache@v6`, `upload-artifact@v7`, `download-artifact@v8` — no
 third-party actions, artifact names unique across every matrix, matrix expressions and
 `continue-on-error` values well-formed, and the shell in `conformance.yaml` written against a close
 reading of `conformance/sync-upstream.sh` (its `$1`/`$PROJ_DIR` override, its `BASH_SOURCE`-derived
 `SCRIPT_DIR`, its pin check, its `tinshift_gpkg` guard, and the three comment lines in
 `gie-manifest.sha256` that would otherwise make `shasum -c` exit 1).
+
+**On those action versions.** They were `@v4` everywhere until the first real runs, which warned on
+every job that Node 20 is deprecated and that `setup-java@v4` is deprecated. The majors above are
+*not* uniform and that is not a mistake: each was read from that action's own `releases/latest` on
+the GitHub API, and each one's `action.yml` at the floating major tag was confirmed to declare
+`using: node24`. `upload-artifact@v7` and `download-artifact@v8` are the matched pair — the two
+repositories' majors have been offset by one since download's extra bump, and both were cut on the
+same day. Do not "fix" that to make the numbers agree. Re-check with
+`gh api repos/actions/<name>/releases/latest --jq .tag_name` before the next bump rather than
+inferring from this list, which is a snapshot.
 
 **`conformance.yaml`'s `corpus` job is now a second exception, on both its Maven and its shell
 side.** Its two steps were extracted from this YAML by `yaml.safe_load` and executed verbatim

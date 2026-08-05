@@ -209,11 +209,38 @@ public class RawLongitudeDomainCheckTest {
 
         // Without +over the same input already worked, and its bits must not have moved: the wrap
         // and the subtraction are the same two statements in the same order, just later.
+        //
+        // Re-measured 2026-08-05, after LambertAzimuthalEqualAreaProjection was converted from
+        // Math.sin/Math.cos to FastStrictTrig -- these two come out of project_e's cos(lam),
+        // sin(lam), sin(phi), cos(phi) and sin(xi), i.e. five of the converted sites. They are
+        // bit-identical before and after, which is not luck about the conversion but about this
+        // input: 9.9 rad wraps and then loses lon_0=-150 deg, leaving lam ~= -0.0484 rad, an
+        // argument well inside fdlibm's |x| <= pi/4 kernel where the HotSpot intrinsic and
+        // StrictMath already agree. (Contrast LaeaNanPropagationTest.finiteInputIsUnmoved, whose
+        // reduced longitude of 3.1179938779914944 is the hard argument-reduction case and did
+        // move.) Verified against the shipped PROJ 9.8.1 -- the "r" suffix makes dmstor read
+        // radians, so this is the exact double the test passes, not a degree round-trip, and no
+        // +over so that proj applies the same adjlon this row exercises:
+        //
+        //   $ printf '9.9r 0.5r\n' | proj -d 12 \
+        //       +proj=laea +lat_0=90 +lon_0=-150 +datum=WGS84 +units=m
+        //   -314861.806493659096	-6503459.455622057430
+        //
+        // giving |delta| = 2.91e-9 m in x and 0.0 m in y. That x residual is pre-existing, is
+        // unchanged by this conversion, and is the wrap rather than the trig -- with +over, where
+        // adjlon does not run, the same input agrees with proj to 1.3e-11 m:
+        //
+        //   $ printf '9.9r 0.5r\n' | proj -d 12 \
+        //       +proj=laea +lat_0=90 +lon_0=-150 +datum=WGS84 +units=m +over
+        //   -314861.806493659387	-6503459.455622057430
+        //
+        // against proj4j's -314861.8064936594. 12.518 rad going through one floor is where the
+        // low bits part company; 2.9 nanometres, so it is recorded, not chased.
         ProjCoordinate wrapped = new ProjCoordinate();
         projection(LON0_SET).projectRadians(new ProjCoordinate(9.9, 0.5), wrapped);
-        assertEquals("x at 9.9 rad, no +over, measured before the check moved",
+        assertEquals("x at 9.9 rad, no +over, re-measured after the strict-trig conversion",
                 -314861.8064936562, wrapped.x, 0.0);
-        assertEquals("y at 9.9 rad, no +over, measured before the check moved",
+        assertEquals("y at 9.9 rad, no +over, re-measured after the strict-trig conversion",
                 -6503459.455622057, wrapped.y, 0.0);
     }
 

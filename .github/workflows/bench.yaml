@@ -53,8 +53,13 @@ name: Performance Gate
 # argument plumbing for --require-baseline was verified with a stubbed `java`. The YAML itself has
 # never executed.
 
+# The push trigger is filtered to the long-lived branches: an unfiltered push trigger
+# alongside pull_request fires this workflow twice for every commit on a PR branch, and
+# `concurrency` cannot dedupe them because github.ref differs between the two events.
+# See the same note in ci.yaml.
 on:
   push:
+    branches: [master, main]
   pull_request:
   workflow_dispatch:
 
@@ -77,17 +82,23 @@ jobs:
     # has timed it on a runner. Generous rather than tuned; tighten once there is a number.
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0, not the default 1: the jgitver Maven extension derives the project
+      # version by walking back to the nearest tag. A depth-1 clone with no tags gives it
+      # nothing to find and every module builds as 0.0.0-SNAPSHOT. fetch-tags: true is NOT a
+      # substitute - it brings the tag objects but not the ancestry jgitver walks to reach them.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           # benchmark/pom.xml compiles at <release>17</release>, deliberately newer than core's 8,
           # because this module is never published. 21 is what the baselines are captured on.
           java-version: '21'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-bench-${{ hashFiles('**/pom.xml') }}
@@ -175,7 +186,7 @@ jobs:
 
       - name: Upload the JMH result and gate output
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bench-gate
           path: |

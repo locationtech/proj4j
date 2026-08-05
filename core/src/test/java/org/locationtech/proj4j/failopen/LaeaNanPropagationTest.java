@@ -306,21 +306,55 @@ public class LaeaNanPropagationTest {
     }
 
     /**
-     * Frozen values, to bit-equality, for the two arms the fix touched. These are the numbers
-     * measured on this tree <em>before</em> the {@code NaN} arm was added, so bit-equality here is
-     * the evidence that the change is confined to the {@code NaN} case and moved no finite
+     * Frozen values, to bit-equality, for the two arms the fix touched. Three of the four are the
+     * numbers measured on this tree <em>before</em> the {@code NaN} arm was added, so bit-equality
+     * there is the evidence that the change is confined to the {@code NaN} case and moved no finite
      * coordinate at all.
-     * <p>
-     * They are not self-referential: each also agrees with PROJ 9.8.1's own {@code gie} on the
-     * same proj-string at {@code 28.64788975654116 28.64788975654116} degrees (= 0.5 rad, 0.5 rad).
+     *
+     * <h4>The one that moved, and why it was the pin that was wrong</h4>
+     *
+     * <p>Spherical {@code y} was re-measured on <b>2026-08-05</b>, when
+     * {@code LambertAzimuthalEqualAreaProjection} was converted from {@code Math.sin}/{@code cos}
+     * to {@code FastStrictTrig}: {@code 0x4158d1bd3117c812} -&gt; {@code 0x4158d1bd3117c814}.
+     * The old pin was <em>architecture-dependent</em>, and this test was the one that caught it —
+     * it passed on AArch64 and failed on x86-64. {@code Math.cos} is
+     * {@code @IntrinsicCandidate}, and at this row's reduced longitude,
+     * {@code lplam = 3.1179938779914944} (just under {@code pi}, the hard argument-reduction case),
+     * the two intrinsics disagree in the last bit while fdlibm agrees with x86-64:
+     *
+     * <pre>
+     *   AArch64  Math.cos       -&gt; 0xbfeffdb812a39370
+     *   x86-64   Math.cos       -&gt; 0xbfeffdb812a39371
+     *   both     StrictMath.cos -&gt; 0xbfeffdb812a39371
+     * </pre>
+     *
+     * <p>So the new pin is not merely the stable value, it is the <b>correct</b> one: it is
+     * {@code delta 0.0} from PROJ 9.8.1, where the retired AArch64 pin was 1.863e-9 m low. The
+     * other three did not move — {@code Math.sin} happens to be bit-identical on both
+     * architectures at these arguments, and the ellipsoidal {@code coslam} difference rounds away
+     * before it reaches the metre-scale result. That is coincidence, not a property of
+     * {@code sin}: it is intrinsified too.
+     *
+     * <p>They are not self-referential: each also agrees with PROJ 9.8.1 on the same proj-string
+     * at {@code 0.5 rad, 0.5 rad}. Re-verified 2026-08-05 with the shipped 9.8.1 {@code proj}
+     * (the {@code r} suffix makes {@code dmstor} read radians, so the pins are checked against the
+     * exact same input doubles the test uses, with no degree round-trip in between):
+     *
+     * <pre>
+     * $ printf '0.5r 0.5r\n' | proj -d 15 +proj=laea +lat_0=90 +lon_0=-150 +datum=WGS84 +units=m
+     * 153639.182222650823	6509264.002158334479
+     * $ printf '0.5r 0.5r\n' | proj -d 15 +proj=laea +lat_0=90 +lon_0=-150 +R=6378137 +units=m
+     * 153567.541091538238106	6506228.767076510936022
+     * </pre>
+     *
      * The target is <b>projected</b>, so the metric is Euclidean in metres, not geodesic:
      * <table>
-     * <caption>proj4j against gie 9.8.1, Euclidean metres</caption>
-     * <tr><th>aspect</th><th>gie 9.8.1</th><th>this tree</th><th>|delta|</th></tr>
+     * <caption>proj4j against PROJ 9.8.1, Euclidean metres</caption>
+     * <tr><th>aspect</th><th>PROJ 9.8.1</th><th>this tree</th><th>|delta|</th></tr>
      * <tr><td>ellipsoidal N polar</td><td>153639.182222650823 6509264.002158334479</td>
-     *     <td>153639.18222265082 6509264.0021583345</td><td>&lt; 1e-8 m</td></tr>
+     *     <td>153639.18222265082 6509264.0021583345</td><td>0.0, 0.0</td></tr>
      * <tr><td>spherical N polar</td><td>153567.541091538238 6506228.767076510936</td>
-     *     <td>153567.54109153824 6506228.767076509</td><td>&lt; 2e-9 m</td></tr>
+     *     <td>153567.54109153824 6506228.767076511</td><td>0.0, 0.0</td></tr>
      * </table>
      */
     @Test
@@ -333,7 +367,7 @@ public class LaeaNanPropagationTest {
 
         ProjCoordinate sph = project(NORTH_POLAR_SPHERE, 0.5, 0.5);
         assertEquals("spherical polar x", 0x4102befc5427cce7L, Double.doubleToRawLongBits(sph.x));
-        assertEquals("spherical polar y", 0x4158d1bd3117c812L, Double.doubleToRawLongBits(sph.y));
+        assertEquals("spherical polar y", 0x4158d1bd3117c814L, Double.doubleToRawLongBits(sph.y));
         assertCloseToProj("spherical polar x", 153567.541091538238, sph.x);
         assertCloseToProj("spherical polar y", 6506228.767076510936, sph.y);
     }

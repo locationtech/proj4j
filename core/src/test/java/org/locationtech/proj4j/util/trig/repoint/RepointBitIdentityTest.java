@@ -66,11 +66,42 @@ import static org.junit.Assert.assertFalse;
  *   <tr><td>the eight projection specs</td><td>all 31 sites in {@code Spilhaus},
  *       {@code AdamsWorldInASquareI/II}, {@code AdamsHemisphere}, {@code Guyou},
  *       {@code PeirceQuincuncial} and {@code Adams} ({@code ellipticTail})</td></tr>
- *   <tr><td>{@code lsatForward}</td><td>no re-pointed site; pinned to show that adding
- *       {@code LandsatProjection.projectInverse} disturbed the forward not at all</td></tr>
+ *   <tr><td>{@code lsatForward}</td><td>originally no re-pointed site &mdash; pinned to show that
+ *       adding {@code LandsatProjection.projectInverse} disturbed the forward not at all. Since
+ *       2026-08-05 it does have re-pointed sites: all 40 of {@code LandsatProjection}'s
+ *       platform-dependent {@code Math} calls. See "The lsat re-pin" below</td></tr>
  * </table>
  *
- * <h2>The one re-pin, and exactly what it costs</h2>
+ * <h2>The lsat re-pin, 2026-08-05 &mdash; an intentional behaviour change</h2>
+ *
+ * <p>{@code lsatForward} is the one digest here that is a <strong>post-change</strong> value, and
+ * it is deliberately so. {@code LandsatProjection} was converted from {@code Math} to
+ * {@code FastStrictTrig}/{@code StrictMath} at all 40 sites that reach one of the seven
+ * {@code @IntrinsicCandidate} methods ({@code sin cos tan log log10 exp pow}); its 25
+ * {@code sqrt}/{@code abs}/{@code atan}/{@code asin} calls already delegate to {@code StrictMath}
+ * and were left alone. Unlike the re-point this file was built to police, that conversion
+ * <em>is</em> expected to move bits on aarch64, because the aarch64 intrinsics are not fdlibm.
+ *
+ * <p>What makes the new value trustworthy is not that the build produced it:
+ *
+ * <ul>
+ *   <li><b>It was checked against PROJ 9.8.1, not against a previous Proj4J build.</b> All 166
+ *       moved ordinates (152 of the 2,409 graticule points) were re-run through
+ *       {@code cs2cs -f '%.17g' +proj=longlat +ellps=GRS80 +to +proj=lsat +lsat=1 +path=120
+ *       +ellps=GRS80} &mdash; {@code +lsat=1 +path=120} being the defaults
+ *       {@code +proj=lsat +ellps=GRS80} resolves to. The new value is closer to upstream on
+ *       <b>103</b>, the old on 61, with 2 ties, and the worst deviation halves from
+ *       {@code 3.73e-8} m to {@code 1.49e-8} m. The whole movement is ulp-scale: one ulp at an
+ *       easting of {@code 3.8e7} m is about 7.5 nm.</li>
+ *   <li><b>It is the same digest on aarch64 and on x86-64</b>, which the {@code 096426ea...} value
+ *       it replaces was not. Removing that split is the entire reason for the conversion, so the
+ *       agreement is the proof rather than a side effect.</li>
+ *   <li>The count stayed {@code 4818}, so no point started throwing.</li>
+ *   <li>The other eleven digests did not move, confirming the earlier finding that none of them
+ *       reaches any of the seven platform-variant methods.</li>
+ * </ul>
+ *
+ * <h2>The other re-pin, and exactly what it costs</h2>
  *
  * <p>Five of the twelve digests were re-pinned once, when {@code Projection}'s inverse stopped
  * <em>dividing</em> the projected ordinate by {@code totalScale} and started <em>multiplying</em> it
@@ -84,9 +115,9 @@ import static org.junit.Assert.assertFalse;
  * </pre>
  *
  * <p>The five are {@code spilhaus} (both specs), {@code adams_ws2} and {@code peirce_q} (both
- * shapes). Seven paths &mdash; {@code clenshaw6}, {@code conformalLat}, {@code authalicLat},
- * {@code adams_ws1}, {@code adams_hemi}, {@code guyou}, {@code lsatForward} &mdash; are still the
- * original {@code 7362c85} values, and the total value count is still 1,654,464, so no path stopped
+ * shapes). Six paths &mdash; {@code clenshaw6}, {@code conformalLat}, {@code authalicLat},
+ * {@code adams_ws1}, {@code adams_hemi}, {@code guyou} &mdash; are still the original
+ * {@code 7362c85} values, and the total value count is still 1,654,464, so no path stopped
  * producing values.
  *
  * <h3>What the movement was checked against, before it was pinned</h3>
@@ -141,7 +172,7 @@ import static org.junit.Assert.assertFalse;
 public class RepointBitIdentityTest {
 
     /**
-     * The pinned digests: seven still at {@code 7362c85}, five re-pinned once, for a reason recorded
+     * The pinned digests: six still at {@code 7362c85}, six re-pinned, each for a reason recorded
      * below. Do not regenerate these from the current tree wholesale &mdash; that would make them
      * agree with whatever the code does today, which is the one thing this file must not do.
      */
@@ -149,10 +180,10 @@ public class RepointBitIdentityTest {
 
     /**
      * The keys whose digest is no longer the {@code 7362c85} value, so that
-     * {@link #sevenOfTheTwelvePathsAreStillTheOriginalPreRepointDigests()} can say how much of the
+     * {@link #sixOfTheTwelvePathsAreStillTheOriginalPreRepointDigests()} can say how much of the
      * original claim survives.
      */
-    private static final int REPINNED = 5;
+    private static final int REPINNED = 6;
 
     static {
         // --- still the original pre-re-point digests, captured at 7362c85 -------------------
@@ -168,8 +199,14 @@ public class RepointBitIdentityTest {
                 "6a220a3953f140084c5b6f2cbe926c27fc90efa91e5daab1451a4575464c8b8c/14701");
         BEFORE.put("+proj=guyou +ellps=WGS84",
                 "6c9c71ef8754432d21110223cc798a4edabd70d788005d14368489475a613887/14701");
+
+        // --- re-pinned 2026-08-05: a POST-change value, not a 7362c85 one. lsat's own trig was
+        // converted from Math to FastStrictTrig/StrictMath (the platform-dependent seven), which
+        // is an intentional behaviour change and is why this digest moved. Verified against PROJ
+        // 9.8.1 before pinning, and identical on aarch64 and x86-64 -- which is the point of the
+        // conversion. See "lsatForward" in the class javadoc, and LandsatProjection's.
         BEFORE.put("lsatForward",
-                "096426eaa8f948e6bbee241bb96d6b2c7102c0114b280103f053ca53148d1181/4818");
+                "a142f994872c78d5ec9ea3dc31dd163c04c753e0a1007280b57056df05a91981/4818");
 
         // --- re-pinned once, for the `*= ra` change. See "The one re-pin" in the class javadoc ---
         BEFORE.put("+proj=spilhaus +ellps=WGS84",
@@ -185,12 +222,14 @@ public class RepointBitIdentityTest {
     }
 
     /**
-     * The {@code 7362c85} digests of the five re-pinned paths, kept so the old and the new values
-     * are both on the record and the re-pin is auditable rather than merely asserted.
+     * The {@code 7362c85} digests of the six re-pinned paths, kept so the old and the new values
+     * are both on the record and each re-pin is auditable rather than merely asserted.
      */
     private static final Map<String, String> SUPERSEDED = new LinkedHashMap<String, String>();
 
     static {
+        SUPERSEDED.put("lsatForward",
+                "096426eaa8f948e6bbee241bb96d6b2c7102c0114b280103f053ca53148d1181/4818");
         SUPERSEDED.put("+proj=spilhaus +ellps=WGS84",
                 "81c17f244ecbd40f885612bd03161c8c48e6f9e77a927de248e50fda1736d127/29524");
         SUPERSEDED.put("+proj=spilhaus +R=6371000",
@@ -215,17 +254,19 @@ public class RepointBitIdentityTest {
             String actual = now.get(e.getKey());
             if (!e.getValue().equals(actual)) {
                 moved.append("\n  ").append(e.getKey())
-                        .append("\n    before (7362c85): ").append(e.getValue())
-                        .append("\n    now             : ").append(actual);
+                        .append("\n    pinned: ").append(e.getValue())
+                        .append("\n    now   : ").append(actual);
             }
         }
         if (moved.length() != 0) {
-            throw new AssertionError("these pinned paths moved. Seven of the twelve digests are the "
+            throw new AssertionError("these pinned paths moved. Six of the twelve digests are the "
                     + "pre-re-point values from 7362c85; the five spilhaus/adams_ws2/peirce_q "
                     + "digests were re-pinned once for Projection's inverse `*= 1/totalScale` "
-                    + "change (9.8.1:src/inv.cpp:85-93), after verifying the new values against the "
-                    + "installed proj/cs2cs 9.8.1. Anything moving now is unaccounted for -- do NOT "
-                    + "re-pin from this build's own output without the same verification:" + moved);
+                    + "change (9.8.1:src/inv.cpp:85-93), and lsatForward once on 2026-08-05 for "
+                    + "LandsatProjection's Math -> FastStrictTrig/StrictMath conversion -- both "
+                    + "after verifying the new values against the installed proj/cs2cs 9.8.1. "
+                    + "Anything moving now is unaccounted for -- do NOT re-pin from this build's "
+                    + "own output without the same verification:" + moved);
         }
     }
 
@@ -236,7 +277,7 @@ public class RepointBitIdentityTest {
      * that has to be a deliberate, visible decision.
      */
     @Test
-    public void sevenOfTheTwelvePathsAreStillTheOriginalPreRepointDigests() {
+    public void sixOfTheTwelvePathsAreStillTheOriginalPreRepointDigests() {
         assertEquals("the number of re-pinned paths changed", REPINNED, SUPERSEDED.size());
         assertEquals("the pinned set changed size", 12, BEFORE.size());
         for (Map.Entry<String, String> e : SUPERSEDED.entrySet()) {

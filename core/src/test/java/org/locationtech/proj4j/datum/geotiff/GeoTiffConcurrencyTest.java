@@ -22,7 +22,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
-import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.datum.Grid;
 import org.locationtech.proj4j.datum.VerticalGrid;
 
@@ -117,6 +116,21 @@ public class GeoTiffConcurrencyTest {
         assertBitwiseStable("test_hgrid_with_subgrid_no_grid_name.tif", SUBGRID_POINTS, false);
     }
 
+    /**
+     * <p><b>Both sides must run the same code, not merely equivalent-looking code.</b> The baseline
+     * and the threads both go through {@link GeoTiffFixtures#shiftDegrees}, exactly as
+     * {@code GridShiftConcurrencyTest} routes both of its sides through
+     * {@code GridReferenceValues.shiftDegrees}. This is not style. The threads used to inline their
+     * own conversion as {@code deg * (Math.PI / 180.0)} while the baseline called
+     * {@code Math.toRadians(deg)}, and those are <em>different functions on Java 8</em>: Java 8
+     * evaluates {@code angdeg / 180.0 * PI}, Java 9 and later multiply by a precomputed constant, so
+     * the two spellings disagree by 1 ULP on about a quarter of arguments under Java 8 and never
+     * disagree under Java 9+ (see {@link org.locationtech.proj4j.util.ProjectionMath#toRad}). Under
+     * Java 8 that made all 36 threads report a "divergence" that was really a 1-ULP difference in the
+     * <em>input</em> they were handed — a concurrency failure that no concurrency caused, and one
+     * that hid rather than revealed. Calling one helper from both sides makes the arithmetic
+     * identical by construction instead of by inspection.
+     */
     private static void assertBitwiseStable(final String name, final double[][] points,
                                             final boolean inverse) throws Exception {
         final List<Grid> grids = GeoTiffFixtures.horizontal(name);
@@ -138,16 +152,13 @@ public class GeoTiffConcurrencyTest {
                         barrier.await();
                         for (int n = 0; n < ITERATIONS; n++) {
                             for (int i = 0; i < points.length; i++) {
-                                ProjCoordinate c = new ProjCoordinate(
-                                        points[i][0] * D2R, points[i][1] * D2R);
-                                Grid.shift(grids, inverse, c);
-                                double lon = Math.toDegrees(c.x);
-                                double lat = Math.toDegrees(c.y);
-                                if (Double.doubleToRawLongBits(lon) != expected[i][0]
-                                        || Double.doubleToRawLongBits(lat) != expected[i][1]) {
+                                double[] out = GeoTiffFixtures.shiftDegrees(
+                                        grids, inverse, points[i][0], points[i][1]);
+                                if (Double.doubleToRawLongBits(out[0]) != expected[i][0]
+                                        || Double.doubleToRawLongBits(out[1]) != expected[i][1]) {
                                     throw new AssertionError(name + (inverse ? " inverse" : " forward")
-                                            + " point " + i + " diverged: got (" + lon + ", " + lat
-                                            + ") expected bits " + expected[i][0] + "/"
+                                            + " point " + i + " diverged: got (" + out[0] + ", "
+                                            + out[1] + ") expected bits " + expected[i][0] + "/"
                                             + expected[i][1]);
                                 }
                             }

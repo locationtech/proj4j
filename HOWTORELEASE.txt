@@ -41,8 +41,28 @@ Traps:
   - `-Djgitver.skip=true` makes the dead 1.3.1-SNAPSHOT literal live. It is required
     when building against a non-default -Dmaven.repo.local, and must NEVER be combined
     with `deploy`.
-  - No CI checkout fetches tags (all fetch-depth: 1, no fetch-tags), so jgitver cannot
-    see any tag in CI. Fix that before adding a release job.
+  - CI checkouts USED to run at the default fetch-depth: 1 with no tags, and every job
+    logged `version '0.0.0-SNAPSHOT' computed`. Every proj4j checkout across the five
+    workflows now sets `fetch-depth: 0`.
+
+    fetch-tags: true is NOT an alternative to fetch-depth: 0, and any documentation that
+    offers the two as a choice is wrong. They fix different halves of the problem:
+    fetch-tags brings the tag REFS down, but a depth-1 clone still has exactly one commit
+    of history, and jgitver derives a version by WALKING BACK from HEAD to the nearest
+    reachable tagged commit. With the ancestry truncated there is nothing to walk, so the
+    tags it can now see are all unreachable and the answer is still 0.0.0-SNAPSHOT.
+    fetch-depth: 0 fetches the full history and, with it, the tags. Use that.
+
+  - THE REMOTE HAS NO TAGS AT ALL. `git ls-remote --tags origin` against
+    github.com/emilevictor/neoProj4J returns nothing: the 18 tags in this tree
+    (v0.2.0 ... v1.4.3, _old/eclipse_initial) are local only and have never been pushed.
+    Until they are, fetch-depth: 0 changes nothing on its own - a full clone of a
+    tagless remote still yields 0.0.0-SNAPSHOT. So, in order:
+
+        git push origin --tags        # or --follow-tags on the next push
+        # then re-run any workflow and confirm the version it logs
+
+    Do this before adding a release job, and before trusting any version string in CI.
 
 
 Publishing to Maven Central

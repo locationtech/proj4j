@@ -560,9 +560,20 @@ check_golden() {
     fi
 
     local got want
+    # Both sides need the fallback, not just $got. This script runs under `set -uo pipefail`
+    # with no `-e`, so a missing baseline left $want as the empty string, `[ "$got" -ne "" ]`
+    # then failed with "integer expression expected", and a failing test is read as false -
+    # so the mismatch branch was skipped and the check passed by accident. Defaulting to 0 and
+    # asserting the baseline is non-empty turns that into the loud failure it should be.
     got=$(wc -l < golden/target/golden/golden.tsv 2>/dev/null || echo 0)
-    want=$(wc -l < golden/baseline/1.4.3/golden.tsv)
+    want=$(wc -l < golden/baseline/1.4.3/golden.tsv 2>/dev/null || echo 0)
     say "golden.tsv rows (incl. header): generated=$got baseline=$want"
+    if [ "$want" -le 0 ]; then
+        bad "golden/baseline/1.4.3/golden.tsv is missing or empty. It is committed to the"
+        bad "repository, so this is a broken tree, not a test result."
+        record golden FAIL "baseline golden.tsv missing" "nothing to compare the generated table against"
+        return
+    fi
     if [ "$got" -ne "$want" ]; then
         bad "the generated table has $got lines but the baseline has $want. A row-count mismatch"
         bad "means the sweep did not cover the same input set, so the diff is not comparable."

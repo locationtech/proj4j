@@ -36,8 +36,13 @@ name: Golden Master
 # a COUNT_MISMATCH naming the rule when a pinned `expected_rows` was altered by one. The YAML
 # itself has not executed; treat the first run as its first test.
 
+# The push trigger is filtered to the long-lived branches: an unfiltered push trigger
+# alongside pull_request fires this workflow twice for every commit on a PR branch, and
+# `concurrency` cannot dedupe them because github.ref differs between the two events.
+# See the same note in ci.yaml.
 on:
   push:
+    branches: [master, main]
   pull_request:
   workflow_dispatch:
 
@@ -61,15 +66,21 @@ jobs:
     # measured number from a real run.
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      # fetch-depth: 0, not the default 1: the jgitver Maven extension derives the project
+      # version by walking back to the nearest tag. A depth-1 clone with no tags gives it
+      # nothing to find and every module builds as 0.0.0-SNAPSHOT. fetch-tags: true is NOT a
+      # substitute - it brings the tag objects but not the ancestry jgitver walks to reach them.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-golden-${{ hashFiles('**/pom.xml') }}
@@ -158,9 +169,22 @@ jobs:
           #     diff, and a quiet pass. Comparing against the committed baseline rather than a
           #     hardcoded number means a deliberate change to probes.tsv / pairs.tsv updates both
           #     sides at once and this check keeps working.
-          got=$(wc -l < golden/target/golden/golden.tsv)
-          want=$(wc -l < golden/baseline/1.4.3/golden.tsv)
+          #     The `|| echo 0` fallbacks are load-bearing. Under `set -euo pipefail` a bare
+          #     `wc -l < missing-file` aborts this step with nothing but "No such file or
+          #     directory" - and this is the step whose entire job is to say what went wrong.
+          #     A generated table that is absent is the strongest form of the failure this
+          #     check exists to report, so it must reach the ::error:: below, not pre-empt it.
+          #     Counting it as 0 does exactly that. The one way 0 could mask a problem is both
+          #     files being absent, so that 0 -eq 0 passes vacuously - hence the explicit
+          #     non-empty check on the baseline before the comparison.
+          got=$(wc -l < golden/target/golden/golden.tsv 2>/dev/null || echo 0)
+          want=$(wc -l < golden/baseline/1.4.3/golden.tsv 2>/dev/null || echo 0)
           echo "golden.tsv rows (incl. header): generated=$got baseline=$want"
+          [ "$want" -gt 0 ] || {
+            echo "::error::golden/baseline/1.4.3/golden.tsv is missing or empty. It is committed to"
+            echo "::error::the repository, so this is a broken checkout or a deleted baseline, not a"
+            echo "::error::test result. Without it the row-count comparison below is vacuous."
+            exit 1; }
           [ "$got" -eq "$want" ] || {
             echo "::error::the generated table has $got lines but the baseline has $want."
             echo "::error::A row-count mismatch means the sweep did not cover the same input set,"
@@ -192,7 +216,7 @@ jobs:
       # itself a finding.
       - name: Upload the golden report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: golden-report
           path: |
@@ -205,7 +229,7 @@ jobs:
 
       - name: Upload surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports-golden
           path: '**/target/surefire-reports/**'
