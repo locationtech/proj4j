@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class EulerProjection extends SimpleConicProjection {
 
+	private static final long serialVersionUID = -6311125753242261996L;
+
 	public EulerProjection() {
 		super( SimpleConicProjection.EULER );
 	}

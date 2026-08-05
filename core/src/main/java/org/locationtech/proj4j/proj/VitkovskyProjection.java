@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class VitkovskyProjection extends SimpleConicProjection {
 
+	private static final long serialVersionUID = 2295942490018145907L;
+
 	public VitkovskyProjection() {
 		super( SimpleConicProjection.VITK1 );
 	}

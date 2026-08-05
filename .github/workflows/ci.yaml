@@ -1,23 +1,422 @@
 name: CI
 
+# The normal build. Everything here is fast enough to run on every push; the heavy
+# PROJ conformance corpus sweep lives in conformance.yaml so it cannot slow this down.
+#
+# Blocking vs advisory is stated per job below and summarised in
+# .github/workflows/README.md. A job marked advisory uses `continue-on-error: true`
+# and must never be the reason a merge is held up.
+#
+# NOTE ON VERIFICATION: none of THIS file has been executed. The claim it used to carry -
+# that there is no JDK and no Maven on the authoring machine - was RETRACTED: Temurin 21 and
+# Maven 3.9.16 are installed, and Gradle-managed JDKs were present all along in a directory
+# the original survey never checked. Temurin 8 and 11 have since been added too. So "it could
+# not be checked locally" is no longer a reason for anything here; where a comment below gives
+# it as one, that comment is describing a past moment and should be re-checked before being
+# trusted. See .github/workflows/determinism.yaml, whose Java side HAS been run locally on
+# five JDK/architecture combinations.
+
 on: [push, pull_request]
 
+# Superseded pushes should not queue behind each other. Cancel the in-flight run for the
+# same ref; a PR that gets three pushes in a minute costs one build, not three.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
+  # ---------------------------------------------------------------------------
+  # BLOCKING. The gate. Compiles all four modules (core, epsg, geoapi, conformance)
+  # and runs their fast tests. `mvn clean install` on the conformance module compiles
+  # it and runs only its unit tests - the corpus sweep is behind the `conformance`
+  # profile, so this job stays cheap. If this is red, nothing else matters.
+  #
+  # WHY NO JDK 8 LEG: the root pom sets <release>8</release> on maven-compiler-plugin.
+  # `--release` is a javac 9+ flag; JDK 8 cannot honour it and the build would fail at
+  # the first module. Java 8 *bytecode* compatibility is therefore proven differently -
+  # see the jdk8-runtime job below, which builds on a modern JDK and runs the tests on a
+  # real JDK 8.
+  #
+  # WHY NO JDK 11 LEG HERE, and what is now known. Partly superseded. What has been
+  # verified locally on Temurin 11.0.32 (both aarch64 and x86-64) is that core's classes and
+  # test classes, compiled with --release 8, LOAD AND RUN correctly there - the determinism
+  # suite passes on both. What has NOT been verified is that `mvn clean install` itself
+  # completes on JDK 11: the plugins pinned in the root pom (compiler 3.11.0, surefire 3.1.0,
+  # javadoc 3.5.0, jar 3.4.1, felix maven-bundle-plugin 5.1.8) are all nominally JDK 11
+  # compatible, and "nominally" is still not evidence. determinism.yaml DOES run a JDK 11
+  # build leg, so the first run of that workflow answers this question - if its JDK 11 legs go
+  # green, add the leg here and delete this comment.
   build-and-test:
+    name: Build (JDK ${{ matrix.java }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 21
+
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
-          java-version: '21'
+          # Changed from 'adopt' to 'temurin'. AdoptOpenJDK was renamed Eclipse Temurin in
+          # 2021; 'adopt' is deprecated in setup-java and resolves to an archive that gets
+          # no new releases. 'temurin' is the same vendor, still shipping.
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
       - uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+          # The JDK suffix was added when this became a matrix: two legs saving the same
+          # key race each other and one loses with a "cache already exists" warning.
+          # restore-keys still falls back to any Linux Maven cache, so a new leg is not
+          # cold-started.
+          key: ${{ runner.os }}-maven-jdk${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-jdk${{ matrix.java }}-
+            ${{ runner.os }}-maven-
+
       - name: Build with Maven
-        run: mvn clean install
-      - name: Remove proj4j artifacts from cache
-        run: rm -rf $HOME/.m2/repository/org/locationtech/proj4j
+        run: mvn -B -ntp clean install
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-jdk${{ matrix.java }}
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+      # PRESERVED FROM THE ORIGINAL ci.yaml, deliberately, and it must stay last.
+      # actions/cache saves ~/.m2/repository in its post-job step, which runs after every
+      # step here. If a locally-built proj4j snapshot were left in the local repository it
+      # would be baked into the cache and silently satisfy the next run's inter-module
+      # dependencies - a later run could then "pass" against stale jars from an earlier
+      # commit. Scrubbing before the post step keeps the cache to third-party deps only.
+      #
+      # The only change: `if: always()`, so a failed build also scrubs. Previously a build
+      # failure left whatever had been installed to poison the saved cache.
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"
+
+  # ---------------------------------------------------------------------------
+  # ADVISORY. Early warning from the next JDK. Two things it is actually watching for:
+  #   1. <release>8</release>. javac has marked source/target 8 obsolete and it is
+  #      scheduled for removal; when a JDK finally drops it, this job goes red months
+  #      before that JDK is one anybody uses, which is exactly the notice we want.
+  #   2. felix maven-bundle-plugin / bnd, historically the first thing to break on a new
+  #      class file version.
+  # Never blocking: EA builds move, and setup-java may not have the requested EA at all.
+  jdk-ea:
+    name: Build (JDK EA, advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up early-access JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          # 27 is the current early-access line (26 GA'd 2026-03). Bump this each time a
+          # JDK GAs. If Adoptium has no EA build for it yet the job goes yellow, which is
+          # the correct outcome for an advisory signal.
+          java-version: '27-ea'
+
+      - name: Build with Maven
+        run: mvn -B -ntp clean install
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-jdk-ea
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # ADVISORY. Java 8 is a stated support target, and <release>8</release> is a compiler
+  # promise that nothing verifies at runtime. This job keeps the promise honest: build the
+  # jars on a modern JDK (required - see the no-JDK-8-leg note above), then fork the test
+  # JVM onto a real JDK 8 via surefire's `jvm` parameter and run core's suite there.
+  #
+  # It catches what review misses: a post-8 API that compiles fine under --release 8 only
+  # because it exists in the target's API surface via a different path, and anything
+  # loaded reflectively. Advisory because dual-JDK toolchain setups are flaky and Java 8
+  # support is not worth blocking a merge on runner weather.
+  jdk8-runtime:
+    name: Java 8 runtime compatibility (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8 and JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          # Both are installed; JAVA_HOME points at the last one listed (21), which is what
+          # Maven and javac use. setup-java also exports JAVA_HOME_8_X64 for the other.
+          java-version: |
+            8
+            21
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-jdk8rt-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # -pl core -am builds the root pom, epsg (core test-depends on neoproj4j-epsg) and core.
+      # `package` so the bundle plugin actually produces the jars; javadoc/source jars are
+      # skipped because they prove nothing here and cost a minute.
+      # -Djvm sets maven-surefire-plugin's `jvm` parameter: the forked test JVM is real
+      # JDK 8, while compilation stays on 21.
+      - name: Build on JDK 21, run core tests on JDK 8
+        run: |
+          set -euo pipefail
+          test -x "$JAVA_HOME_8_X64/bin/java" || {
+            echo "JDK 8 not present at JAVA_HOME_8_X64=$JAVA_HOME_8_X64"; exit 1; }
+          "$JAVA_HOME_8_X64/bin/java" -version
+          mvn -B -ntp -pl core -am package \
+            -Dmaven.javadoc.skip=true \
+            -Dmaven.source.skip=true \
+            -Djvm="$JAVA_HOME_8_X64/bin/java"
+
+      # Surefire only exercises the classes the tests touch. This sweeps EVERY emitted class file
+      # and asserts its class-file major version is 52, which is what <release>8</release>
+      # promises - so an accidentally-newer class is caught even if no test ever loads it.
+      #
+      # TWO DEFECTS WERE FIXED HERE ON 2026-08-02, AND THE SECOND ONE IS THE INTERESTING ONE.
+      #
+      # 1. `if: always()` WAS MISSING. Without it this step is skipped whenever the step above
+      #    fails - and because the whole job carries `continue-on-error: true`, the job then
+      #    reports SUCCESS having verified nothing at all. A test failure under JDK 8 does not
+      #    stop the bytecode level from being a separate, checkable fact, and the two failures are
+      #    independently informative. If the build failed so early that no classes were emitted,
+      #    the `count -gt 0` guard below turns that into a loud error rather than a vacuous pass.
+      #
+      # 2. THE ASSERTION ITSELF DID NOT ASSERT ANYTHING. This step used to run every class through
+      #    `javap -p` and rely on the comment's claim that "JDK 8's javap refuses anything with a
+      #    class file major version above 52". IT DOES NOT. Measured against a real Temurin
+      #    8.0.492 (`docker run eclipse-temurin:8-jdk`), javap 8 cheerfully disassembles a major-65
+      #    (Java 21) class AND a major-68 (Java 24) class and exits 0 in both cases. javap is a
+      #    disassembler, not a verifier; it has no maximum-version check. So the step named
+      #    "Assert every class file is Java 8 bytecode" could not detect a class that was not.
+      #    Making a vacuous check run reliably (fix 1) without fixing this would have been strictly
+      #    worse than leaving it skipped, because it would then look like a kept promise.
+      #    The check now reads bytes 6-7 of each class file - the u2 major_version of the class
+      #    file format, which is unambiguous and needs no JDK at all. javap is kept as a second,
+      #    weaker leg: it proves JDK 8 tooling can actually parse the constant pool, which does
+      #    catch post-8 constant-pool tags (CONSTANT_Dynamic and friends).
+      - name: Assert every class file is Java 8 bytecode (major version 52)
+        if: always()
+        run: |
+          set -euo pipefail
+          # Every module's output, not a hardcoded list: epsg has no .java sources at all,
+          # so naming epsg/target/classes explicitly would make find exit 1.
+          #
+          # `benchmark` is pruned, and only benchmark. benchmark/pom.xml sets <release>17</release>
+          # DELIBERATELY - it is never published, so no consumer can be broken by its bytecode
+          # level - and its classes are class-file major 61. `-pl core -am` never builds it on a
+          # clean GitHub-hosted runner, so today this prune changes nothing; it matters the moment
+          # this job runs in a reused or shared workspace (a self-hosted runner, a local
+          # docker/run.sh, or anyone who ran `mvn -Pbench` first), where a stale
+          # benchmark/target/classes would fail the sweep for a non-defect and teach people to
+          # ignore it. Every module that SHIPS - core, epsg, geoapi, grids-us-legacy, db - plus
+          # golden and conformance, all inherit the root pom's <release>8</release> and stay in
+          # scope. If a META-INF/versions multi-release tree is ever added, this needs revisiting.
+          find . -path '*/target/classes/*' -name '*.class' -not -path './benchmark/*' -print0 \
+            > /tmp/j8-classes.nul
+          count=$(tr -dc '\0' < /tmp/j8-classes.nul | wc -c | tr -d ' ')
+          echo "class files: $count"
+          [ "$count" -gt 0 ] || {
+            echo "::error::no class files found - nothing was verified. Either the build step above"
+            echo "::error::failed before emitting any classes, or the sweep's path filter is wrong."
+            echo "::error::A sweep of zero files is not a pass."
+            exit 1; }
+
+          # THE REAL ASSERTION. u2 at offset 6 is major_version; 52 is Java 8.
+          bad=0
+          shown=0
+          while IFS= read -r -d '' f; do
+            # shellcheck disable=SC2046
+            set -- $(od -An -N2 -j6 -tu1 "$f")
+            v=$(( $1 * 256 + $2 ))
+            if [ "$v" -ne 52 ]; then
+              bad=$((bad + 1))
+              if [ "$shown" -lt 20 ]; then
+                echo "::error file=$f::class file major version $v, expected 52 (Java 8)"
+                shown=$((shown + 1))
+              fi
+            fi
+          done < /tmp/j8-classes.nul
+          [ "$bad" -eq 0 ] || {
+            echo "::error::$bad of $count class files are not Java 8 bytecode. <release>8</release>"
+            echo "::error::in the root pom is a promise to downstream consumers; this is it being"
+            echo "::error::broken. Do not relax this check - fix the module that emitted them, or"
+            echo "::error::prune it here with a comment saying why it is allowed to ship newer."
+            exit 1; }
+          echo "All $count class files are class-file major version 52."
+
+          # Second, weaker leg. javap does NOT enforce the version (measured - see the comment
+          # above), so this can never be the assertion. What it does prove is that JDK 8's own
+          # class-file reader can parse every constant pool we emit.
+          xargs -0 -r "$JAVA_HOME_8_X64/bin/javap" -p < /tmp/j8-classes.nul >/dev/null
+          echo "All $count class files also parse under JDK 8 javap."
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-jdk8-runtime
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"
+
+  # ---------------------------------------------------------------------------
+  # MIXED - see `advisory` per matrix leg. The consumer requires bit-for-bit identical
+  # results across executors, so the test suite has to survive a hostile default Locale,
+  # charset and timezone, and ideally a different CPU architecture.
+  #
+  # HONEST SCOPE: this runs the same suite under different environments and checks it
+  # still passes. It does not diff numeric output between legs. What it does prove is that no
+  # result depends on the ambient environment, which is the failure mode that has actually
+  # bitten here.
+  #
+  # THE CROSS-LEG NUMERIC COMPARISON NOW EXISTS, in .github/workflows/determinism.yaml, which
+  # asserts a committed 54,265-result raw-bit golden on six architecture/JDK legs and then
+  # checks across legs. The two jobs are complementary and neither replaces the other: this one
+  # varies the ambient environment on one architecture, that one varies the architecture with
+  # the environment held fixed. The arm64 leg below is retained as a cheap smoke test, but the
+  # StrictMath claim is determinism.yaml's to prove, not this job's.
+  #
+  # HOW THE ENVIRONMENT IS APPLIED: user.language/user.country/user.timezone are read
+  # during JVM startup, so passing them as surefire <systemPropertyVariables> is too late -
+  # those are set with System.setProperty inside an already-running fork and do not move
+  # Locale.getDefault(). They must be on the forked JVM's command line, which is what
+  # -DargLine does. MAVEN_OPTS covers the Maven JVM itself and LANG/LC_ALL the OS default.
+  determinism:
+    name: Determinism - ${{ matrix.label }}${{ matrix.advisory && ' (advisory)' || '' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.advisory }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The reference environment. Blocking: if core cannot pass here, nothing else
+          # in this matrix means anything.
+          - label: en_US / UTF-8 / UTC / x64
+            os: ubuntu-latest
+            language: en
+            country: US
+            timezone: UTC
+            encoding: UTF-8
+            advisory: false
+
+          # EXPECTED TO FAIL TODAY. Defect: core/src/main/java/org/locationtech/proj4j/io/
+          # Proj4FileReader.java:41 calls authorityCode.toLowerCase() with no Locale. Under
+          # tr_TR the Turkish casing rule maps 'I' to dotless 'i', so "ESRI" lowercases to
+          # "esrı" and the lookup for the resource proj4/nad/esri never resolves -
+          # all 2,954 ESRI codes become unreachable. Advisory on purpose: this is a
+          # green-when-fixed signal, not a permanent red. Delete continue-on-error from
+          # this leg the moment the toLowerCase(Locale.ROOT) fix lands.
+          - label: tr_TR / UTF-8 / Europe-Istanbul / x64
+            os: ubuntu-latest
+            language: tr
+            country: TR
+            timezone: Europe/Istanbul
+            encoding: UTF-8
+            advisory: true
+
+          # Decimal comma, non-Latin-1-safe round trips, half-hour UTC offset. Cheap, and
+          # it covers the formatting side of parameter handling that tr_TR does not.
+          - label: de_DE / ISO-8859-1 / Asia-Kolkata / x64
+            os: ubuntu-latest
+            language: de
+            country: DE
+            timezone: Asia/Kolkata
+            encoding: ISO-8859-1
+            advisory: true
+
+          # Cross-architecture smoke test: a different FPU and a different JIT backend, and
+          # core's suite still passes. It does NOT compare bits - determinism.yaml does that,
+          # and it is blocking there. Kept advisory here because GitHub-hosted arm64 runners
+          # do not resolve on a private fork, and a leg that fails to allocate should degrade
+          # to yellow in the ordinary build rather than block anyone.
+          - label: en_US / UTF-8 / UTC / arm64
+            os: ubuntu-24.04-arm
+            language: en
+            country: US
+            timezone: UTC
+            encoding: UTF-8
+            advisory: true
+    env:
+      LANG: ${{ matrix.language }}_${{ matrix.country }}.UTF-8
+      LC_ALL: ${{ matrix.language }}_${{ matrix.country }}.UTF-8
+      TZ: ${{ matrix.timezone }}
+      MAVEN_OPTS: >-
+        -Duser.language=${{ matrix.language }}
+        -Duser.country=${{ matrix.country }}
+        -Duser.timezone=${{ matrix.timezone }}
+        -Dfile.encoding=${{ matrix.encoding }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          # runner.arch is in the key because the arm64 leg would otherwise share a cache
+          # entry with the x64 legs.
+          key: ${{ runner.os }}-${{ runner.arch }}-maven-det-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-maven-
+
+      # The Ubuntu runner images generate only C.UTF-8 and en_US.UTF-8, so LANG/LC_ALL for
+      # tr_TR or de_DE would otherwise point at a locale glibc does not have - every perl
+      # and git call then warns and falls back to C, which quietly weakens this leg. The
+      # Java-level override on argLine is the part that actually matters, so a failure here
+      # is reported and tolerated rather than failing the leg.
+      - name: Generate the locale for this leg
+        run: sudo locale-gen "$LANG" || echo "locale-gen $LANG failed; OS default stays C"
+
+      - name: Run core tests under ${{ matrix.label }}
+        run: |
+          mvn -B -ntp -pl core -am test \
+            -DargLine="-Duser.language=${{ matrix.language }} -Duser.country=${{ matrix.country }} -Duser.timezone=${{ matrix.timezone }} -Dfile.encoding=${{ matrix.encoding }}"
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Artifact names must be unique across a matrix and cannot contain '/'.
+          name: surefire-reports-determinism-${{ matrix.language }}_${{ matrix.country }}-${{ runner.arch }}
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"

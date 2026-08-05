@@ -19,11 +19,14 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ConvergenceFailureException;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class HatanoProjection extends Projection {
+
+	private static final long serialVersionUID = -5033035035848492760L;
 
 	private final static int NITER = 20;
 	private final static double EPS = 1e-7;
@@ -39,14 +42,28 @@ public class HatanoProjection extends Projection {
 	private final static double FXC = 0.85;
 	private final static double RXC = 1.17647058823529411764;
 
+	/**
+	 * Forward projection.
+	 * <p>
+	 * <b>Fail-closed.</b> PROJ's {@code hatano.cpp} has no convergence test after its
+	 * {@code NITER} Newton steps: an exhausted iteration is returned as an ordinary coordinate.
+	 * Proj4J throws.
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		double th1, c;
+		double th1 = Double.NaN, c;
 		int i;
+		final double phi = lpphi;
 
 		c = Math.sin(lpphi) * (lpphi < 0. ? CS : CN);
 		for (i = NITER; i > 0; --i) {
 			lpphi -= th1 = (lpphi + Math.sin(lpphi) - c) / (1. + Math.cos(lpphi));
 			if (Math.abs(th1) < EPS) break;
+		}
+		if (i == 0) {
+			throw new ConvergenceFailureException(this,
+					"forward parametric-latitude iteration did not converge to " + EPS
+							+ " within " + NITER + " iterations for latitude " + phi
+							+ " rad (last correction " + th1 + ")");
 		}
 		out.x = FXC * lplam * Math.cos(lpphi *= .5);
 		out.y = Math.sin(lpphi) * (lpphi < 0. ? FYCS : FYCN);

@@ -1,0 +1,15 @@
+Everything up here is outside the block and is ignored entirely,
+including this line, which starts with expect but is not a command.
+
+<gie>
+
+operation +proj=aea
+          +ellps=GRS80  +lat_1=0 +lat_2=2
+tolerance 0.1 mm
+accept  2 1
+expect  222571.608757106 110653.326743030
+=====
+this text follows a decorative element and opens no command
+</gie>
+
+Trailing prose after the block. accept 9 9

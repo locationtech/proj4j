@@ -1,0 +1,8 @@
+# Fixture for InitFileCacheTest. NOT a real authority.
+#
+# One good entry, then a '<' that is not followed by a word. The streaming scan resolved <good>
+# without ever reaching the bad entry and threw only for a name it had to scan past it to find.
+# The cache must reproduce both halves.
+<good> +proj=longlat +datum=WGS84  <>
+<> +proj=merc  <>
+<after> +proj=merc  <>

@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class TransverseCylindricalEqualArea extends Projection {
 
+	private static final long serialVersionUID = 6151308892071029556L;
+
 	private double rk0;
 
 	public TransverseCylindricalEqualArea() {

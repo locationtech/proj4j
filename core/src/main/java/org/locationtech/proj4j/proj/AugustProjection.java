@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class AugustProjection extends Projection {
 
+	private static final long serialVersionUID = -3851197284678572315L;
+
 	private final static double M = 1.333333333333333;
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {

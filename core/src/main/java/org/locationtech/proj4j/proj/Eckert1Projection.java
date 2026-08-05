@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class Eckert1Projection extends Projection {
 
+	private static final long serialVersionUID = 5575665256900139187L;
+
 	private final static double FC = .92131773192356127802;
 	private final static double RP = .31830988618379067154;
 

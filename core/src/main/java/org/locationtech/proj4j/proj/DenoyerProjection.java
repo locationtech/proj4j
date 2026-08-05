@@ -24,6 +24,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class DenoyerProjection extends Projection {
 
+	private static final long serialVersionUID = -4494266348236206937L;
+
 	public final static double C0 = 0.95;
 	public final static double C1 = -.08333333333333333333;
 	public final static double C3 = 0.00166666666666666666;

@@ -33,6 +33,8 @@ import org.locationtech.proj4j.*;
 
 public class Eckert6Projection extends PseudoCylindricalProjection {
 
+    private static final long serialVersionUID = -7438871306667239132L;
+
     private static final double n = 2.570796326794896619231321691;
     private static final double C_y = Math.sqrt((2) / n);
     private static final double C_x = C_y / 2;

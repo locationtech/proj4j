@@ -1,0 +1,20 @@
+# Synthetic fixture: require_grid sets skip_test, which turns every subsequent
+# `expect` into a SKIP and DROPS every other verb -- accept, tolerance,
+# direction and, notably, roundtrip, which is discarded rather than skipped.
+# The cascade ends at the next `operation`.
+<gie-strict>
+-------------------------------------------------------------------------------
+operation     fake shift=0
+-------------------------------------------------------------------------------
+require_grid  no_such_grid_exists.gsb
+accept        1 2
+expect        1 2
+tolerance     100 m
+roundtrip     5
+expect        999 999
+-------------------------------------------------------------------------------
+operation     fake shift=0
+-------------------------------------------------------------------------------
+accept        1 2
+expect        1 2
+</gie-strict>

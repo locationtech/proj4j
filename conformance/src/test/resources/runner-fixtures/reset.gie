@@ -1,0 +1,38 @@
+# Synthetic fixture: what `operation` resets, and what it deliberately does not.
+# The fake shifts x and y by `shift` forward and unshifts them inverse.
+#
+#  block 0  widens the tolerance to 100 m and reverses the direction, then
+#           asserts twice -- the second pair proves both are sticky.
+#  block 1  the same 14.14 deviation with no tolerance of its own: the reset to
+#           0.5 mm turns it into a failure. Direction-independent by design, so
+#           this pins the tolerance reset and nothing else.
+#  block 2  tolerance 1 m and no direction: passes only if the direction is back
+#           to forward, since an inverse would be 28.28 m out.
+#  block 3  no `accept` at all. Must reuse block 2's, because gie's operation()
+#           never clears T.a.
+<gie-strict>
+-------------------------------------------------------------------------------
+operation  fake shift=10
+-------------------------------------------------------------------------------
+tolerance  100 m
+direction  inverse
+accept     1 2
+expect     1 2
+accept     5 6
+expect     5 6
+-------------------------------------------------------------------------------
+operation  fake shift=10
+-------------------------------------------------------------------------------
+accept     3 4
+expect     3 4
+-------------------------------------------------------------------------------
+operation  fake shift=10
+-------------------------------------------------------------------------------
+tolerance  1 m
+accept     1 2
+expect     11 12
+-------------------------------------------------------------------------------
+operation  fake shift=0
+-------------------------------------------------------------------------------
+expect     1 2
+</gie-strict>

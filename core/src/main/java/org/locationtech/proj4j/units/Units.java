@@ -16,11 +16,48 @@
 
 package org.locationtech.proj4j.units;
 
+import org.locationtech.proj4j.util.ProjectionMath;
+
+/**
+ * The unit tables.
+ *
+ * <h2>Which table {@code +units} uses, and why {@code rad} is not in it</h2>
+ *
+ * <p>PROJ keeps <b>two</b> unit tables in {@code src/units.cpp}: {@code pj_units}, the
+ * <i>linear</i> table of 21 ids, and {@code pj_angular_units}, holding just
+ * {@code rad}, {@code deg} and {@code grad}. {@code +units} and {@code +vunits} are
+ * resolved against {@code pj_list_linear_units()} alone ({@code init.cpp:679,718}),
+ * so an angular id is an <i>error</i> there, not a conversion. Verified against the
+ * installed 9.8.1 build:
+ *
+ * <pre>
+ * $ echo "2 1" | proj +proj=merc +ellps=GRS80 +units=rad
+ * merc: Invalid value for units          # and identically for +units=deg, +units=grad
+ * </pre>
+ *
+ * <p>{@link #units}, the table {@link #findUnits(String)} searches, therefore carries
+ * PROJ's 21 linear ids and nothing else beyond {@link #DEGREES} — which is retained
+ * only because Proj4J's own {@code LongLatProjection} and {@code geoapi} module look
+ * units up by the {@code "deg"}/{@code "degrees"} symbol. {@link #RADIANS},
+ * {@link #GRADS}, {@link #ARC_MINUTES}, {@link #ARC_SECONDS} and {@link #POINTS} are
+ * declared but deliberately kept out of it: they are not {@code +units} names in PROJ,
+ * and putting them there would make Proj4J accept definitions PROJ rejects.
+ *
+ * <h2>The metres fallback</h2>
+ *
+ * <p>{@link #findUnits(String)} returns {@link #METRES} for a name it does not know
+ * rather than {@code null}, which is why {@code +units=<garbage>} has always been
+ * silently metres. That behaviour is preserved for compatibility; detection of the
+ * fallback belongs to the caller, and
+ * {@code Proj4Parser.ParseMode#STRICT} does exactly that.
+ */
 public class Units {
 
     // Angular units
     public final static Unit DEGREES = new DegreeUnit();
-    public final static Unit RADIANS = new Unit("radian", "radians", "rad", Math.toDegrees(1));
+    public final static Unit RADIANS = new Unit("radian", "radians", "rad", ProjectionMath.toDeg(1));
+    /** {@code grad} — 400 to the turn. PROJ's third angular unit ({@code units.cpp}). */
+    public final static Unit GRADS = new Unit("grad", "grads", "grad", 0.9);
     public final static Unit ARC_MINUTES = new Unit("arc minute", "arc minutes", "min", 1/60.0);
     public final static Unit ARC_SECONDS = new Unit("arc second", "arc seconds", "sec", 1/3600.0);
 
@@ -48,26 +85,80 @@ public class Units {
     public final static Unit US_FEET = new Unit("U.S. foot", "U.S. feet", "us-ft", 0.304800609601219);
     public final static Unit US_INCHES = new Unit("U.S. inch", "U.S. inches", "us-in", 1.0/39.37);
 
+    // Indian units. Present in PROJ's pj_units, absent from Proj4J until now, so
+    // +units=ind-yd silently scaled by 1 instead of by 0.91439523 - a 9% error.
+    public final static Unit INDIAN_YARDS = new Unit("Indian yard", "Indian yards", "ind-yd", 0.91439523);
+    public final static Unit INDIAN_FEET = new Unit("Indian foot", "Indian feet", "ind-ft", 0.30479841);
+    public final static Unit INDIAN_CHAINS = new Unit("Indian chain", "Indian chains", "ind-ch", 20.11669506);
+
     // Miscellaneous units
     public final static Unit FATHOMS = new Unit("fathom", "fathoms", "fath", 1.8288);
     public final static Unit LINKS = new Unit("link", "links", "link", 0.201168);
 
+    /** Not a PROJ {@code +units} name; see the class comment. */
     public final static Unit POINTS = new Unit("point", "points", "point", 0.0254/72.27);
 
-    public static Unit[] units = {
-        DEGREES,
+    /**
+     * PROJ's 21 linear unit ids ({@code pj_units} in {@code src/units.cpp}), in that
+     * file's order. These are exactly the names {@code +units} and {@code +vunits}
+     * accept.
+     */
+    public static final Unit[] LINEAR_UNITS = {
         KILOMETRES, METRES, DECIMETRES, CENTIMETRES, MILLIMETRES,
-        MILES, YARDS, FEET, INCHES,
-        US_MILES, US_YARDS, US_FEET, US_INCHES,
-        NAUTICAL_MILES
+        NAUTICAL_MILES,
+        INCHES, FEET, YARDS, MILES,
+        FATHOMS, CHAINS, LINKS,
+        US_INCHES, US_FEET, US_YARDS, US_CHAINS, US_MILES,
+        INDIAN_YARDS, INDIAN_FEET, INDIAN_CHAINS
     };
 
+    /**
+     * PROJ's 3 angular unit ids ({@code pj_angular_units}). Reachable through
+     * {@code +proj=unitconvert}'s {@code +xy_in}/{@code +xy_out}, <b>not</b> through
+     * {@code +units}.
+     */
+    public static final Unit[] ANGULAR_UNITS = {RADIANS, DEGREES, GRADS};
+
+    /**
+     * The table {@link #findUnits(String)} searches: PROJ's linear units, plus
+     * {@link #DEGREES} for Proj4J's own {@code +proj=longlat} handling.
+     * <p>
+     * Kept as a mutable public field for source compatibility; prefer
+     * {@link #LINEAR_UNITS}.
+     */
+    public static Unit[] units = concat(new Unit[]{DEGREES}, LINEAR_UNITS);
+
+    private static Unit[] concat(Unit[] head, Unit[] tail) {
+        Unit[] all = new Unit[head.length + tail.length];
+        System.arraycopy(head, 0, all, 0, head.length);
+        System.arraycopy(tail, 0, all, head.length, tail.length);
+        return all;
+    }
+
+    /**
+     * Looks a unit up by name, plural or abbreviation.
+     *
+     * @return the unit, or {@link #METRES} when {@code name} is not a known unit —
+     *         <b>never {@code null}</b>. Callers that must distinguish the two have to
+     *         check whether the returned unit actually answers to {@code name}.
+     */
     public static Unit findUnits(String name) {
         for (int i = 0; i < units.length; i++) {
             if (name.equals(units[i].name) || name.equals(units[i].plural) || name.equals(units[i].abbreviation))
                 return units[i];
         }
         return METRES;
+    }
+
+    /**
+     * Whether {@code name} really is one of the units in {@link #units}, as opposed to
+     * a name for which {@link #findUnits(String)} substituted {@link #METRES}.
+     */
+    public static boolean isKnownUnit(String name) {
+        if (name == null)
+            return false;
+        Unit unit = findUnits(name);
+        return name.equals(unit.name) || name.equals(unit.plural) || name.equals(unit.abbreviation);
     }
 
     public static double convert(double value, Unit from, Unit to) {

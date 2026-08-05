@@ -16,6 +16,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
  */
 public class GeostationarySatelliteProjection extends Projection {
 
+    private static final long serialVersionUID = 7598288678901692538L;
+
     /**
      * Height of orbit - Geostationary satellite projection
      */

@@ -25,6 +25,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class Eckert2Projection extends Projection {
 
+	private static final long serialVersionUID = 6871103723037419539L;
+
 	private final static double FXC = 0.46065886596178063902;
 	private final static double FYC = 1.44720250911653531871;
 	private final static double C13 = 0.33333333333333333333;

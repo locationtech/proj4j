@@ -24,6 +24,9 @@ package org.locationtech.proj4j.proj;
  * and circles of latitude (parallels) are mapped to horizontal lines.
  */
 public abstract class CylindricalProjection extends Projection {
+
+	private static final long serialVersionUID = -7732780621322559050L;
+
 	
 	public boolean isRectilinear() {
 		return true;

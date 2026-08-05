@@ -19,10 +19,15 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ConvergenceFailureException;
+import org.locationtech.proj4j.ErrorCause;
 import org.locationtech.proj4j.ProjCoordinate;
+import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class RobinsonProjection extends PseudoCylindricalProjection {
+
+	private static final long serialVersionUID = 231215112452652246L;
 
 	private final static double X[][] = {
 			{1.0f, 2.2199e-17f, -7.15515e-05f, 3.1103e-06f},
@@ -93,7 +98,7 @@ public class RobinsonProjection extends PseudoCylindricalProjection {
 		int i = (int)Math.floor(phi * C1);
 		if (i >= NODES)
 			i = NODES;
-		phi = Math.toDegrees(phi - RC1 * i);
+		phi = ProjectionMath.toDeg(phi - RC1 * i);
 		xy.x = V(X[i], phi) * FXC * lplam;
 		xy.y = V(Y[i], phi) * FYC;
 		if (lpphi < 0.0)
@@ -109,9 +114,14 @@ public class RobinsonProjection extends PseudoCylindricalProjection {
 		lp.y = Math.abs(y / FYC);
 		if (lp.y >= 1.0) {
 			if (lp.y > ONEEPS) {
-				lp.x = Double.NaN;
-				lp.y = Double.NaN;
-				return lp;
+				// Was `lp.x = lp.y = NaN; return lp;`. Upstream sets
+				// PROJ_ERR_COORD_TRANSFM_OUTSIDE_PROJECTION_DOMAIN here (robin.cpp:113); a NaN
+				// return is the sentinel shape that Projection.inverseProjectRadians' output
+				// postcondition now rejects anyway, so raising it here names the actual reason
+				// instead of reporting a generic non-finite result one frame up.
+				throw new ProjectionException(ErrorCause.COORDINATE_OUT_OF_DOMAIN, this,
+						"northing " + y + " is beyond the map: |y| / FYC = " + lp.y
+								+ " exceeds ONEEPS = " + ONEEPS);
 			} else {
 				lp.y = y < 0. ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI;
 				lp.x /= X[NODES][0];
@@ -119,9 +129,12 @@ public class RobinsonProjection extends PseudoCylindricalProjection {
 		} else {
 			i = (int) Math.floor(lp.y * NODES);
 			if( i < 0 || i >= NODES ) {
-				lp.x = Double.NaN;
-				lp.y = Double.NaN;
-				return lp;
+				// robin.cpp:124. Reachable for a NaN northing, which upstream maps to i = -1
+				// explicitly; here lp.y is already known finite, so this is the interpolation
+				// table's own bound.
+				throw new ProjectionException(ErrorCause.COORDINATE_OUT_OF_DOMAIN, this,
+						"northing " + y + " maps to interpolation interval " + i
+								+ ", outside the " + NODES + "-node table");
 			}
 			for (;;) {
 				if (Y[i][0] > lp.y) --i;
@@ -131,19 +144,34 @@ public class RobinsonProjection extends PseudoCylindricalProjection {
 			double[] T = Y[i];
 			t = 5. * (lp.y - Y[i][0])/(Y[i+1][0] - Y[i][0]);
 			int iters;
+			t1 = Double.NaN;
 			for (iters = MAX_ITER; iters > 0; --iters) { // Newton-Raphson
 				t1 = (V(T, t) - lp.y) / DV(T, t);
 				t -= t1;
 				if (Math.abs(t1) < EPS)
 					break;
 			}
-			lp.y = Math.toRadians(5 * i + t);
+			if (iters == 0) {
+				// Fail-closed. Upstream robin.cpp leaves the loop silently and uses
+				// whatever t holds; the interpolated latitude that yields is finite, in
+				// range, and wrong by an unbounded amount - undetectable by the caller.
+				throw new ConvergenceFailureException(this,
+						"inverse Newton-Raphson on interpolation interval " + i
+								+ " did not converge to " + EPS + " within " + MAX_ITER
+								+ " iterations for northing " + y + " (last correction "
+								+ t1 + ")");
+			}
+			lp.y = ProjectionMath.toRad(5 * i + t);
 			if (y < 0.)
 				lp.y = -lp.y;
 			lp.x /= V(X[i], t);
 			if( Math.abs(lp.x) > ProjectionMath.PI ) {
-				lp.x = Double.NaN;
-				lp.y = Double.NaN;
+				// robin.cpp:150-152 -- upstream sets the domain errno *and* overwrites the
+				// coordinate with proj_coord_error(), i.e. it too regards the NaN as a courtesy
+				// rather than as the signal. Here the errno is the signal.
+				throw new ProjectionException(ErrorCause.COORDINATE_OUT_OF_DOMAIN, this,
+						"easting " + x + " inverts to longitude " + lp.x
+								+ " rad, outside +/-pi");
 			}
 		}
 		return lp;

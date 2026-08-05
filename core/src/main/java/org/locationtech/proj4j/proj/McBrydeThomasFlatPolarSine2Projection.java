@@ -19,10 +19,13 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ConvergenceFailureException;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class McBrydeThomasFlatPolarSine2Projection extends Projection {
+
+	private static final long serialVersionUID = 3899250934609675619L;
 
 	private final static int MAX_ITER = 10;
 	private final static double LOOP_TOL = 1e-7;
@@ -33,17 +36,32 @@ public class McBrydeThomasFlatPolarSine2Projection extends Projection {
 	private final static double C_y = 1.44492;
 	private final static double C1_2 = 0.33333333333333333333333333;
 
+	/**
+	 * Forward projection. Port of PROJ 9.8.1 {@code mbt_fps.cpp}'s {@code mbt_fps_s_forward}.
+	 * <p>
+	 * <b>Fail-closed</b>, plus the same repair as {@code mbtfpq}: the iteration subtracted its
+	 * correction from {@code out.y} — the caller's destination ordinate — instead of from
+	 * {@code lpphi}, so the correction was constant across all {@code MAX_ITER} trips and the
+	 * loop could never converge, and there was no convergence test to notice.
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		double k, V, t;
+		double k, V = Double.NaN, t;
 		int i;
+		final double phi = lpphi;
 
 		k = C3 * Math.sin(lpphi);
 		for (i = MAX_ITER; i > 0; i--) {
 			t = lpphi / C2;
-			out.y -= V = (C1 * Math.sin(t) + Math.sin(lpphi) - k) /
+			lpphi -= V = (C1 * Math.sin(t) + Math.sin(lpphi) - k) /
 				(C1_2 * Math.cos(t) + Math.cos(lpphi));
 			if (Math.abs(V) < LOOP_TOL)
 				break;
+		}
+		if (i == 0) {
+			throw new ConvergenceFailureException(this,
+					"forward parametric-latitude iteration did not converge to " + LOOP_TOL
+							+ " within " + MAX_ITER + " iterations for latitude " + phi
+							+ " rad (last correction " + V + ")");
 		}
 		t = lpphi / C2;
 		out.x = C_x * lplam * (1. + 3. * Math.cos(lpphi)/Math.cos(t) );

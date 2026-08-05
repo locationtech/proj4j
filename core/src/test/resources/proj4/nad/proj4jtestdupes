@@ -1,0 +1,10 @@
+# Fixture for InitFileCacheTest. NOT a real authority.
+#
+# A code repeated with different parameters, which is the case that decides whether the reverse
+# index may be built from the forward index. The old whole-file scan saw BOTH <A> entries, so
+# "+proj=merc +datum=WGS84" reverse-resolves to A, not to B. A reverse index derived from the
+# forward map would never have seen A's second parameter set and would answer B.
+<A> +proj=longlat +datum=WGS84  <>
+<A> +proj=merc +datum=WGS84  <>
+<B> +proj=merc +datum=WGS84  <>
+<C> +proj=aea +lat_1=50  <>

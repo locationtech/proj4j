@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class Murdoch2Projection extends SimpleConicProjection {
 
+	private static final long serialVersionUID = 6165372053911476212L;
+
 	public Murdoch2Projection() {
 		super( SimpleConicProjection.MURD2 );
 	}

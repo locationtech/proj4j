@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class LarriveeProjection extends Projection {
 
+	private static final long serialVersionUID = -2047243416025611958L;
+
 	private final static double SIXTH = .16666666666666666;
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {

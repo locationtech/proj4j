@@ -5,4 +5,8 @@
   <mavenLike>true</mavenLike>
   <useGitCommitId>false</useGitCommitId>
   <autoIncrementPatch>true</autoIncrementPatch>
+  <!-- Default is `master` alone. `main` is this repository's default branch, so
+       without it every build here would be X.Y.Z-main-SNAPSHOT. A clean X.Y.Z still
+       requires HEAD to be exactly an annotated vX.Y.Z tag. -->
+  <nonQualifierBranches>main,master</nonQualifierBranches>
 </configuration>

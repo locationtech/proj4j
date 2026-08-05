@@ -25,6 +25,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class MillerProjection extends CylindricalProjection {
 
+	private static final long serialVersionUID = 8377360583137437497L;
+
 	public MillerProjection() {
 	}
 	

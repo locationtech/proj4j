@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class GoodeProjection extends Projection {
 
+	private static final long serialVersionUID = 8774084216839891518L;
+
 	private final static double Y_COR = 0.05280;
 	private final static double PHI_LIM = .71093078197902358062;
 

@@ -22,6 +22,8 @@ package org.locationtech.proj4j.proj;
 
 public class WerenskioldProjection extends PutninsP4Projection {
 
+	private static final long serialVersionUID = -198960339224160339L;
+
 	public WerenskioldProjection() {
 		C_x = 1;
 		C_y = 4.442882938;

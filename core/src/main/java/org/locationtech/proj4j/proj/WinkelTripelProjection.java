@@ -20,10 +20,26 @@
 package org.locationtech.proj4j.proj;
 
 
+/**
+ * Winkel Tripel ({@code +proj=wintri}): the {@link AitoffProjection} kernel in its
+ * {@link AitoffProjection#WINKEL} mode. See that class for the {@code +lat_1} handling and the
+ * Newton&ndash;Raphson inverse.
+ */
 public class WinkelTripelProjection extends AitoffProjection {
 
+	private static final long serialVersionUID = 1512736703194945907L;
+
+	/**
+	 * The second argument is {@code lat_0}, in radians, and <b>not</b> {@code cosphi1}. This used to
+	 * pass {@code 0.636619772367581343} — {@code acos(2/pi)} as a cosine — into that slot, which set
+	 * {@code lat_0} to 36.47&deg;. Nothing in the kernel reads {@code lat_0}, so it changed no
+	 * coordinate, but it did enter {@code equals}/{@code hashCode}, so a {@code wintri} built here
+	 * and a {@code wintri} built as {@code new AitoffProjection(WINKEL, 0)} compared unequal.
+	 * {@code +lat_1} is handled where upstream handles it, in
+	 * {@link AitoffProjection#initialize()}.
+	 */
 	public WinkelTripelProjection() {
-		super( WINKEL, 0.636619772367581343 );
+		super( WINKEL, 0.0 );
 	}
 
 	public String toString() {

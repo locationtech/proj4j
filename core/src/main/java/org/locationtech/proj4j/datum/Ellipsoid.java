@@ -52,6 +52,8 @@ package org.locationtech.proj4j.datum;
 // Named ellipsoids are defined in pj_datums.c
 public final class Ellipsoid implements Cloneable, java.io.Serializable {
 
+    private static final long serialVersionUID = 6364129095884642539L;
+
     public String name;
 
     public String shortName;
@@ -77,8 +79,13 @@ public final class Ellipsoid implements Cloneable, java.io.Serializable {
     public final static Ellipsoid CLARKE_1880 = new Ellipsoid("clrk80",
             6378249.145, 0.0, 293.4663, "Clarke 1880 mod.");
 
+    // Declared by reciprocal flattening, as PROJ does (9.8.1 src/ellps.cpp:12
+    // "airy", "a=6377563.396", "rf=299.3249646"). It previously declared a *rounded*
+    // b = 6356256.910, which implies rf = 299.324975315 and puts the pole radius
+    // 0.76 mm out. That is above the 0.1 mm bar on the tightest gie rows, so the
+    // rounding was not harmless. Derived exactly: a*(1 - 1/rf) = 6356256.909237.
     public final static Ellipsoid AIRY = new Ellipsoid("airy", 6377563.396,
-            6356256.910, 0.0, "Airy 1830");
+            0.0, 299.3249646, "Airy 1830");
 
     public final static Ellipsoid WGS60 = new Ellipsoid("WGS60", 6378165.0, 0.0,
             298.3, "WGS 60");
@@ -200,8 +207,32 @@ public final class Ellipsoid implements Cloneable, java.io.Serializable {
     public final static Ellipsoid NAD83 = new Ellipsoid("NAD83", 6378137.0, 0.0,
             298.257222101, "NAD83: GRS 1980 (IUGG, 1980)");
 
-    public final static Ellipsoid SPHERE = new Ellipsoid("sphere", 6371008.7714,
-            6371008.7714, 0.0, "Sphere");
+    // PROJ's "Normal Sphere", r = 6370997.0 (9.8.1 src/ellps.cpp:55,
+    // {"sphere", "a=6370997.0", "b=6370997.0", "Normal Sphere (r=6370997)"}).
+    //
+    // This previously read 6371008.7714, which is the GRS80 *authalic* radius - a
+    // different quantity entirely. The ratio is 1.0000018477, so every +ellps=sphere
+    // result was out by 1.848 ppm: 0.41 m at 222 km of easting, against gie tolerances
+    // of 0.1 mm. No projection formula can absorb that, so it presented as a maths bug
+    // in whatever projection happened to be under test. builtins.gie has 10 operations
+    // on +ellps=sphere (lcc x6, lsat, times, tobmerc x2) and correct implementations of
+    // times and tobmerc were failing 26 assertions on this constant alone.
+    public final static Ellipsoid SPHERE = new Ellipsoid("sphere", 6370997.0,
+            6370997.0, 0.0, "Normal Sphere (r=6370997)");
+
+    // The four entries below are in PROJ 9.8.1's table and were absent here, so
+    // +ellps=<name> failed for all of them. Values verbatim from 9.8.1 src/ellps.cpp.
+    public final static Ellipsoid CLRK80IGN = new Ellipsoid("clrk80ign",
+            6378249.2, 0.0, 293.4660212936269, "Clarke 1880 (IGN).");
+
+    public final static Ellipsoid DANISH = new Ellipsoid("danish", 6377019.2563,
+            0.0, 300.0, "Andrae 1876 (Denmark, Iceland)");
+
+    public final static Ellipsoid GSK2011 = new Ellipsoid("GSK2011", 6378136.5,
+            0.0, 298.2564151, "GSK-2011");
+
+    public final static Ellipsoid PZ90 = new Ellipsoid("PZ90", 6378136.0, 0.0,
+            298.25784, "PZ-90");
 
     public final static Ellipsoid[] ellipsoids = {
             BESSEL,
@@ -248,7 +279,11 @@ public final class Ellipsoid implements Cloneable, java.io.Serializable {
             WALBECK,
             NAD27,
             NAD83,
-            SPHERE};
+            SPHERE,
+            CLRK80IGN,
+            DANISH,
+            GSK2011,
+            PZ90};
 
     public Ellipsoid() {
     }

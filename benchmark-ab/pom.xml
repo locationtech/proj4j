@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.emilevictor.neoproj4j</groupId>
+        <artifactId>neoproj4j-modules</artifactId>
+        <version>1.3.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>neoproj4j-benchmark-ab</artifactId>
+    <packaging>jar</packaging>
+    <name>neoProj4J A/B benchmark</name>
+    <description>Head-to-head JMH comparison of this fork against released upstream proj4j 1.4.3.</description>
+
+    <!-- ================================================================================
+         WHY THIS IS A SEPARATE MODULE FROM benchmark/
+
+         benchmark/ carries the Tier 1 allocation gate and Tier 2 op-count gate: 245 arms,
+         25 allocation rules, 171 ratchets, with the baselines read from inside the shaded
+         jar. Parameterising its coordinates so it could also build against 1.4.3 would put
+         all of that behind a profile switch, and a gate that can be silently pointed at a
+         different library is not a gate. This module is additive and gates nothing.
+
+         WHAT THIS MODULE MAY CONTAIN
+
+         Exactly one thing: benchmarks that compile and run UNCHANGED against both this fork
+         and org.locationtech.proj4j:proj4j:1.4.3. That restricts it to API that existed in
+         1.4.3 - CRSFactory, CoordinateTransformFactory, CoordinateReferenceSystem,
+         CoordinateTransform, ProjCoordinate. Anything fork-only belongs in benchmark/.
+         BulkTransformBenchmark in particular cannot move here: BulkCoordinateTransform does
+         not exist in 1.4.3.
+
+         Run it with:
+           mvn -Pbench-ab                    -pl benchmark-ab -am package -DskipTests
+           mvn -Pbench-ab,bench-ab-baseline  -pl benchmark-ab     package -DskipTests
+         Note the deliberate absence of -am on the baseline build: it must not be able to see
+         the working tree, exactly as golden/pom.xml does it.
+         ================================================================================ -->
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <gpg.skip>true</gpg.skip>
+
+        <jmh.version>1.37</jmh.version>
+
+        <!-- All five move together, and only in the bench-ab-baseline profile at the bottom of
+             this file. The baseline coordinates are what Maven Central serves and always will;
+             they are not affected by this project's rename and must never be updated to match it.
+             Same rule as golden/pom.xml, same reason: point these at the new coordinates and the
+             comparison silently measures the fork against itself and reports a tidy 0% delta. -->
+        <ab.proj4j.groupId>io.github.emilevictor.neoproj4j</ab.proj4j.groupId>
+        <ab.proj4j.core.artifactId>neoproj4j</ab.proj4j.core.artifactId>
+        <ab.proj4j.epsg.artifactId>neoproj4j-epsg</ab.proj4j.epsg.artifactId>
+        <ab.proj4j.version>${project.version}</ab.proj4j.version>
+        <!-- Distinct output names so the two builds cannot overwrite each other. Comparing a jar
+             against itself is the failure mode this whole module exists to avoid. -->
+        <ab.jar.name>benchmarks-ab-fork</ab.jar.name>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${ab.proj4j.groupId}</groupId>
+            <artifactId>${ab.proj4j.core.artifactId}</artifactId>
+            <version>${ab.proj4j.version}</version>
+        </dependency>
+        <!-- Compile scope: the benchmarks resolve EPSG:nnnn at runtime from inside the shaded jar,
+             so proj4/nad/epsg has to be in it. -->
+        <dependency>
+            <groupId>${ab.proj4j.groupId}</groupId>
+            <artifactId>${ab.proj4j.epsg.artifactId}</artifactId>
+            <version>${ab.proj4j.version}</version>
+        </dependency>
+
+        <!-- NOTE the absence of a grids dependency. benchmark/ depends on
+             neoproj4j-grids-us-legacy so its NAD27_TO_NAD83 arm does real NADCON interpolation.
+             There is no such artifact at 1.4.3, so it cannot be swapped, and the pair set here
+             deliberately contains no grid-shifted CRS. -->
+
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>${jmh.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>${jmh.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- Never published, so this may exceed core's <release>8</release>. Kept at
+                         17 to match benchmark/. -->
+                    <release>17</release>
+                    <debug>true</debug>
+                    <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <arg>-Xlint:-processing</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <id>make-ab-benchmarks-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${ab.jar.name}</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>org.openjdk.jmh.Main</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- ============================================================================
+             mvn -Pbench-ab,bench-ab-baseline -pl benchmark-ab package -DskipTests
+
+             Builds the SAME benchmark sources against released upstream 1.4.3 from Maven
+             Central. If these sources stop compiling under this profile, that is the signal
+             that a benchmark has started using fork-only API - fix the benchmark, not this
+             profile.
+             ============================================================================ -->
+        <profile>
+            <id>bench-ab-baseline</id>
+            <properties>
+                <ab.proj4j.groupId>org.locationtech.proj4j</ab.proj4j.groupId>
+                <ab.proj4j.core.artifactId>proj4j</ab.proj4j.core.artifactId>
+                <ab.proj4j.epsg.artifactId>proj4j-epsg</ab.proj4j.epsg.artifactId>
+                <ab.proj4j.version>1.4.3</ab.proj4j.version>
+                <ab.jar.name>benchmarks-ab-baseline</ab.jar.name>
+            </properties>
+        </profile>
+    </profiles>
+</project>

@@ -23,6 +23,8 @@ package org.locationtech.proj4j.proj;
  */
 public class PseudoCylindricalProjection extends CylindricalProjection {
 
+	private static final long serialVersionUID = 2947020526135418972L;
+
 	public boolean isRectilinear() {
 		return false;
 	}

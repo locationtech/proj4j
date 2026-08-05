@@ -1,0 +1,14 @@
+<gie-strict>
+-------------------------------------------------------------------------------
+# A strict block. The five dashes above are a decorative element; this line is
+# a comment, which pj_chomp turns into a blank line before the verb test runs.
+-------------------------------------------------------------------------------
+use_proj4_init_rules true
+operation +proj=pipeline \
+          +step +init=epsg:4313 +inv \  # trailing comment after a continuation
+          +step +init=epsg:31370
+tolerance  0.03  m
+accept  5 58
+expect  187742.7 969521.653
+ direction inverse
+</gie-strict>

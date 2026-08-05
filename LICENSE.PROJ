@@ -1,0 +1,62 @@
+PROJ license -- applies to the datum-shift grid redistributed by this project.
+
+Covered file:
+
+  epsg/src/main/resources/proj4/nad/conus
+      packaged in the proj4j-epsg artifact as /proj4/nad/conus
+
+  grids-us-legacy/src/main/resources/proj4j-data/grids/conus
+  grids-us-legacy/src/main/resources/proj4j-data/grids/alaska
+      packaged in the proj4j-grids-us-legacy artifact as /proj4j-data/grids/{conus,alaska}
+
+Provenance:
+
+  Upstream       PROJ <https://proj.org/>
+  Tag            9.8.1 = f08fa86c478c4bbbf003b1ec751dd84aa6eca486
+  Upstream path  data/tests/conus     blob 44b4900f3168a5b87794f41d201d03d5aea0b964
+                 data/tests/alaska    blob bb6be2ffbd55cb96416fd77cc07845f832883549
+
+The files are byte-identical to the upstream blobs; reproduce with
+'git -C <PROJ> cat-file blob <blob>'. SHA-256 of conus is
+504d184f9a9f6e6c6b76df753346fd236b74772f52a8a5c90d8a43d3651d274d.
+
+PROJ's COPYING at tag 9.8.1 follows verbatim. It states that data files are
+covered by the same MIT terms as the source, so that license is reproduced here
+in full and travels with the redistributed grids.
+
+================================================================================
+
+
+All source, data files and other contents of the PROJ package are 
+available under the following terms.  Note that the PROJ 4.3 and earlier
+was "public domain" as is common with US government work, but apparently
+this is not a well defined legal term in many countries. Frank Warmerdam placed
+everything under the following MIT style license because he believed it is
+effectively the same as public domain, allowing anyone to use the code as
+they wish, including making proprietary derivatives.
+
+Initial PROJ 4.3 public domain code was put as Frank Warmerdam as copyright
+holder, but he didn't mean to imply he did the work. Essentially all work was
+done by Gerald Evenden.
+
+Copyright information can be found in source files.
+
+ --------------
+
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the "Software"),
+ to deal in the Software without restriction, including without limitation
+ the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ DEALINGS IN THE SOFTWARE.

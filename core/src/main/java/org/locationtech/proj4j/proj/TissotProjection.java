@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class TissotProjection extends SimpleConicProjection {
 
+	private static final long serialVersionUID = -5241312323887968758L;
+
 	public TissotProjection() {
 		super( SimpleConicProjection.TISSOT );
 	}

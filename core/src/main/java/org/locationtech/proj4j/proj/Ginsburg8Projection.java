@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class Ginsburg8Projection extends Projection {
 
+	private static final long serialVersionUID = 494259623062988003L;
+
 	private final static double Cl = 0.000952426;
 	private final static double Cp = 0.162388;
 	private final static double C12 = 0.08333333333333333;

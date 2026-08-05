@@ -1,0 +1,32 @@
+### This file must contain only (crs_src, crs_dst) tuples where the best transformation
+### DOES involve the use a grid/json/etc. resource file
+### Otherwise use epsg_no_grid.gie
+
+<gie-strict>
+
+###################################
+#### Generic / worldwide scope ####
+###################################
+
+# Test EGM2008 grid
+crs_src         EPSG:4979       # WGS 84 geographic 3D
+crs_dst         EPSG:9518       # WGS 84 + EGM2008
+tolerance       0.1 mm
+require_grid    us_nga_egm08_25.tif
+
+accept          55.0            12.0            10.0
+expect          55.0            12.0            -27.8257
+
+################
+#### FRANCE ####
+################
+
+crs_src         EPSG:9785       # RGF93 v2b + NGF-IGN69 height
+crs_dst         EPSG:9781       # RGF93 v2b geographic 3D
+tolerance       0.1 mm
+require_grid    fr_ign_RAF20.tif
+
+accept          43.6109         3.8761          0.0
+expect          43.6109         3.8761          49.6904
+
+</gie-strict>

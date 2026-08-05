@@ -1,0 +1,6 @@
+cases=14502
+rows=53430
+ok=50808
+exceptions=2622
+no_probe=0
+non_finite_rows=282

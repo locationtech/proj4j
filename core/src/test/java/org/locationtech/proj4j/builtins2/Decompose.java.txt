@@ -1,0 +1,279 @@
+NOT COMPILED BY MAVEN -- deliberately `.java.txt`.
+=================================================
+
+This is the re-decomposition driver: it groups every FAILING GieAssertionResult of the whole
+vendored corpus by (file, `+proj=` token, category), so that a per-file failure count can be
+turned into a worklist. It reuses the REAL GieLexer, GieRunner and Proj4jGieOperationFactory and
+the published comparator (org.locationtech.proj4j.gie.{GieComparator,GieTolerance,GieIoUnits})
+via GieRunner -- it re-parses no expectation and no tolerance of its own.
+
+It cannot live in `core/src/test/java` as a `.java` file because it compiles against the
+`conformance` module's TEST classes, and `core` is a dependency of `conformance`, not the other
+way round. Hence the `.txt` suffix: Maven's `**/*.java` include skips it, and the source stays
+next to the tests it informs instead of in /tmp.
+
+Build and run (about 25 s for the whole 7,845-assertion corpus):
+
+    export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home
+    export PATH="$JAVA_HOME/bin:/opt/homebrew/bin:$PATH"
+    cd /Volumes/git/proj4j
+
+    mvn -B -q -Dmaven.repo.local=/tmp/m2-btail -pl conformance -am -Pconformance test-compile \
+        -Dmaven.javadoc.skip=true                       # once, to get conformance/target/test-classes
+    mvn -B -q -Dmaven.repo.local=/tmp/m2-btail -pl core -am install \
+        -Dmaven.javadoc.skip=true -DskipTests           # after every change to core
+
+    CP="conformance/target/test-classes:conformance/target/classes:core/target/classes:\
+epsg/target/classes:db/target/classes:grids-us-legacy/target/classes"
+    mkdir -p /tmp/decomp/classes
+    cp core/src/test/java/org/locationtech/proj4j/builtins2/Decompose.java.txt /tmp/decomp/Decompose.java
+    javac -nowarn -cp "$CP" -d /tmp/decomp/classes /tmp/decomp/Decompose.java
+    java -cp "/tmp/decomp/classes:$CP" Decompose /tmp/decomp/report.txt
+
+A/B protocol: do NOT recompile `conformance/target/test-classes` between the two arms of a
+comparison -- the bridge is written by a different stream and recompiling it makes the arms
+differ by more than your change. Recompile `core` only. And note that `core/target/classes`
+picks up EVERY other agent's in-flight work, so a delta in a file you did not touch
+(`4D-API_cs2cs-style`, `DHDN_ETRS89`, `more_builtins`, `gridshift`) is probably not yours.
+
+------------------------------------------------------------------------------------------------
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.locationtech.proj4j.conformance.bridge.Proj4jGieOperationFactory;
+import org.locationtech.proj4j.conformance.manifest.AssertionOutcome;
+import org.locationtech.proj4j.conformance.parse.GieFile;
+import org.locationtech.proj4j.conformance.parse.GieLexer;
+import org.locationtech.proj4j.conformance.runner.GieAssertionResult;
+import org.locationtech.proj4j.conformance.runner.GieCorpus;
+import org.locationtech.proj4j.conformance.runner.GieFileResult;
+import org.locationtech.proj4j.conformance.runner.GieGridAvailability;
+import org.locationtech.proj4j.conformance.runner.GieRunner;
+
+/**
+ * Re-decomposes the failing assertions of the whole corpus by (file, +proj= token, category).
+ *
+ * <p>Deliberately reuses the real GieLexer/GieRunner/Proj4jGieOperationFactory and the published
+ * comparator, via GieRunner, so no expectation or tolerance is re-parsed here.
+ */
+public final class Decompose {
+
+    enum Category {
+        UNREGISTERED,       // no class at all
+        PARAM_BLOCKED,      // arithmetic exists, key undispatched
+        NUMERICAL,          // ships, runs, wrong answer
+        DOMAIN,             // failed to fail / domain contract
+        OTHER
+    }
+
+    public static void main(String[] argv) throws Exception {
+        GieRunner runner = GieRunner.using(
+                new Proj4jGieOperationFactory(), GieGridAvailability.OnClasspath.INSTANCE);
+        List<GieCorpus.Entry> files = GieCorpus.activeFiles();
+        if (files.isEmpty()) {
+            System.err.println("no corpus files found on classpath");
+            System.exit(2);
+        }
+
+        int totalPass = 0, totalFail = 0, totalSkip = 0, totalVac = 0;
+        List<GieFileResult> results = new ArrayList<GieFileResult>();
+        for (GieCorpus.Entry e : files) {
+            GieFile lexed = GieLexer.lex(e.file());
+            GieFileResult r = runner.run(e.corpusPath(), lexed);
+            results.add(r);
+            totalPass += r.count(AssertionOutcome.PASS);
+            totalFail += r.count(AssertionOutcome.FAIL);
+            totalSkip += r.count(AssertionOutcome.SKIP);
+            totalVac += r.count(AssertionOutcome.VACUOUS_EXPECTED_FAILURE);
+        }
+
+        StringBuilder out = new StringBuilder();
+        out.append("=== CORPUS TOTALS ===\n");
+        int genuine = totalPass + totalFail + totalSkip;
+        out.append(String.format("pass=%d fail=%d skip=%d vacuous=%d genuine-denominator=%d (%.2f%%)%n",
+                totalPass, totalFail, totalSkip, totalVac, genuine,
+                100.0 * totalPass / genuine));
+
+        out.append("\n=== PER FILE ===\n");
+        for (GieFileResult r : results) {
+            int p = r.count(AssertionOutcome.PASS);
+            int f = r.count(AssertionOutcome.FAIL);
+            int s = r.count(AssertionOutcome.SKIP);
+            int v = r.count(AssertionOutcome.VACUOUS_EXPECTED_FAILURE);
+            out.append(String.format("%-44s pass=%-5d fail=%-5d skip=%-4d vac=%-5d total=%d%n",
+                    r.filePath(), p, f, s, v, r.total()));
+        }
+
+        // Decomposition of failures, per file of interest and overall.
+        for (GieFileResult r : results) {
+            if (r.count(AssertionOutcome.FAIL) == 0) {
+                continue;
+            }
+            out.append("\n=== ").append(r.filePath()).append(" — FAILURES BY +proj= AND CATEGORY ===\n");
+            // proj -> category -> count
+            Map<String, int[]> byProj = new TreeMap<String, int[]>();
+            Map<String, String> sample = new LinkedHashMap<String, String>();
+            Map<Category, Integer> byCat = new LinkedHashMap<Category, Integer>();
+            for (GieAssertionResult a : r.assertions()) {
+                if (a.outcome() != AssertionOutcome.FAIL) {
+                    continue;
+                }
+                String proj = projToken(a.operation());
+                Category c = classify(a.detail());
+                int[] row = byProj.get(proj);
+                if (row == null) {
+                    row = new int[Category.values().length + 1];
+                    byProj.put(proj, row);
+                }
+                row[c.ordinal()]++;
+                row[Category.values().length]++;
+                Integer cur = byCat.get(c);
+                byCat.put(c, cur == null ? 1 : cur + 1);
+                String skey = proj + "|" + c;
+                if (!sample.containsKey(skey)) {
+                    sample.put(skey, a.key() + " L" + a.line() + " :: " + trim(a.operation(), 78)
+                            + " :: " + trim(a.detail(), 150));
+                }
+            }
+            out.append("category totals: ");
+            for (Category c : Category.values()) {
+                Integer n = byCat.get(c);
+                if (n != null) {
+                    out.append(c).append('=').append(n).append("  ");
+                }
+            }
+            out.append('\n');
+            out.append(String.format("%-16s %6s %6s %6s %6s %6s %6s%n",
+                    "+proj=", "unreg", "param", "numer", "domain", "other", "TOTAL"));
+            List<Map.Entry<String, int[]>> rows = new ArrayList<Map.Entry<String, int[]>>(byProj.entrySet());
+            Collections.sort(rows, new Comparator<Map.Entry<String, int[]>>() {
+                public int compare(Map.Entry<String, int[]> a, Map.Entry<String, int[]> b) {
+                    int d = b.getValue()[Category.values().length] - a.getValue()[Category.values().length];
+                    return d != 0 ? d : a.getKey().compareTo(b.getKey());
+                }
+            });
+            for (Map.Entry<String, int[]> en : rows) {
+                int[] v = en.getValue();
+                out.append(String.format("%-16s %6d %6d %6d %6d %6d %6d%n", en.getKey(),
+                        v[0], v[1], v[2], v[3], v[4], v[Category.values().length]));
+            }
+            out.append("-- one sample per (proj, category) --\n");
+            for (Map.Entry<String, String> en : sample.entrySet()) {
+                out.append("  [").append(en.getKey()).append("] ").append(en.getValue()).append('\n');
+            }
+            if (r.filePath().endsWith("builtins.gie")) {
+                out.append("-- EVERY non-unregistered failure --\n");
+                for (GieAssertionResult a : r.assertions()) {
+                    if (a.outcome() != AssertionOutcome.FAIL) {
+                        continue;
+                    }
+                    Category c = classify(a.detail());
+                    if (c == Category.UNREGISTERED) {
+                        continue;
+                    }
+                    out.append("  ").append(c).append(" L").append(a.line()).append(" | ")
+                            .append(a.verb()).append(' ').append(trim(a.assertionArgs(), 60))
+                            .append(" | ").append(trim(a.operation(), 200))
+                            .append(" | ").append(trim(a.detail(), 260)).append('\n');
+                }
+            }
+        }
+
+        String text = out.toString();
+        System.out.print(text);
+        String dest = argv.length > 0 ? argv[0] : "/tmp/decomp/report.txt";
+        Files.write(Paths.get(dest), text.getBytes(StandardCharsets.UTF_8));
+        System.err.println("written " + dest);
+    }
+
+    static String trim(String s, int n) {
+        s = s.replace('\n', ' ');
+        return s.length() <= n ? s : s.substring(0, n) + "...";
+    }
+
+    /** The {@code +proj=} token of an operation definition, or a marker for the shapes that lack one. */
+    static String projToken(String op) {
+        if (op == null || op.isEmpty()) {
+            return "(no-operation)";
+        }
+        if (op.startsWith("crs_src") || op.contains("crs_dst")) {
+            return "(crs-to-crs)";
+        }
+        int i = op.indexOf("proj=");
+        while (i > 0) {
+            char before = op.charAt(i - 1);
+            if (before == '+' || before == ' ' || before == '\t') {
+                // Skip "o_proj=" and "step_proj=" style prefixes handled by the ' ' / '+' guard.
+                break;
+            }
+            i = op.indexOf("proj=", i + 1);
+        }
+        if (i < 0) {
+            return "(no-proj-token)";
+        }
+        int j = i + 5;
+        int k = j;
+        while (k < op.length() && !Character.isWhitespace(op.charAt(k))) {
+            k++;
+        }
+        String name = op.substring(j, k);
+        if ("pipeline".equals(name)) {
+            // Attribute pipelines to the first +step's operator, which is what actually failed.
+            int s = op.indexOf("+proj=", k);
+            if (s > 0) {
+                int e = s + 6;
+                int f = e;
+                while (f < op.length() && !Character.isWhitespace(op.charAt(f))) {
+                    f++;
+                }
+                return "pipeline:" + op.substring(e, f);
+            }
+        }
+        return name;
+    }
+
+    static Category classify(String detail) {
+        if (detail == null) {
+            return Category.OTHER;
+        }
+        if (detail.contains("failed to fail")) {
+            return Category.DOMAIN;
+        }
+        if (detail.startsWith("deviation ") || detail.startsWith("roundtrip deviation ")
+                || detail.startsWith("time deviation ")) {
+            return Category.NUMERICAL;
+        }
+        if (detail.contains("operation could not be created")) {
+            if (detail.contains("does not resolve it")
+                    || detail.contains("Unknown projection")
+                    || detail.contains("is a PROJ 9.8.1 operator")
+                    || detail.contains("CRSFactory produced no projection")) {
+                return Category.UNREGISTERED;
+            }
+            if (detail.contains("does not implement this parameter")
+                    || detail.contains("is PROJ-false")
+                    || detail.contains("value grammar")
+                    || detail.contains("UnsupportedParameterException")
+                    || detail.contains("is not supported")
+                    || detail.contains("is a PROJ unit id")
+                    || detail.contains("proj4j does not")
+                    || detail.contains("proj4j applies the prime meridian")
+                    || detail.contains("proj4j refused a definition PROJ accepts")
+                    || detail.contains("PROJ accepts a num/den ratio")) {
+                return Category.PARAM_BLOCKED;
+            }
+            return Category.OTHER;
+        }
+        return Category.OTHER;
+    }
+}

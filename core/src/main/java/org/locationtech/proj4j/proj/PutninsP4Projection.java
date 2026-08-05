@@ -24,6 +24,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class PutninsP4Projection extends Projection {
 
+	private static final long serialVersionUID = -8179250064112033852L;
+
 	protected double C_x;
 	protected double C_y;
 

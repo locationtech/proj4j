@@ -1,0 +1,15 @@
+# Two blocks in one file, mixed modes, with prose between them.
+
+<gie>
+operation +proj=merc
+accept 12 55
+expect 1335833.88951928 7326837.71424703
+</gie>
+
+Prose between the blocks. tolerance 1 km   <- ignored, outside any block.
+
+<gie-strict>
+operation +proj=utm +zone=32
+accept 12 55
+expect 691875.632 6098907.825
+</gie-strict>

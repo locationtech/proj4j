@@ -22,6 +22,8 @@ package org.locationtech.proj4j.proj;
 
 public class PutninsP5PProjection extends PutninsP5Projection {
 
+	private static final long serialVersionUID = 2710024605041259559L;
+
 	public PutninsP5PProjection() {
 		A = 1.5;
 		B = 0.5;

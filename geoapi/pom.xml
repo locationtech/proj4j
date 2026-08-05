@@ -2,24 +2,67 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-      <groupId>org.locationtech.proj4j</groupId>
-      <artifactId>proj4j-modules</artifactId>
+      <groupId>io.github.emilevictor.neoproj4j</groupId>
+      <artifactId>neoproj4j-modules</artifactId>
       <version>1.3.1-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.locationtech.proj4j</groupId>
-    <artifactId>proj4j-geoapi</artifactId>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-geoapi</artifactId>
     <packaging>jar</packaging>
-    <name>Proj4J GeoAPI</name>
-    <description>GeoAPI wrappers for viewing PROJ4J as a GeoAPI implementation.</description>
+    <name>neoProj4J GeoAPI</name>
+    <description>GeoAPI wrappers for viewing neoProj4J as a GeoAPI implementation.</description>
 
+    <!-- Repeated rather than inherited: Maven appends this module's artifactId to an inherited
+         <url> and <scm>. See the long note in the root POM; keep the values in step with it. -->
+    <url>https://github.com/emilevictor/neoProj4J</url>
+
+    <!-- <developers> REPLACES the parent's list, it does not merge with it. Until now this element
+         held only Desruisseaux, so the PUBLISHED proj4j-geoapi POM credited him alone and dropped
+         the four inherited entries. The parent's list is repeated here so that adding the GeoAPI
+         author augments the credits instead of replacing them. Keep the two in step. -->
     <developers>
+        <developer>
+            <id>echeipesh</id>
+            <name>Eugene Cheipesh</name>
+            <url>https://github.com/echeipesh</url>
+        </developer>
+        <developer>
+            <id>lossyrob</id>
+            <name>Rob Emanuele</name>
+            <url>https://github.com/lossyrob</url>
+        </developer>
+        <developer>
+            <id>pomadchin</id>
+            <name>Grigory Pomadchin</name>
+            <url>https://github.com/pomadchin</url>
+        </developer>
         <developer>
             <id>desruisseaux</id>
             <name>Martin Desruisseaux</name>
             <url>https://github.com/desruisseaux</url>
         </developer>
+        <developer>
+            <id>emilevictor</id>
+            <name>Emile Victor</name>
+            <url>https://github.com/emilevictor</url>
+            <roles>
+                <role>neoProj4J fork maintainer</role>
+            </roles>
+        </developer>
     </developers>
+
+    <scm>
+        <url>https://github.com/emilevictor/neoProj4J</url>
+        <connection>scm:git:https://github.com/emilevictor/neoProj4J.git</connection>
+        <developerConnection>scm:git:git@github.com:emilevictor/neoProj4J.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <properties>
+        <!-- Published. -->
+        <maven.deploy.skip>false</maven.deploy.skip>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -34,13 +77,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.locationtech.proj4j</groupId>
-            <artifactId>proj4j</artifactId>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.locationtech.proj4j</groupId>
-            <artifactId>proj4j-epsg</artifactId>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j-epsg</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

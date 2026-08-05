@@ -23,9 +23,12 @@ import java.util.Objects;
 
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.FastStrictTrig;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class UrmaevFlatPolarSinusoidalProjection extends Projection {
+
+	private static final long serialVersionUID = -2557543472419612430L;
 
 	private final static double C_x = 0.8773826753;
 	private final static double Cy = 1.139753528477;
@@ -36,17 +39,29 @@ public class UrmaevFlatPolarSinusoidalProjection extends Projection {
 	public UrmaevFlatPolarSinusoidalProjection() {
 	}
 
+	/**
+	 * Port of {@code urmfps_s_forward} ({@code 9.8.1:src/projections/urmfps.cpp:19-27}).
+	 * <p>
+	 * <b>Upstream reassigns {@code lp.phi} in place and then uses it twice</b>; the previous
+	 * transcription computed the reassignment into {@code out.y}, immediately overwrote it, and fed
+	 * the <em>original</em> latitude to both {@code cos} and the {@code C_y} product. Since
+	 * {@code C_y = Cy / n}, that made the northing a factor of {@code 1/n} too large: at
+	 * {@code +proj=wag1 +a=6400000} and {@code (2, 1)} it returned {@code y = 147,006.878} against
+	 * PROJ's {@code 127,310.075} — 19.7 km — and the easting 7.46 m off through the {@code cos}.
+	 * The inverse never had the defect, so forward and inverse were not mutual inverses either.
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		out.y = ProjectionMath.asin(n * Math.sin(lpphi));
-		out.x = C_x * lplam * Math.cos(lpphi);
-		out.y = C_y * lpphi;
+		double phi = ProjectionMath.asinChecked(n * FastStrictTrig.sin(lpphi));
+		out.x = C_x * lplam * FastStrictTrig.cos(phi);
+		out.y = C_y * phi;
 		return out;
 	}
 
+	/** Port of {@code urmfps_s_inverse} ({@code 9.8.1:src/projections/urmfps.cpp:29-36}). */
 	public ProjCoordinate projectInverse(double xyx, double xyy, ProjCoordinate out) {
 		xyy /= C_y;
-		out.y = ProjectionMath.asin(Math.sin(xyy) / n);
-		out.x = xyx / (C_x * Math.cos(xyy));
+		out.y = ProjectionMath.asinChecked(FastStrictTrig.sin(xyy) / n);
+		out.x = xyx / (C_x * FastStrictTrig.cos(xyy));
 		return out;
 	}
 

@@ -21,12 +21,25 @@ package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.AuthalicLat;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class CylindricalEqualAreaProjection extends Projection {
 
+	private static final long serialVersionUID = -4997310699865808074L;
+
 	private double qp;
-	private double[] apa;
+
+	/**
+	 * The order-6 authalic-latitude machinery, {@code 9.8.1:src/latitudes.cpp}. Replaces
+	 * {@code ProjectionMath.authset}/{@code authlat}/{@code qsfn}.
+	 * <p>
+	 * Note that {@code cea}'s <em>forward</em> genuinely wants the raw {@code q}
+	 * ({@code 9.8.1:cea.cpp:21}: {@code xy.y = 0.5 * pj_authalic_lat_q(sin(phi)) / k0}), so
+	 * unlike {@code laea} it does not move to the direct {@code phi -> xi} series; only the
+	 * inverse series changes, from third to sixth order.
+	 */
+	private AuthalicLat authalic;
 
 	public CylindricalEqualAreaProjection() {
 		this(0.0, 0.0, 0.0);
@@ -47,8 +60,8 @@ public class CylindricalEqualAreaProjection extends Projection {
 		if (es != 0) {
 			t = Math.sin(t);
 			scaleFactor /= Math.sqrt(1. - es * t * t);
-			apa = ProjectionMath.authset(es);
-			qp = ProjectionMath.qsfn(1., e, one_es);
+			authalic = new AuthalicLat(es);
+			qp = authalic.qp();
 		}
 	}
 
@@ -58,7 +71,7 @@ public class CylindricalEqualAreaProjection extends Projection {
 			xy.y = Math.sin(phi) / scaleFactor;
 		} else {
 			xy.x = scaleFactor * lam;
-			xy.y = .5 * ProjectionMath.qsfn(Math.sin(phi), e, one_es) / scaleFactor;
+			xy.y = .5 * authalic.q(Math.sin(phi)) / scaleFactor;
 		}
 		return xy;
 	}
@@ -75,7 +88,7 @@ public class CylindricalEqualAreaProjection extends Projection {
 				lp.x = x / scaleFactor;
 			} else throw new ProjectionException();
 		} else {
-			lp.y = ProjectionMath.authlat(Math.asin( 2. * y * scaleFactor / qp), apa);
+			lp.y = authalic.inverse(Math.asin( 2. * y * scaleFactor / qp));
 			lp.x = x / scaleFactor;
 		}
 		return lp;

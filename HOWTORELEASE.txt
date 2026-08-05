@@ -1,111 +1,105 @@
-Steps for Making a Proj4J Release
+Releasing neoProj4J
 ==============================================================================
 
-:Author: Grigory Pomadchin
-:Contact: https://github.com/pomadchin
-:Date: 11/28/2022
-
-This document describes the process to releasing a new version of Proj4J.
-
-General Notes
+Coordinates
 ------------------------------------------------------------------------------
 
-1) Proj4J project release
-    What you need:
-        - (new) an account on central (https://central.sonatype.com/publishing/deployments)
-        - (old) an account on sonatype (https://issues.sonatype.org/secure/Signup!default.jspa)
-        - configured ~/.m2/settings.xml file (a simple example below):
-            <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                      xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                          http://maven.apache.org/xsd/settings-1.0.0.xsd">
-              <localRepository/>
-              <interactiveMode/>
-              <usePluginRegistry/>
-              <offline/>
-              <pluginGroups/>
-              <servers>
-                <server>
-                  <id>sonatype_snapshots</id>
-                  <username>...</username>
-                  <password>...</password>
-                </server>
-                <server>
-                  <id>sonatype_releases</id>
-                  <username>...</username>
-                  <password>...</password>
-                </server>
-                <server>
-                  <id>ossrh</id>
-                  <username>...</username>
-                  <password>...</password>
-                </server>
-                <server>
-                  <id>central</id>
-                  <username>...</username>
-                  <password>...</password>
-                </server>
-              </servers>
-              <mirrors/>
-              <proxies/>
-              <profiles/>
-              <activeProfiles/>
-            </settings>
-        - selected signing key i.e. in the each module pom.xml via the gpg configuration tags:
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-gpg-plugin</artifactId>
-              <version>3.0.1</version>
-              <executions>
-                <execution>
-                  <id>sign-artifacts</id>
-                  <phase>verify</phase>
-                  <goals>
-                    <goal>sign</goal>
-                  </goals>
-                  <configuration>
-                    <keyname>KEYID</keyname>
-                    <passphrase>passphrase</passphrase>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
+    groupId     io.github.emilevictor.neoproj4j
+    artifacts   neoproj4j                  (core)
+                neoproj4j-epsg             (EPSG/ESRI dictionaries - required at runtime)
+                neoproj4j-geoapi           (optional GeoAPI wrapper)
+                neoproj4j-db               (optional PROJ authority database)
+                neoproj4j-grids-us-legacy  (optional CTABLE V2 grids: conus, alaska)
+                neoproj4j-modules          (the parent pom - required)
 
-    Cheat sheet:
-        - All commands are can be described via the following template:
-            mvn -P{eclipse | central} {-Dmaven.test.skip=true | } {-pl <module> | } {install, deploy, ...} {-Dmaven.install.skip={false|true}}
+    NOT published: conformance, golden, benchmark, benchmark-ab. Each sets its own
+    maven.deploy.skip=true. Every published module states maven.deploy.skip=false
+    explicitly rather than inheriting it -- inheritance is what previously made
+    `mvn deploy` publish zero artifacts while reporting success.
 
-    The description of the Sonatype publish process:
-        - Snaphots:
-            Versioning:
-                - Release versions are derived from the latest (not lightweight) tag version and the branch name if applicable. Each tag should start with v,
-                  i.e. v2.3.0. The snapshot tag happens on commits that follow the tag, and contain git commit hash.
-            Snapshot can be published without PGP sign, it is published to a snapshot repo and allows immediate snaphot updates.
-            Publish to a local repo:
-                - mvn -Pcentral -Dmaven.test.skip=true install
-            Publish to sonatype:
-                - mvn -Pcentral -Dmaven.test.skip=true deploy
-            Publish to eclipse:
-                - mvn -Peclipse -Dmaven.test.skip=true deploy
 
-        - Releases:
-            Versioning:
-                - Release versions are derived from the latest (not lightweight) tag version. Each tag should start with v,
-                  i.e. v2.3.0.
-            Snapshot can not be published without PGP signature, verify that you have up to date GPG keys set.
-            Publish to a local repo:
-                - mvn -Pcentral -Dmaven.test.skip=true install
-            Publish to sonatype:
-                - mvn -Pcentral -Dmaven.test.skip=true deploy
-            Publish to eclipse:
-                - mvn -Peclipse -Dmaven.test.skip=true deploy
-            Staging means a special repository in a pre released condition.
-                - Go into staging repos panel: https://oss.sonatype.org/#stagingRepositories (log in using sonatype user / pwd)
-                - Filter by the package name (proj4j) and select matching staging repo
-                - Press Close button on the top of the table with repos. It runs packages
-                  validation and closes staging repo in a successful case
-                - After successful close press the Release button
-            Summary:
-                - Run mvn -Pcentral -Dmaven.test.skip=true deploy to publish everything to sonatype
-                - Go to sonatype panel https://oss.sonatype.org/#stagingRepositories and release jars
-                - Await ~10 minutes to have jars published to maven central
+The version comes from the git tag, not from pom.xml
+------------------------------------------------------------------------------
+
+pom.xml says 1.3.1-SNAPSHOT. That literal is DEAD in a normal build: the jgitver
+Maven extension (.mvn/extensions.xml, .mvn/jgitver.config.xml) rewrites it from git.
+
+    HEAD is exactly an annotated tag vX.Y.Z  ->  X.Y.Z
+    anything else                            ->  X.Y.(Z+1)-SNAPSHOT, with the branch
+                                                 name included unless the branch is
+                                                 listed in nonQualifierBranches
+
+So: TAG FIRST, THEN DEPLOY. There is no other way to get a clean release version.
+
+    git tag -a v2.0.0 -m "neoProj4J 2.0.0"
+
+Ask the build what it resolved rather than assuming:
+
+    mvn -B help:evaluate -Dexpression=project.version -DforceStdout -q
+
+Traps:
+  - `-Djgitver.skip=true` makes the dead 1.3.1-SNAPSHOT literal live. It is required
+    when building against a non-default -Dmaven.repo.local, and must NEVER be combined
+    with `deploy`.
+  - No CI checkout fetches tags (all fetch-depth: 1, no fetch-tags), so jgitver cannot
+    see any tag in CI. Fix that before adding a release job.
+
+
+Publishing to Maven Central
+------------------------------------------------------------------------------
+
+Prerequisites, in the order they will block you:
+
+  1. A Central Portal account: https://central.sonatype.com
+  2. Namespace ownership of io.github.emilevictor, proved by the GitHub account
+     `emilevictor`. This is why the groupId is shaped that way -- an io.github.<user>
+     namespace is verified by the matching GitHub account and needs no DNS record.
+  3. A published GPG key. Central rejects unsigned artifacts. maven-gpg-plugin is wired
+     into the `central` profile; note its <configuration> is empty, so the key is taken
+     from the environment.
+  4. ~/.m2/settings.xml with a <server> whose <id> matches central-publishing-maven-plugin's
+     <publishingServerId>. Use a Central Portal user token, not an account password.
+
+Then:
+
+    mvn -Pcentral -DskipTests deploy
+
+The `central` profile carries central-publishing-maven-plugin and maven-gpg-plugin.
+Sources and javadoc jars are produced unconditionally, so that part needs no flags.
+
+NOT YET DONE FROM THIS TREE. gpg signing has never run here and no artifact has ever
+been pushed to Central from this repository. Treat the first release as untested, and
+verify the staged deployment in the Portal UI before releasing it.
+
+
+Installing locally (for a downstream consumer to test against)
+------------------------------------------------------------------------------
+
+A plain `mvn install` reports BUILD SUCCESS and installs almost nothing. The root pom
+sets maven.install.skip=true and only db/ and grids-us-legacy/ override it, so the
+reactor succeeds and ~/.m2 ends up without the core artifact or the parent pom.
+
+-Dmaven.install.skip=false fixes that and then fails on conformance/, which has no
+src/main and therefore attaches no jar. Exclude it:
+
+    mvn -B -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true \
+        -Dmaven.install.skip=false -pl '!conformance' install
+
+That installs the parent pom plus all five published modules, each with a -sources jar.
+
+
+Build environment
+------------------------------------------------------------------------------
+
+  - Root modules target <release>8</release>; the benchmark modules target 17.
+  - JDK 8 cannot run this build at all (--release is a javac 9+ flag). Java 8 bytecode
+    compatibility is proven by a separate jdk8-runtime CI job.
+  - Build with JDK 21. Nothing enforces this, and JDK 23+ silently stops running
+    classpath annotation processors, which leaves the JMH harness with no
+    META-INF/BenchmarkList and makes benchmark/run-gate.sh look broken for no visible
+    reason.
+
+Before tagging a release, the four gates should be green:
+
+    ./docker/run.sh          # ci + conformance + golden + determinism
+    ./docker/run.sh bench    # opt-in, ~20 min

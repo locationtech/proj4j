@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.emilevictor.neoproj4j</groupId>
+        <artifactId>neoproj4j-modules</artifactId>
+        <version>1.3.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>neoproj4j-benchmark</artifactId>
+    <packaging>jar</packaging>
+    <name>neoProj4J JMH Benchmarks and Regression Gate</name>
+    <description>
+        JMH benchmark harness and the three-tier performance regression gate.
+
+        This module is NOT PUBLISHED and is NOT in the root pom's default &lt;modules&gt; list. It is
+        activated only by `-Pbench`, so a plain `mvn clean install` neither builds it nor downloads
+        JMH. That is deliberate: `core` must remain dependency-free, and JMH lives only here.
+
+        Tier 1 (allocation bytes/op) and Tier 2 (deterministic transcendental-call counts) are
+        blocking PR gates and are implemented by
+        org.locationtech.proj4j.benchmark.gate.GateChecker. Tier 3 (absolute ns/op) is nightly-only
+        and deliberately NOT a PR gate - see README.md for the reasoning.
+    </description>
+
+    <properties>
+        <!-- Never published. This module produces an uber-jar full of shaded third-party code and a
+             gate tool; nothing outside the repository should ever depend on it. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <gpg.skip>true</gpg.skip>
+
+        <jmh.version>1.37</jmh.version>
+        <shade.outputFile>benchmarks</shade.outputFile>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Compile scope, not test: the benchmarks resolve EPSG:nnnn codes at runtime inside the
+             shaded jar, so the init files have to be in it. -->
+        <dependency>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j-epsg</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- CTABLE V2 conus/alaska. Compile scope for the same reason as neoproj4j-epsg: the grids
+             have to be inside the shaded jar or they are not on the benchmark's runtime classpath.
+
+             WHY THIS IS NOT OPTIONAL. It was missing, and the omission stopped being harmless the
+             moment the fail-closed API landed. CrsPair.NAD27_TO_NAD83 samples 96W 39N (Kansas);
+             with only ntv1_can.dat reachable, EPSG:4267 -> EPSG:4269 there resolves to a grid-shift
+             transform with no grid covering the point. That used to fall through as a silent
+             near-identity, which is what this harness was written against; it now throws
+             CrsTransformException "grid shift: (-96.0, 39.0) is outside every grid of
+             [ntv1_can.dat]" - correctly, per non-negotiable 3. That killed Tier 2 outright
+             (OpCountRecorder drives every CrsPair, so one throw aborts the whole recording, and
+             GateChecker.record() runs Tier 2 before Tier 1, so a recording run wrote nothing at
+             all) and silently dropped three Tier 1 arms.
+
+             With conus reachable the pair does the real NADCON interpolation it is named for:
+             (-96, 39) -> (-96.00026791361263, 39.000000955367376), about 23 m of longitude shift. -->
+        <dependency>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j-grids-us-legacy</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>${jmh.version}</version>
+        </dependency>
+        <!-- `provided` is the canonical JMH setup (it is what the official JMH archetype does):
+             javac discovers the generator through META-INF/services on the compile classpath, and
+             `provided` keeps the generator itself out of the shaded benchmarks.jar, which only needs
+             jmh-core at runtime. -->
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>${jmh.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- DELIBERATELY newer than core's <release>8</release>.
+
+                         This is permitted precisely because this module is never published: no
+                         downstream consumer can be broken by its bytecode level, and it is not in
+                         the default reactor, so it cannot raise the floor for anyone. It buys the
+                         gate tool `var`, text blocks and the modern collection factories, and it
+                         lets the harness run on the JDK that Spark actually uses.
+
+                         Do NOT copy this <release> into core, epsg or geoapi. Those ship, and
+                         reference/performance.md's "The Java baseline" section owns that decision
+                         (11 plus a META-INF/versions/17 multi-release JAR). -->
+                    <release>17</release>
+                    <debug>true</debug>
+                    <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <!-- JMH's generator emits code that trips -Xlint:all; keep the build quiet
+                             but still fail on real problems. -->
+                        <arg>-Xlint:-processing</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <id>make-benchmarks-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${shade.outputFile}</finalName>
+                            <!-- Nothing consumes this module's pom, and the generated
+                                 dependency-reduced-pom.xml would otherwise be dropped into the
+                                 module directory on every build and show up as an untracked file. -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>org.openjdk.jmh.Main</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                                <!-- Merges META-INF/services/* rather than letting one input jar's
+                                     copy overwrite another's.
+
+                                     Verified state as of JMH 1.37: none of the current inputs
+                                     (jmh-core, jopt-simple, commons-math3, neoproj4j,
+                                     neoproj4j-epsg)
+                                     ships a META-INF/services entry, so today this transformer is a
+                                     no-op. It stays because a shaded uber-jar without it is one
+                                     dependency away from a silent, extremely hard-to-diagnose
+                                     breakage, and because a future JMH could move profiler discovery
+                                     to an SPI - losing `-prof gc` would disable Tier 1 without any
+                                     error message.
+
+                                     What JMH actually discovers benchmarks through is
+                                     META-INF/BenchmarkList and META-INF/CompilerHints, both plain
+                                     resources generated by the annotation processor into this module
+                                     alone. They survive shading because no other input jar has them.
+                                     If a second JMH-bearing jar is ever added here, those two will
+                                     need an AppendingTransformer or the benchmark list will be
+                                     silently truncated. -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!-- Shading invalidates any jar signature: a signed entry
+                                             whose sibling entries changed makes the JVM throw
+                                             SecurityException on class load. -->
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <!-- A module-info from any input jar would land at the root
+                                             of the uber-jar and describe a module that does not
+                                             exist, breaking `java -jar` on the module path. -->
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- No tests in this module. The gate's own self-checks run through GateChecker's
+                 self-test flag, which does not need a test framework and therefore does not add one
+                 to the reactor. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

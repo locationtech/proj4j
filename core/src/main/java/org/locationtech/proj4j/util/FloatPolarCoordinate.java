@@ -19,6 +19,8 @@ import java.io.Serializable;
 
 public final class FloatPolarCoordinate implements Serializable {
 
+    private static final long serialVersionUID = 1730033191364185363L;
+
     public float lam, phi;
 
     public FloatPolarCoordinate(FloatPolarCoordinate that) {
@@ -30,9 +32,21 @@ public final class FloatPolarCoordinate implements Serializable {
         this.phi = phi;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The bitwise-OR combiner, the {@code new Float(...)} box and the {@code -0.0f}/{@code 0.0f}
+     * disagreement with {@link #equals} are the same three defects documented on
+     * {@link PolarCoordinate#hashCode()}, and they matter most here: this is the element type of
+     * {@code Grid.ConversionTable.cvs}, so {@code Arrays.hashCode(cvs)} runs this once per grid
+     * node — 1,048,576 times for the shipped {@code ntv1_can.dat}.
+     */
     @Override
     public int hashCode() {
-        return new Float(lam).hashCode() | (17 * new Float(phi).hashCode());
+        int h = 17;
+        h = 31 * h + Float.hashCode(lam == 0.0f ? 0.0f : lam);
+        h = 31 * h + Float.hashCode(phi == 0.0f ? 0.0f : phi);
+        return h;
     }
 
     @Override

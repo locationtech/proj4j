@@ -1,0 +1,427 @@
+name: Determinism
+
+# THE CROSS-ARCHITECTURE PROOF.
+#
+# proj4j's headline non-functional guarantee is that a coordinate transform produces the same bits on
+# every JVM and every architecture, because a downstream Spark consumer caches one CoordinateTransform
+# and shares it across executors that may not be on the same hardware. The guarantee is implemented by
+# routing every transcendental through StrictMath, or through util/FastStrictTrig which is a
+# bit-identical allocation-free transcription of the JDK's FdLibm kernels.
+#
+# It is also not only about reproducibility. At `+proj=adams_ws2 +ellps=WGS84` and `(179.999, 0)` the
+# map's conditioning amplifies a last-bit difference in `sin` by ~3e8, so `Math.sin` misses
+# adams_ws2.gie:2139 by 27.8 mm against a 1 mm tolerance while `StrictMath.sin` hits it at 0.35 mm.
+# Neither is more accurate - the exact value sits between them - so what is being preserved is
+# fidelity to the fdlibm-equivalent `sin` that generated PROJ's expected values. The policy decides a
+# conformance verdict, not just a determinism property.
+#
+# WHY THIS WORKFLOW EXISTS SEPARATELY FROM ci.yaml's `determinism` job. That job runs the same suite
+# under a hostile Locale, charset and timezone, and it has an arm64 leg - but it only checks that the
+# suite still PASSES. It does not compare numeric output between legs, and its own comment says so.
+# This workflow does the comparison. That is the difference between asserting the guarantee and
+# proving it.
+#
+# VERIFICATION STATUS. Unlike everything else in .github/, the Java side of this has been run.
+# StrictMathGoldenTableTest and NanBitPatternTest were executed locally on five JDK/ISA combinations
+# before this file was written:
+#
+#   Temurin  8.0.502  x86-64    StrictMath.sin native (JNI fdlibm)     54,265 pass
+#   Temurin 11.0.32   x86-64    StrictMath.sin native (JNI fdlibm)     54,265 pass
+#   Temurin 11.0.32   aarch64   StrictMath.sin native (JNI fdlibm)     54,265 pass
+#   Temurin 21.0.11   aarch64   StrictMath.sin pure Java (FdLibm)      54,265 pass
+#   OpenJDK 26.0.2    aarch64   StrictMath.sin pure Java (FdLibm)      54,265 pass
+#
+# 271,325 StrictMath and 221,970 FastStrictTrig raw-bit comparisons, zero value mismatches, across
+# two instruction sets and both StrictMath implementations. The YAML itself has never executed.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # BLOCKING. Run the determinism suite on each (architecture, JDK) pair and upload the tables it
+  # emits. Each leg independently asserts the committed golden, so a single leg going red is already
+  # a real finding; the cross-leg job below adds what a single leg cannot see.
+  #
+  # WHY BOTH JDK 11 AND 17/21 LEGS, when ci.yaml's build job only does 17 and 21: JDK **21** rewrote
+  # StrictMath.sin/cos/tan from JNI-into-compiled-fdlibm to pure Java. Those are different
+  # implementations in different languages reached by different mechanisms, so a pass on 21 is not
+  # evidence about 11. Verified locally that 11 passes - do not drop the leg on the assumption that
+  # it must, because the migration was not even uniform within a release: on 11, StrictMath.pow and
+  # StrictMath.exp are already pure Java while sin, cos, tan and log are still native.
+  #
+  # CORRECTED 2026-08-03: this comment said "JDK 17 rewrote StrictMath". THE BOUNDARY IS 21, NOT 17,
+  # and that matters here because this comment is the stated reason the matrix has both an 11 and a
+  # 17/21 leg. Proved three ways on Temurin 17.0.20 vs 21.0.11, aarch64: Modifier.isNative(
+  # StrictMath.sin) true/false; java.lang.FdLibm$Sin ClassNotFound/loadable; jimage 5/23 FdLibm
+  # classes. So JDK 17 sits on the NATIVE side, with 8 and 11 - which means the matrix as written
+  # covers both implementations, but for a different reason than the one given, and the 17 leg is
+  # not the "pure Java" arm anyone reading this would assume. The same false premise nearly shipped
+  # an MR-JAR whose META-INF/versions/17 would have put JDK 17 on the slow path.
+  #
+  # JDK 8 is deliberately absent from this matrix even though it passed locally. --release 8 is a
+  # javac 9+ flag, so JDK 8 cannot run the build at all; ci.yaml's jdk8-runtime job is the right place
+  # for Java 8 evidence and it forks only the test JVM. Java 8 also carries a determinism hazard of
+  # its own that has nothing to do with StrictMath - see the toRadians note in the cross-arch job.
+  bits:
+    name: ${{ matrix.arch }} / JDK ${{ matrix.java }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,    arch: x86-64,  java: '11' }
+          - { os: ubuntu-latest,    arch: x86-64,  java: '17' }
+          - { os: ubuntu-latest,    arch: x86-64,  java: '21' }
+          # These three legs depend on GitHub-hosted arm64 runners, which are free for PUBLIC
+          # repositories on github.com. That is the condition this repository meets, so they should
+          # allocate. They would not on a private repository, and they cannot on GitHub Enterprise
+          # Server at all, which has no hosted-runner fleet -- there `ubuntu-24.04-arm` resolves only
+          # if someone registers an arm64 self-hosted runner carrying that label.
+          # If they ever fail to allocate, that is a LOUD failure rather than a silent skip, which is
+          # the correct behaviour: a silently-absent aarch64 leg would leave the determinism claim
+          # unproven while the workflow looked green, and the `cross-arch` job below would then be
+          # comparing x86-64 against itself. Do not "fix" that by deleting the legs quietly -- either
+          # restore an arm64 runner, or remove them and record the loss of the cross-arch claim.
+          - { os: ubuntu-24.04-arm, arch: aarch64, java: '11' }
+          - { os: ubuntu-24.04-arm, arch: aarch64, java: '17' }
+          - { os: ubuntu-24.04-arm, arch: aarch64, java: '21' }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          # runner.arch is in the key: without it the arm64 legs would share a cache entry with the
+          # x64 legs and race each other for the save.
+          key: ${{ runner.os }}-${{ runner.arch }}-maven-det-jdk${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-maven-det-
+            ${{ runner.os }}-${{ runner.arch }}-maven-
+
+      # Record what actually ran. `os.arch` from the JVM rather than the runner label, because the
+      # label is what we asked for and os.arch is what we got - and a determinism claim attributed to
+      # the wrong architecture is worse than no claim.
+      - name: Report the JVM under test
+        run: |
+          set -euo pipefail
+          java -version
+          cat > /tmp/Arch.java <<'EOF'
+          public class Arch {
+            public static void main(String[] a) throws Exception {
+              System.out.println("os.arch=" + System.getProperty("os.arch"));
+              System.out.println("java.version=" + System.getProperty("java.version"));
+              java.lang.reflect.Method m = StrictMath.class.getDeclaredMethod("sin", double.class);
+              System.out.println("StrictMath.sin native=" +
+                  java.lang.reflect.Modifier.isNative(m.getModifiers()));
+            }
+          }
+          EOF
+          javac -d /tmp /tmp/Arch.java && java -cp /tmp Arch
+
+      # -Dtest= narrows to the determinism package. The rest of core's suite runs in ci.yaml; running
+      # it again here would triple this workflow's cost while adding nothing, because what this
+      # workflow contributes is the CROSS-LEG comparison of the emitted tables, not another pass/fail.
+      #
+      # WHY failIfNoSpecifiedTests IS *FALSE* HERE, WHICH LOOKS BACKWARDS. The flag exists for exactly
+      # the failure mode this workflow must not have - a rename or package move makes surefire match
+      # nothing, report success, and turn the whole thing into a decoration that can never fail. But
+      # setting it true does not work: `-am` also builds neoproj4j-epsg, which has no test sources at
+      # all, so the strict flag fails *there* and the determinism tests never run. Verified by running
+      # it: "No tests matching pattern ... were executed!" on project neoproj4j-epsg.
+      #
+      # So the guard moves to the next step and gets stronger in the process: instead of "at least one
+      # test ran somewhere", assert the exact number of tests in core's own surefire XML. That catches
+      # a rename, a package move, AND a test being silently dropped from a class - which the flag would
+      # not have caught.
+      - name: Run the determinism suite
+        run: |
+          mvn -B -ntp -pl core -am test \
+            -Dtest='org.locationtech.proj4j.determinism.*Test' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dmaven.javadoc.skip=true \
+            -DargLine="-Dproj4j.determinism.outDir=${{ github.workspace }}/core/target/determinism"
+
+      # The real "something was actually measured" guard: a FLOOR on the test count, plus a printed
+      # drift when the true count has moved above it. Running nothing still fails; adding a test
+      # never does.
+      #
+      # WHY A FLOOR AND NOT AN EXACT COUNT - THIS CONSTANT HAS NOW BEEN STALE TWICE, AND BOTH TIMES
+      # IT WOULD HAVE FAILED THE JOB ON A BOOKKEEPING ERROR RATHER THAN A DEFECT.
+      #
+      #   9  -> 15 (2026-08-01). 9 was StrictMathGoldenTableTest (6) + NanBitPatternTest (3), the two
+      #         classes this file's header talks about. But `-Dtest='...determinism.*Test'` also
+      #         matches NoJdkAngleConversionTest, which lives in the same package and adds 6.
+      #   15 -> 22 (2026-08-02). NoAmbientLocaleInCoreTest joined the same package and adds 7.
+      #         Measured, not counted from a brief: this exact Maven invocation on Temurin 21 /
+      #         aarch64 reports "Tests run: 22, Failures: 0, Errors: 0, Skipped: 0" across four
+      #         surefire XMLs (6 + 3 + 7 + 6), cross-checked against 22 `@Test` methods in the
+      #         package's sources.
+      #
+      # An exact count makes every unrelated test addition a red build in a workflow the author of
+      # that test has no reason to be looking at, and the second occurrence is the one that settles
+      # it: the pattern is not "someone forgot", it is that the constant is coupled to a package
+      # that other streams legitimately grow. What the exact count bought - noticing a DROP from 22
+      # to 15 - is what the floor still buys, because the floor IS 22. What it gives up is noticing
+      # a rise, and that is printed as a ::notice:: on every run instead of swallowed, so it cannot
+      # go unrecorded. This is deliberately the same shape as docker/run.sh's check_determinism,
+      # which asserts DET_FLOOR_TESTS and separately reports the drift; keep the two in step.
+      #
+      # RAISE THE FLOOR when tests are added on purpose. It is a ratchet, not a ceiling.
+      - name: Assert the determinism tests actually ran
+        run: |
+          set -euo pipefail
+          # Floor, not an exact count. Measured 2026-08-02; raise it when tests are added.
+          DET_FLOOR_TESTS=22
+          # `|| xml=0` is required, not defensive. With `set -euo pipefail`, a bare
+          # `xml=$(ls ... | wc -l)` where the glob matches nothing makes `ls` fail, pipefail
+          # propagates it, and `set -e` kills the script on the ASSIGNMENT - exit 1 with not one
+          # word of explanation, in the exact case this guard exists to explain. Putting the
+          # assignment in an AND-OR list suppresses `set -e` and lets the message below print.
+          # Verified by running the step against an empty surefire-reports directory.
+          xml=$(ls core/target/surefire-reports/TEST-org.locationtech.proj4j.determinism.*.xml 2>/dev/null | wc -l | tr -d ' ') || xml=0
+          [ "$xml" -ge 2 ] || {
+            echo "::error::expected at least 2 determinism surefire reports, found $xml."
+            echo "::error::The tests did not run. A workflow that runs no assertions is not a pass."
+            exit 1; }
+          # awk rather than `bc`: bc is not guaranteed present on every runner image, and a gate
+          # that dies on a missing utility is indistinguishable from a gate that fails.
+          sum() {
+            grep -ho "$1=\"[0-9]*\"" core/target/surefire-reports/TEST-org.locationtech.proj4j.determinism.*.xml \
+              | sed "s/[^0-9]//g" | awk '{n += $1} END {print n + 0}'
+          }
+          ran=$(sum tests)
+          fail=$(sum failures)
+          err=$(sum errors)
+          skip=$(sum skipped)
+          echo "determinism tests: ran=$ran failures=$fail errors=$err skipped=$skip  across $xml classes"
+          ls core/target/surefire-reports/TEST-org.locationtech.proj4j.determinism.*.xml \
+            | sed 's|.*TEST-|    |; s|\.xml$||'
+          [ "$ran" -ge "$DET_FLOOR_TESTS" ] || {
+            echo "::error::only $ran determinism tests ran; the floor is $DET_FLOOR_TESTS."
+            echo "::error::Either the tests did not run, or they were renamed out of the -Dtest"
+            echo "::error::pattern, or a test was dropped from a class. A run that makes no"
+            echo "::error::assertions is not a pass. If tests were removed on purpose, lower"
+            echo "::error::DET_FLOOR_TESTS in this workflow in the same commit."
+            exit 1; }
+          # Drift is reported, never fatal. A test added to this package by another stream must not
+          # turn this job red - but it must not go unnoticed either.
+          if [ "$ran" -gt "$DET_FLOOR_TESTS" ]; then
+            echo "::notice::determinism test count has drifted UP: $ran ran, floor is" \
+                 "$DET_FLOOR_TESTS (+$((ran - DET_FLOOR_TESTS))). Not a failure. Raise" \
+                 "DET_FLOOR_TESTS in .github/workflows/determinism.yaml so the floor keeps" \
+                 "tracking reality, and update docker/run.sh's DET_FLOOR_TESTS with it."
+          fi
+          # Skips are never passes - the same rule the conformance harness enforces.
+          [ "$skip" -eq 0 ] || { echo "::error::$skip determinism tests were skipped"; exit 1; }
+          [ "$fail" -eq 0 ] && [ "$err" -eq 0 ] || { echo "::error::determinism tests failed"; exit 1; }
+
+      # The emitted tables are the payload. Each leg writes its own Math-divergence tally and its own
+      # NaN bit patterns; neither can be checked from inside one leg.
+      - name: Upload the determinism tables
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: determinism-${{ matrix.arch }}-jdk${{ matrix.java }}
+          path: core/target/determinism/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-determinism-${{ matrix.arch }}-jdk${{ matrix.java }}
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"
+
+  # ---------------------------------------------------------------------------
+  # BLOCKING. The assertions that no single leg can make.
+  #
+  # Three of them, and they are not interchangeable:
+  #
+  #   1. EVERY LEG PASSED. The committed golden is the same file on every leg, so six green legs mean
+  #      six architecture/JDK combinations produced identical StrictMath bits. That is the guarantee.
+  #      Enforced by `needs` plus an explicit check on the artifact set, because `needs` alone would
+  #      also be satisfied if a leg's test silently matched nothing.
+  #
+  #   2. AT LEAST ONE LEG SHOWS Math DIVERGING from that golden. This is the non-vacuity check, and it
+  #      CANNOT be made inside a leg. Measured locally: on Temurin 11/aarch64 Math and StrictMath are
+  #      bit-identical on all 54,265 probes - 0.00% divergence, every function - while the same JDK on
+  #      x86-64 diverges on 2.95% and Temurin 21/aarch64 on 0.55%. So an in-leg assertion that "Math
+  #      must differ" would have shipped a permanently red JDK 11 arm64 leg for a non-defect, and a
+  #      permanently red gate is a disabled gate. Asserting it across the matrix puts the check where
+  #      it is actually true.
+  #
+  #      That same-JDK x86-64-vs-aarch64 pair is worth naming as the finding it is: it is a direct
+  #      demonstration that HotSpot's Math intrinsics are architecture-dependent, which is the premise
+  #      the entire StrictMath policy rests on and which had never been demonstrated for this project.
+  #
+  #   3. THE NaN CARVE-OUT IS REPORTED, NOT ASSERTED AWAY. NaN sign and payload are
+  #      architecture-dependent: with the JDK held at Temurin 11.0.32 and only the ISA varied,
+  #      `Inf - Inf`, `Inf * 0.0`, `Inf / Inf` and `sqrt(-1)` are 0xfff8000000000000 on x86-64 and
+  #      0x7ff8000000000000 on AArch64. This job prints the difference rather than failing on it,
+  #      because the JLS specifies only that those expressions yield *a* NaN. It matters concretely:
+  #      the fail-closed sentinel policy writes NaN to every ordinate of a failed point, so error rows
+  #      in any golden table are exactly the rows that cannot be raw-bit compared across
+  #      architectures.
+  cross-arch:
+    name: Cross-architecture comparison
+    runs-on: ubuntu-latest
+    needs: bits
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: determinism-*
+          path: tables
+
+      - name: Show every leg's tables
+        run: |
+          set -euo pipefail
+          find tables -type f | sort
+          for f in $(find tables -name '*.tsv' | sort); do
+            echo "::group::$f"; cat "$f"; echo "::endgroup::"
+          done
+
+      - name: Assert every expected leg reported
+        run: |
+          set -euo pipefail
+          missing=0
+          for leg in x86-64-jdk11 x86-64-jdk17 x86-64-jdk21 \
+                     aarch64-jdk11 aarch64-jdk17 aarch64-jdk21; do
+            if [ ! -f "tables/determinism-$leg/math-divergence.tsv" ]; then
+              echo "::error::leg $leg produced no math-divergence.tsv"
+              missing=1
+            fi
+            if [ ! -f "tables/determinism-$leg/nan-patterns.tsv" ]; then
+              echo "::error::leg $leg produced no nan-patterns.tsv"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || {
+            echo "::error::at least one leg did not report. A leg that runs no assertions is not a"
+            echo "::error::pass - the whole point of this workflow is that all six agree, so a"
+            echo "::error::missing leg leaves the guarantee unproven."
+            exit 1; }
+          echo "All six legs reported."
+
+      # Assertion 2. The measurement is per leg; the conclusion is per matrix.
+      - name: Assert Math diverges on at least one leg (non-vacuity)
+        run: |
+          set -euo pipefail
+          any=0
+          echo "leg                            Math rows differing from the StrictMath golden"
+          for f in $(find tables -name 'math-divergence.tsv' | sort); do
+            leg=$(basename "$(dirname "$f")")
+            # The TOTAL row is 'TOTAL<tab>differing<tab>total<tab>-'
+            d=$(awk -F'\t' '$1=="TOTAL"{print $2}' "$f")
+            t=$(awk -F'\t' '$1=="TOTAL"{print $3}' "$f")
+            printf '  %-30s %s / %s\n' "$leg" "$d" "$t"
+            [ "${d:-0}" -gt 0 ] && any=1
+          done
+          [ "$any" -eq 1 ] || {
+            echo "::error::Math agreed with the StrictMath golden on EVERY leg. The golden therefore"
+            echo "::error::cannot distinguish the two implementations anywhere in this matrix, so"
+            echo "::error::passing it proves nothing about the StrictMath policy. Either HotSpot"
+            echo "::error::stopped intrinsifying sin/cos/tan/exp/log/pow entirely - in which case the"
+            echo "::error::policy is temporarily free and that should be recorded as the reason - or"
+            echo "::error::the probe set has drifted somewhere that no longer exercises the"
+            echo "::error::difference. Do not relax this check to make it pass."
+            exit 1; }
+          echo "Non-vacuity satisfied: at least one leg shows Math departing from the golden."
+
+      # Assertion 2b, the sharper form. Same JDK, different ISA. This is the pair that demonstrates
+      # architecture dependence directly rather than by inference, so it is worth its own step and its
+      # own output even though the previous step already passed.
+      - name: Report Math divergence per architecture at a fixed JDK
+        run: |
+          set -euo pipefail
+          for jdk in 11 17 21; do
+            x="tables/determinism-x86-64-jdk$jdk/math-divergence.tsv"
+            a="tables/determinism-aarch64-jdk$jdk/math-divergence.tsv"
+            [ -f "$x" ] && [ -f "$a" ] || continue
+            dx=$(awk -F'\t' '$1=="TOTAL"{print $2}' "$x")
+            da=$(awk -F'\t' '$1=="TOTAL"{print $2}' "$a")
+            echo "JDK $jdk: Math differs from the golden on $dx rows (x86-64) vs $da rows (aarch64)"
+            if [ "$dx" != "$da" ]; then
+              echo "  -> the SAME JDK diverges by a DIFFERENT amount on the two architectures."
+              echo "     This is the premise of the StrictMath policy, demonstrated rather than"
+              echo "     assumed. Measured locally on Temurin 11.0.32: 1599 vs 0."
+            fi
+          done
+
+      # Assertion 1, made explicit. The golden is one committed file; if two legs both passed against
+      # it, they produced the same bits. Diffing the emitted tables adds nothing for StrictMath - but
+      # it is the only way to see the NaN divergence, which is deliberately not a failure.
+      - name: Report the NaN carve-out across architectures
+        run: |
+          set -euo pipefail
+          x="tables/determinism-x86-64-jdk21/nan-patterns.tsv"
+          a="tables/determinism-aarch64-jdk21/nan-patterns.tsv"
+          if [ -f "$x" ] && [ -f "$a" ]; then
+            echo "NaN bit patterns, x86-64 vs aarch64 on JDK 21:"
+            # Drop the header lines that legitimately differ (javaVersion, osArch) before diffing.
+            diff <(grep -vE '^(javaVersion|osArch|#)' "$x") \
+                 <(grep -vE '^(javaVersion|osArch|#)' "$a") && {
+              echo "  identical on this pair."
+            } || {
+              echo ""
+              echo "  The differences above are EXPECTED and are NOT a failure. x86-64's default NaN"
+              echo "  has the sign bit set; AArch64's does not, and the JLS specifies only that these"
+              echo "  expressions yield *a* NaN. Recorded so the boundary of the bit-for-bit"
+              echo "  guarantee is visible: every FINITE result is identical across architectures,"
+              echo "  NaN payloads are not, and the fail-closed sentinel writes NaN - so error rows"
+              echo "  in a golden table cannot be raw-bit compared across architectures."
+            }
+          else
+            echo "JDK 21 pair not both present; nothing to compare."
+          fi
+
+      - name: Summary
+        run: |
+          {
+            echo "## Determinism"
+            echo ""
+            echo "The committed golden (\`strictmath-golden.tsv\`, 54,265 results across 19"
+            echo "functions) was asserted independently by every leg below. Six green legs mean six"
+            echo "architecture/JDK combinations produced **identical raw bits** for every"
+            echo "\`StrictMath\` and \`FastStrictTrig\` result."
+            echo ""
+            echo "| leg | Math rows differing from the golden |"
+            echo "|---|---|"
+            for f in $(find tables -name 'math-divergence.tsv' | sort); do
+              leg=$(basename "$(dirname "$f")")
+              d=$(awk -F'\t' '$1=="TOTAL"{print $2}' "$f")
+              t=$(awk -F'\t' '$1=="TOTAL"{print $3}' "$f")
+              echo "| \`${leg#determinism-}\` | $d / $t |"
+            done
+            echo ""
+            echo "A leg showing 0 is not a defect - it means \`Math\` and \`StrictMath\` happen to"
+            echo "agree there. Non-vacuity is a property of the matrix: at least one leg must"
+            echo "diverge, and that is asserted above rather than inside any leg."
+            echo ""
+            echo "**Known carve-out:** NaN sign and payload are architecture-dependent and outside"
+            echo "the bit-for-bit guarantee. Finite results and signed zero are inside it."
+          } >> "$GITHUB_STEP_SUMMARY"

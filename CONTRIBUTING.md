@@ -1,29 +1,32 @@
-# Contributing to Proj4j
+# Contributing to neoProj4J
 
-The Proj4j project is always excited to accept contributions from the community. This document
+The neoProj4J project is always excited to accept contributions from the community. This document
 contains some guidelines to help users and developers contribute to the project.
+
+neoProj4J is a fork of [locationtech/proj4j](https://github.com/locationtech/proj4j); see the
+[README](README.md) for what that means. Contributions to this fork go here. Please do not file
+issues about this fork with the upstream project, which is not responsible for it.
 
  - [Code Style](#code)
  - [Issues and Bugs](#bugs)
- - [Discussion Forum](#discuss)
+ - [Discussion](#discuss)
  - [Submitting Patches](#patches)
 
 ## <a name="code">Code Style</a>
 
-Proj4j adheres to (as much as possible) the
+neoProj4J adheres to (as much as possible) the
 [Google Java Style](https://google.github.io/styleguide/javaguide.html) conventions. If a patch
 or commit deviates from these guidelines a reviewer will likely ask for it to be reformatted.
 
 ## <a name="bugs">Issues, Bugs, and Feature Requests</a>
 
-Proj4j utilizes Github for issue tracking. Bugs, issues, and feature requests should be
-filed [here](https://github.com/locationtech/proj4j/issues).
+Bugs, issues, and feature requests should be filed on this repository's issue tracker.
 
-## <a name="discuss">Discussion Forum</a>
+## <a name="discuss">Discussion</a>
 
-Often communication can be carried out through comments on an issue or pull request directly but
-for larger discussions that are more general in nature it is recommended that the project
-[mailing list](https://locationtech.org/mailman/listinfo/proj4j-dev) be used.
+Communication is carried out through comments on an issue or pull request directly. For larger
+discussions that are more general in nature, open an issue describing what you have in mind before
+you start writing code.
 
 ## <a name="patches">Submitting Patches</a>
 
@@ -35,26 +38,24 @@ This [guide](http://people.redhat.com/rjones/how-to-supply-code-to-open-source-p
 some useful guidelines for contributing to open source projects in general. Below are some additionally
 stressed points.
 
-### Send email first
+### Open an issue first
 
-It is never a bad idea to email the mailing list with thoughts about a change you intend to make
-before you make it. This allows the committers to weigh in with thoughts and suggestions that will
-help you make the change and ultimately ensure your successful contribution to the project.
+It is never a bad idea to open an issue with thoughts about a change you intend to make before you
+make it. This allows the maintainers to weigh in with thoughts and suggestions that will help you
+make the change and ultimately ensure your successful contribution to the project.
 
-### Sign off on commits, and filing a CLA
+### Sign off on commits
 
-Non-committers submitting patches to Proj4j must use the "-s" (sign-off) flag when making
-commits with git. This flag indicates that the author verifies the change is (too the best knowledge
+Non-committers submitting patches to neoProj4J must use the "-s" (sign-off) flag when making
+commits with git. This flag indicates that the author verifies the change is (to the best knowledge
 of the author) in good standing and consistent with the open source license of the project, and that
-if he/she has permission from their employer to contribute the code (if applicable).
+he/she has permission from their employer to contribute the code (if applicable). It is an assertion
+of the [Developer Certificate of Origin](https://developercertificate.org/).
 The following is an example of a commit with the sign-off flag.
 
      git commit -s -m "the commit message"
 
 Once a developer has been elevated to project committer status the sign-off flag is no longer required.
-
-Additionally, a one-time event is to [submit a a CLA](https://projects.eclipse.org/user/sign/cla)
-"Contributor License Agreement".  It's simple and fast to do.
 
 ### One patch per one bug/feature
 
@@ -70,8 +71,8 @@ whitespace or other formatting changes a reviewer will ask for them to be remove
 
 ### Viewing the entire project history
 
-(Optional) We recommended that developers do this step to be able to view the
-pre-LocationTech history of the project. This can be achieved with the following
-command after the repository has been cloned:
+This repository carries the history of the upstream project, including the history from before
+upstream moved to the Eclipse Foundation. That earlier history is not an ancestor of the current
+branch; it is reachable from the `_old/eclipse_initial` tag:
 
-    git fetch origin refs/replace/*:refs/replace/*
+    git log _old/eclipse_initial

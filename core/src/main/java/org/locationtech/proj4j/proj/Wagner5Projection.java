@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class Wagner5Projection extends MolleweideProjection {
 
+	private static final long serialVersionUID = -4190653088159643764L;
+
 	public Wagner5Projection() {
 		super( MolleweideProjection.WAGNER5 );
 	}

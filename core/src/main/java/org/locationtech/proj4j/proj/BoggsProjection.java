@@ -19,10 +19,13 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ConvergenceFailureException;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class BoggsProjection extends PseudoCylindricalProjection {
+
+	private static final long serialVersionUID = -8276209929534434283L;
 
 	private final static int NITER = 20;
 	private final static double EPS = 1e-7;
@@ -32,8 +35,16 @@ public class BoggsProjection extends PseudoCylindricalProjection {
 	private final static double FYC = 0.49931;
 	private final static double FYC2 = 1.41421356237309504880;
 
+	/**
+	 * Forward projection.
+	 * <p>
+	 * <b>Fail-closed.</b> PROJ's {@code boggs.cpp} runs its Newton iteration to a fixed
+	 * {@code NITER} and then simply uses whatever {@code theta} holds — there is no convergence
+	 * test at all, so an exhausted iteration is reported as a perfectly ordinary coordinate,
+	 * wrong by an unbounded amount. Proj4J throws.
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		double theta, th1, c;
+		double theta, th1 = Double.NaN, c;
 		int i;
 
 		theta = lpphi;
@@ -45,6 +56,12 @@ public class BoggsProjection extends PseudoCylindricalProjection {
 				theta -= th1 = (theta + Math.sin(theta) - c) /
 					(1. + Math.cos(theta));
 				if (Math.abs(th1) < EPS) break;
+			}
+			if (i == 0) {
+				throw new ConvergenceFailureException(this,
+						"forward parametric-latitude iteration did not converge to " + EPS
+								+ " within " + NITER + " iterations for latitude " + lpphi
+								+ " rad (last correction " + th1 + ")");
 			}
 			theta *= 0.5;
 			out.x = FXC * lplam / (1. / Math.cos(lpphi) + FXC2 / Math.cos(theta));

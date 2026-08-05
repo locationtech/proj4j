@@ -1,0 +1,189 @@
+name: Performance Gate
+
+# TIERS 1 AND 2 OF THE PERFORMANCE REGRESSION GATE.
+#
+# benchmark/pom.xml calls these "blocking PR gates". Until this file existed, NO JOB ANYWHERE
+# INVOKED GateChecker - the module is not in the root pom's default <modules> (deliberately: a
+# plain build must neither compile it nor download JMH, so `core` stays dependency-free) and no
+# workflow passed `-Pbench`. The description was accurate about intent and false about fact.
+#
+# WHAT IS AND IS NOT GATED, TODAY. This matters more than usual here, because the honest answer is
+# "almost nothing", and saying so is the point of adding the job.
+#
+#   Tier 1 (allocation, bytes/op). 29 of the rules in
+#   benchmark/src/main/resources/baseline/allocation-baseline.json carry `maxBytesPerOp: "TBD"`
+#   and the `ratchets` block is empty. A TBD is a WARNING by default, so as shipped the tier
+#   observes and passes. Exactly two rules carry a real number and can reject today:
+#   `math-dispatch-intrinsic-zero-allocation` (0, ratchetable:false - the harness's own canary)
+#   and `math-dispatch-strictmath` (64). `required: true` is also already load-bearing on every
+#   rule: a renamed or excluded benchmark fails the gate even while every threshold is TBD.
+#
+#   Tier 2 (deterministic transcendental call counts). Every one of the 158 entries in
+#   op-counts.json is TBD. The tier measures, prints and passes.
+#
+# SO THIS JOB PASSES `--require-baseline`, AND IS THEREFORE RED TODAY. That flag turns each TBD
+# from a warning into a failure. allocation-baseline.json's own note already nominates it -
+# "Pass --require-baseline to turn those warnings into failures once the baseline is real - that
+# is the flag CI should use after capture" - and the choice made here is to wire it in BEFORE the
+# capture rather than after. The reasoning: a green job over 187 unpinned thresholds is a
+# decoration, and a decoration is what this workflow exists to replace. Red-and-naming-the-gap is
+# a true statement about the gate's state; green is not. The job turns green the moment a capture
+# is recorded and committed:
+#
+#     cd benchmark && ./run-gate.sh --record        # then commit both baseline JSON files
+#
+# FIRST RUN ALSO TESTS SOMETHING NOBODY HAS CHECKED: RATCHET PORTABILITY. The capture in flight is
+# being taken on Temurin 21 / aarch64 / macOS; this job runs Temurin 21 / x86-64 / Linux.
+# gc.alloc.rate.norm is a property of the bytecode and both platforms use compressed oops, so the
+# numbers SHOULD be identical - but "should" is not evidence, and the gate's slack is deliberately
+# tight (max(0.5 B, 0.1%)). If the first post-capture run fails by small deltas on many arms, that
+# is a portability finding, and the fix is to re-record on this architecture with a
+# workflow_dispatch job - NOT to widen the slack and not to raise a ratchet.
+#
+# WHY NO TIER 3 (absolute ns/op). Deliberate and documented in GateChecker's javadoc and
+# reference/performance.md: JMH on shared CI runners varies +/-20-40% - no CPU pinning, no turbo
+# control, noisy neighbours - and a gate with that false-positive rate gets muted, then ignored,
+# then deleted. Timing belongs on a nightly job on dedicated hardware, alerting only on a >10%
+# regression sustained across three nights. Do not add a timing assertion here.
+#
+# VERIFICATION STATUS. GateChecker's Tier 1 comparison was exercised locally on Temurin 21
+# against the committed allocation-baseline.json: a fixture with an injected 62.4 B/op on
+# MathDispatchBenchmark.math produced "ALLOCATION REGRESSION ... delta +62.4 B/op" naming the
+# benchmark and the rule, while the otherwise-identical clean fixture did not. run-gate.sh's
+# argument plumbing for --require-baseline was verified with a stubbed `java`. The YAML itself has
+# never executed.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # BLOCKING. Build the shaded benchmarks jar, run the live benchmarks with the allocation
+  # profiler, then check Tiers 1 and 2.
+  gate:
+    name: Allocation and op-count gate (blocking)
+    runs-on: ubuntu-latest
+    # UNMEASURED. A full JMH run of this module takes about 90 minutes on a laptop; --quick drops
+    # to 1 fork and 2+3 one-second iterations, which should be well under 15 minutes, but no one
+    # has timed it on a runner. Generous rather than tuned; tighten once there is a number.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          # benchmark/pom.xml compiles at <release>17</release>, deliberately newer than core's 8,
+          # because this module is never published. 21 is what the baselines are captured on.
+          java-version: '21'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-bench-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-bench-
+            ${{ runner.os }}-maven-
+
+      # -Pbench is what adds <module>benchmark</module> to the root pom; -pl benchmark alone
+      # cannot resolve it. -am brings neoproj4j, neoproj4j-epsg and neoproj4j-grids-us-legacy, all three of
+      # which must be inside the shaded jar - grids-us-legacy is not optional, see the long note in
+      # benchmark/pom.xml about NAD27_TO_NAD83 silently degrading to a near-identity without it.
+      #
+      # -DskipTests: benchmark/pom.xml already sets skipTests, but -am builds core, whose suite has
+      # one expected failure (MetaCRSTest) that would stop the reactor before the jar is built.
+      # core's tests are ci.yaml's business, not this job's.
+      - name: Build the shaded benchmarks jar
+        run: |
+          mvn -B -ntp -Pbench -pl benchmark -am package \
+            -DskipTests \
+            -Dmaven.javadoc.skip=true \
+            -Dmaven.source.skip=true
+
+      # The gate's own plumbing, before it is trusted to judge anything else. Cheap, and it is the
+      # difference between "the gate passed" and "the gate ran".
+      # NB: a literal block scalar, not a plain one with a backslash. YAML folds a plain multi-line
+      # scalar's newline into a space, so `... \<newline>   org...` reaches the shell as
+      # `... \ org...` - a backslash-escaped SPACE, not a line continuation - and the command dies
+      # on an unparseable argument. Every other multi-line `run:` in this repository's workflows
+      # uses `run: |` for the same reason.
+      - name: GateChecker self-test
+        run: |
+          java -cp benchmark/target/benchmarks.jar \
+            org.locationtech.proj4j.benchmark.gate.GateChecker --self-test
+
+      # run-gate.sh rather than an inline command, on purpose: the JMH exclusion, the profiler and
+      # the output format are all load-bearing and would drift if duplicated here.
+      #   -prof gc         produces gc.alloc.rate.norm. WITHOUT IT TIER 1 SILENTLY CHECKS NOTHING.
+      #   (there is no -e any more. It used to exclude ...benchmark.staged, whose @Setup failed
+      #    because the bulk API did not exist. It does now, the staged package is deleted, and
+      #    BulkTransformBenchmark is gated like everything else - which it was NOT while excluded:
+      #    the bulk-zero-allocation rule matched nothing for the whole of that period.)
+      #   --quick          1 fork, 2 warmup + 3 measurement iterations at 1 s. Legitimate for
+      #                    Tier 1 because bytes/op is a bytecode property that converges
+      #                    immediately; it would NOT be legitimate for timing, which is why this
+      #                    job does not do timing.
+      #   --require-baseline  a TBD threshold is a failure. See the header.
+      - name: Run the gate
+        run: |
+          cd benchmark
+          ./run-gate.sh --quick --require-baseline
+
+      # NON-VACUITY. `-prof gc` failing to attach, or the -e exclusion accidentally matching
+      # everything, both produce a run in which Tier 1 examines zero measurements - and the tier
+      # would then have nothing to complain about. Runs even on failure, because a gate that
+      # failed for the wrong reason still has to be caught.
+      #
+      # awk and shell arithmetic, never `bc`: bc is not guaranteed present on every runner image,
+      # and a gate that dies on a missing utility is indistinguishable from a gate that fails.
+      - name: Assert the run actually measured something
+        if: always()
+        run: |
+          set -euo pipefail
+          json=benchmark/target/jmh-result.json
+          [ -f "$json" ] || {
+            echo "::error::no $json - JMH did not produce a result file, so Tier 1 examined nothing."
+            exit 1; }
+
+          # One line per benchmark record. grep -c on the key, not a JSON parser: jq is present on
+          # GitHub runners today but this check must not acquire a dependency to stay true.
+          arms=$(grep -c '"benchmark"' "$json" || true)
+          alloc=$(grep -c 'gc.alloc.rate.norm' "$json" || true)
+          echo "JMH arms: $arms   arms carrying gc.alloc.rate.norm: $alloc"
+          [ "${arms:-0}" -ge 20 ] || {
+            echo "::error::only ${arms:-0} benchmark arms in the result; expected at least 20."
+            echo "::error::Benchmarks were excluded, renamed, or failed in @Setup. Tier 1 cannot"
+            echo "::error::gate what was not run - and GateChecker's `required` flag only catches"
+            echo "::error::the rules that expect a specific one."
+            exit 1; }
+          [ "${alloc:-0}" -ge 20 ] || {
+            echo "::error::${alloc:-0} arms carry gc.alloc.rate.norm. The -prof gc profiler did not"
+            echo "::error::attach. Tier 1 warns per benchmark in that case rather than failing, so"
+            echo "::error::the whole tier would have measured NOTHING while reporting success."
+            exit 1; }
+          echo "Non-vacuity satisfied: $alloc of $arms arms carry an allocation measurement."
+
+      - name: Upload the JMH result and gate output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-gate
+          path: |
+            benchmark/target/jmh-result.json
+            benchmark/src/main/resources/baseline/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"

@@ -22,6 +22,9 @@ package org.locationtech.proj4j.proj;
 import org.locationtech.proj4j.ProjCoordinate;
 
 public class Wagner3Projection extends PseudoCylindricalProjection {
+
+	private static final long serialVersionUID = 4302239599191416890L;
+
 	
 	private final static double TWOTHIRD = 0.6666666666666666666667;
 

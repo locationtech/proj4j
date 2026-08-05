@@ -24,6 +24,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class NicolosiProjection extends Projection {
 
+	private static final long serialVersionUID = 3300177092263201493L;
+
 	private final static double EPS = 1e-10;
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {

@@ -17,19 +17,47 @@ package org.locationtech.proj4j;
 
 /**
  * Signals that a parameter or computed internal variable
- * has a value which lies outside the 
+ * has a value which lies outside the
  * allowable bounds for the computation in which it is being used.
- * 
+ * <p>
+ * {@link #cause()} is {@link ErrorCause#INVALID_PARAM_VALUE}, refined to
+ * {@link ErrorCause#CONTRADICTORY_PARAMS} by the subclass
+ * {@link ContradictoryParameterException}.
+ *
  * @author mbdavis
  *
  */
-public class InvalidValueException extends Proj4jException {
+public class InvalidValueException extends CrsCreationException {
+
+	private static final long serialVersionUID = -5817463739437408095L;
+
+	/** The cause reported by every constructor that does not take one explicitly. */
+	private static final ErrorCause DEFAULT_CAUSE = ErrorCause.INVALID_PARAM_VALUE;
 
 	public InvalidValueException(String message) {
-		super(message);
+		super(DEFAULT_CAUSE, message);
 	}
 
 	public InvalidValueException(String message, Exception cause) {
-		super(message, cause);
+		super(DEFAULT_CAUSE, message, cause);
+	}
+
+	/**
+	 * @param cause   a refinement of {@link ErrorCause#INVALID_PARAM_VALUE}
+	 * @param message the human-readable detail message
+	 * @since 1.5.0
+	 */
+	public InvalidValueException(ErrorCause cause, String message) {
+		super(cause, message);
+	}
+
+	/**
+	 * @param cause     a refinement of {@link ErrorCause#INVALID_PARAM_VALUE}
+	 * @param message   the human-readable detail message
+	 * @param throwable the underlying throwable, or null
+	 * @since 1.5.0
+	 */
+	public InvalidValueException(ErrorCause cause, String message, Throwable throwable) {
+		super(cause, message, throwable);
 	}
 }

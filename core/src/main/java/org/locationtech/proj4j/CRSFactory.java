@@ -17,6 +17,10 @@ package org.locationtech.proj4j;
 
 import org.locationtech.proj4j.io.Proj4FileReader;
 import org.locationtech.proj4j.parser.Proj4Parser;
+import org.locationtech.proj4j.vertical.CompoundCrs;
+import org.locationtech.proj4j.vertical.CompoundCrsName;
+import org.locationtech.proj4j.vertical.VerticalCrs;
+import org.locationtech.proj4j.vertical.VerticalCrsRegistry;
 
 import java.io.IOException;
 
@@ -81,9 +85,70 @@ public class CRSFactory {
     public CoordinateReferenceSystem createFromName(String name)
             throws UnsupportedParameterException, InvalidValueException, UnknownAuthorityCodeException {
         String[] params = csReader.getParameters(name);
-        if (params == null)
+        if (params == null) {
+            // A compound name would otherwise fail as a plain unknown code, with nothing to
+            // tell the caller that the name is understood but needs a different method. It
+            // must NOT resolve here: createFromName returns a two-dimensional
+            // CoordinateReferenceSystem, and silently dropping the vertical half of
+            // "EPSG:4326+5773" would answer a 3D question with a 2D CRS.
+            if (CompoundCrsName.looksLikeCompound(name)) {
+                throw new UnknownAuthorityCodeException(ErrorCause.CRS_TYPE_NOT_SUPPORTED,
+                        name + " is a compound (horizontal + vertical) CRS, which cannot be "
+                                + "represented by a two-dimensional CoordinateReferenceSystem. "
+                                + "Use CRSFactory.createCompound(\"" + name + "\") instead.");
+            }
             throw new UnknownAuthorityCodeException(name);
+        }
         return createFromParameters(name, params);
+    }
+
+    /**
+     * Creates a {@link CompoundCrs} from a compound CRS name such as
+     * <code>EPSG:4326+5773</code> — WGS 84 with EGM96 geoid height.
+     * <p>
+     * Both spellings PROJ accepts work: <code>EPSG:4326+5773</code>, where the vertical code
+     * inherits the horizontal authority, and <code>EPSG:4326+EPSG:5773</code>. The horizontal
+     * half is resolved by {@link #createFromName(String)}, so it must be a code the shipped
+     * dictionary knows; the vertical half is resolved by
+     * {@link org.locationtech.proj4j.vertical.VerticalCrsRegistry}.
+     * <p>
+     * <b>The shipped dictionary contains no vertical CRS at all</b>, and no
+     * <code>EPSG:4979</code> either — a PROJ.4 <code>+init=</code> dictionary cannot express
+     * a standalone vertical CRS. The vertical half therefore comes from a small built-in
+     * table transcribed from PROJ 9.8.1's own database, and anything outside it is reported
+     * by code rather than guessed at. See {@code VerticalCrsRegistry} for what is present and
+     * how to add more.
+     *
+     * @param name a compound CRS name
+     * @return the compound CRS; never null
+     * @throws InvalidValueException                                     if the name is not a
+     *                                                                   compound reference
+     * @throws UnknownAuthorityCodeException                             if the horizontal half
+     *                                                                   is unknown
+     * @throws org.locationtech.proj4j.vertical.UnknownVerticalCrsException if the vertical half
+     *                                                                   is unknown
+     * @since 1.5.0
+     */
+    public CompoundCrs createCompound(String name) {
+        CompoundCrsName parts = CompoundCrsName.parse(name);
+        CoordinateReferenceSystem horizontal = createFromName(parts.horizontal());
+        VerticalCrs vertical =
+                VerticalCrsRegistry.require(parts.verticalAuthority(), parts.verticalCode());
+        return new CompoundCrs(name, horizontal, vertical);
+    }
+
+    /**
+     * Whether {@link #createCompound(String)} rather than {@link #createFromName(String)} is
+     * the method for this name.
+     *
+     * @param name any CRS name or PROJ.4 parameter string
+     * @return true for a compound CRS reference such as <code>EPSG:4326+5773</code>; false for
+     *         a plain <code>authority:code</code> and false for every PROJ.4 parameter string,
+     *         including the many that contain a <code>'+'</code>
+     * @since 1.5.0
+     */
+    public static boolean isCompoundName(String name) {
+        return CompoundCrsName.looksLikeCompound(name);
     }
 
     /**

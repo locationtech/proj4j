@@ -17,9 +17,13 @@ package org.locationtech.proj4j.datum;
 
 import java.io.Serializable;
 
+import org.locationtech.proj4j.InvalidValueException;
 import org.locationtech.proj4j.ProjCoordinate;
 
 public final class AxisOrder implements Serializable {
+
+    private static final long serialVersionUID = -725125594686344921L;
+
     public static enum Axis {
         Easting {
             public double fromENU(ProjCoordinate c) {
@@ -62,8 +66,16 @@ public final class AxisOrder implements Serializable {
             }
         },
         Down {
+            /**
+             * Negates, symmetrically with {@link #toENU}. Until 1.5.0 this returned
+             * {@code c.z} unnegated while {@code toENU} negated, so {@code +axis=…d} was not
+             * an involution: {@code fromENU(toENU(z))} came back as {@code -z}. Every other
+             * reversed axis ({@code Westing}, {@code Southing}) negates in both directions,
+             * and the axis-order round trip in {@code BasicCoordinateTransform} — {@code toENU}
+             * on the source, {@code fromENU} on the target — depends on it.
+             */
             public double fromENU(ProjCoordinate c) {
-                return c.z;
+                return -c.z;
             }
             public void toENU(double z, ProjCoordinate c) {
                 c.z = -z;
@@ -79,7 +91,8 @@ public final class AxisOrder implements Serializable {
                 case 's': return Southing;
                 case 'd': return Down;
             }
-            throw new IllegalArgumentException();
+            throw new InvalidValueException(
+                    "Invalid +axis direction '" + c + "': expected one of e, w, n, s, u, d");
         }
 
         public abstract double fromENU(ProjCoordinate c);
@@ -97,9 +110,27 @@ public final class AxisOrder implements Serializable {
         this.z = z;
     }
 
+    /**
+     * Parses PROJ's three-letter {@code +axis=} encoding.
+     * <p>
+     * Until 1.5.0 a spec of the wrong length threw a bare {@code new Error()} — with no
+     * message, and, being an {@link Error} rather than an exception, outside
+     * {@code catch (Proj4jException)} and outside most callers' {@code catch (Exception)} as
+     * well. In a Spark executor that is a killed task rather than a rejected row.
+     *
+     * @param spec exactly three characters from {@code e w n s u d}, one per axis
+     * @return the axis order
+     * @throws InvalidValueException if {@code spec} is null, not exactly three characters, or
+     *                               contains a character that is not an axis direction
+     */
     public static AxisOrder fromString(String spec) {
+        if (spec == null) {
+            throw new InvalidValueException("Invalid +axis: value is missing");
+        }
         if (spec.length() != 3) {
-            throw new Error();
+            throw new InvalidValueException("Invalid +axis=" + spec
+                    + ": expected exactly 3 direction characters from \"ewnsud\", one per axis, but got "
+                    + spec.length());
         }
 
         Axis x = Axis.fromChar(spec.charAt(0));
@@ -140,5 +171,31 @@ public final class AxisOrder implements Serializable {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Re-canonicalises {@link #ENU} on deserialisation, so that
+     * {@code deserialize(serialize(ENU)) == ENU} rather than merely {@code .equals(ENU)}.
+     *
+     * <p>This class is a value type with a private constructor and exactly one published
+     * constant, which is the shape that leads callers to compare with {@code ==}. Without a
+     * {@code readResolve}, deserialisation manufactures a fresh instance and every such
+     * comparison silently becomes false — the failure mode being a coordinate that is *not*
+     * axis-swapped when it should be, i.e. a wrong answer rather than an error.
+     *
+     * <p><strong>This is a latent hazard for callers, not a live bug in proj4j.</strong>
+     * {@code BasicCoordinateTransform:324-325} uses {@code AxisOrder.ENU.equals(srcAxes)}, and
+     * a scan of {@code core/src/main} finds no {@code == AxisOrder.ENU} site at all (0 hits;
+     * the same scan finds the 2 {@code .equals} sites, so it is not vacuous). The method is
+     * added because the type is public API and a Spark executor deserialising a shipped
+     * {@code CoordinateTransform} is exactly where the identity would be lost.
+     *
+     * <p>Private, so it does not participate in the default {@code serialVersionUID}
+     * computation and therefore cannot perturb the value pinned above.
+     *
+     * @return {@link #ENU} when the deserialised value is the ENU order, otherwise {@code this}
+     */
+    private Object readResolve() {
+        return equals(ENU) ? ENU : this;
     }
 }

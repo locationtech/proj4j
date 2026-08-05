@@ -43,3 +43,8 @@ DEALINGS IN THE SOFTWARE.
 
 Proj4J EPSG module contains resource files released under the EPSG database distribution license.
 For more details see LICENSE.EPSG file in the root of this repository.
+
+Proj4J EPSG module also contains the `conus` datum-shift grid, redistributed verbatim from PROJ
+9.8.1 (`data/tests/conus`) under PROJ's MIT license. The same license covers the `conus` and
+`alaska` grids in the Proj4J Grids US Legacy module. For more details see LICENSE.PROJ file in the
+root of this repository.

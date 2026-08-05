@@ -21,9 +21,13 @@ package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.AuthalicLat;
+import org.locationtech.proj4j.util.MathHelpers;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class LambertAzimuthalEqualAreaProjection extends Projection {
+
+  private static final long serialVersionUID = 2680576002433982735L;
 
   private static final int N_POLE = 0;
   private static final int S_POLE = 1;
@@ -40,9 +44,14 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
   private double  qp; 
   private double  dd; 
   private double  rq; 
-  private double[] apa;
   private double  sinph0;
   private double  cosph0;
+
+  /**
+   * The order-6 authalic-latitude machinery, {@code 9.8.1:src/latitudes.cpp}. Replaces
+   * {@code ProjectionMath.authset}/{@code authlat}/{@code qsfn}.
+   */
+  private AuthalicLat authalic;
   
 	public LambertAzimuthalEqualAreaProjection() {
 		this( false );
@@ -75,9 +84,9 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
 	      double sinphi;
 
 	      e = Math.sqrt(es);
-	      qp = ProjectionMath.qsfn(1., e, one_es);
+	      authalic = new AuthalicLat(es);
+	      qp = authalic.qp();
 	      mmf = .5 / (1. - es);
-	      apa = ProjectionMath.authset(es);
 	      switch (mode) {
 	      case N_POLE:
 	      case S_POLE:
@@ -91,8 +100,13 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
 	      case OBLIQ:
 	        rq = Math.sqrt(.5 * qp);
 	        sinphi = Math.sin(phi0);
-	        sinb1 = ProjectionMath.qsfn(sinphi, e, one_es) / qp;
-	        cosb1 = Math.sqrt(1. - sinb1 * sinb1);
+	        // 9.8.1:laea.cpp:283-285 takes the authalic latitude of phi0 through the
+	        // direct phi -> xi series and then its sine and cosine, rather than
+	        // sinb1 = q/qp with cosb1 = sqrt(1 - sinb1^2). The asin form loses relative
+	        // accuracy near the poles, which is why upstream stopped using it.
+	        final double b1 = authalic.forward(phi0, sinphi, Math.cos(phi0));
+	        sinb1 = Math.sin(b1);
+	        cosb1 = Math.cos(b1);
 	        dd = Math.cos(phi0) / (Math.sqrt(1. - es * sinphi * sinphi) *
 	           rq * cosb1);
 	        ymf = (xmf = rq) / dd;
@@ -154,10 +168,14 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
       coslam = Math.cos(lplam);
       sinlam = Math.sin(lplam);
       sinphi = Math.sin(lpphi);
-      q = ProjectionMath.qsfn(sinphi, e, one_es);
+      // 9.8.1:laea.cpp:39-46. xi is the authalic latitude from the direct phi -> xi
+      // series; q is recovered as sin(xi)*qp (laea still needs the raw q for the polar
+      // aspects), and sinb/cosb are sin(xi)/cos(xi) instead of q/qp and sqrt(1-sinb^2).
+      final double xi = authalic.forward(lpphi, sinphi, Math.cos(lpphi));
+      q = Math.sin(xi) * qp;
       if (mode == OBLIQ || mode == EQUIT) {
-        sinb = q / qp;
-        cosb = Math.sqrt(1. - sinb * sinb);
+        sinb = Math.sin(xi);
+        cosb = Math.cos(xi);
       }
       switch (mode) {
       case OBLIQ:
@@ -191,9 +209,45 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
         break;
       case N_POLE:
       case S_POLE:
-        if (q >= 0.) {
+        // 9.8.1:laea.cpp:75 uses 1e-15, not 0: at the pole `qp - q` is rounding noise and
+        // sqrt of a denormal would put the point sub-millimetres off the origin.
+        if (q >= 1e-15) {
           out.x = (b = Math.sqrt(q)) * sinlam;
           out.y = coslam * (mode == S_POLE ? b : -b);
+        } else if (Double.isNaN(q) || Double.isNaN(sinlam) || Double.isNaN(coslam)) {
+          // NaN in, NaN out -- and it has to be said explicitly, because `q >= 1e-15` is
+          // FALSE for NaN and the `else` below would otherwise answer an undefined point
+          // with the *origin*: a finite, plausible coordinate that every downstream
+          // isFinite() guard passes, and that projectRadians then turns into exactly
+          // (x_0, y_0) once a false easting is set. Measured before this line existed:
+          // +proj=laea +lat_0=90 +lon_0=-150 +datum=WGS84 +x_0=1000000 +y_0=2000000 with
+          // (NaN, NaN) returned (1000000.0, 2000000.0).
+          //
+          // This is not a deviation from upstream, it is upstream's *observable*
+          // behaviour. 9.8.1:src/projections/laea.cpp:75-81 has the same `else` arm, but
+          // it is unreachable for NaN: 9.8.1:src/trans.cpp:352-354 short-circuits any
+          // coordinate carrying a NaN to all-NaN before the operation is ever invoked
+          //   if (pj_coord_has_nans(coord)) coord.v[0..3] = quiet_NaN();
+          //   else if (direction == PJ_FWD) pj_fwd4d(coord, P);
+          // so laea_e_forward is simply not called. Confirmed against the shipped 9.8.1
+          // `gie`: more_builtins.gie:795's own row ("When given NaNs, return NaNs",
+          // tolerance 0) reports GOT nan nan for this very proj-string, and still does
+          // with +x_0=1000000 added, which proves the zero never reaches fwd_finalize.
+          //
+          // Proj4J puts the rule here rather than in the funnel because
+          // Projection.projectRadians documents NaN as *propagated through* the kernel
+          // (its "NaN input is propagated, not rejected" section): the checks are skipped
+          // and whatever project() returns comes back. Under that contract every kernel
+          // must be NaN-transparent, and this arm was the one place in laea that was not.
+          // All three of laea's other aspects, and both inverse arms, already are --
+          // their guards (`|b| < EPS10`, `rho < EPS10`, `rh*.5 > 1.`, `0 == q`) are all
+          // false for NaN, which is why the defect was confined to the polar forward.
+          //
+          // Both operands matter, not just q. A NaN *latitude* arrives as a NaN q; a NaN
+          // *longitude* with a finite latitude arrives as NaN sinlam/coslam while q stays
+          // finite, and at the pole itself q is below the 1e-15 floor, so
+          // (NaN, +pi/2) also used to answer (0, 0).
+          out.x = out.y = Double.NaN;
         } else
           out.x = out.y = 0.;
         break;
@@ -214,7 +268,12 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
       double  cosz=0.0, rh, sinz=0.0;
       double lpphi, lplam;
       
-      rh = Math.hypot(xyx, xyy);
+      // MathHelpers.norm2, not Math.hypot: hypot is fdlibm and about ten times the cost of a
+      // sqrt, and it buys overflow scaling this call cannot use. Both operands here are the
+      // projected coordinate already divided by the semi-major axis, so |xyx|, |xyy| are of
+      // order 1 -- squaring them cannot overflow or underflow. Same substitution etmerc
+      // already carries; SolverBenchmark measures the pair head to head.
+      rh = MathHelpers.norm2(xyx, xyy);
       if ((lpphi = rh * .5 ) > 1.) throw new ProjectionException("I_ERROR");
       lpphi = 2. * Math.asin(lpphi);
       if (mode == OBLIQ || mode == EQUIT) {
@@ -254,7 +313,7 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
       switch (mode) {
       case EQUIT:
       case OBLIQ:
-        if ((rho = Math.hypot(xyx /= dd, xyy *=  dd)) < EPS10) {
+        if ((rho = MathHelpers.norm2(xyx /= dd, xyy *=  dd)) < EPS10) {
           lplam = 0.;
           lpphi = phi0;
           out.x = lplam;
@@ -290,7 +349,7 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
         break;
       }
       lplam = Math.atan2(xyx, xyy);
-      lpphi = ProjectionMath.authlat(Math.asin(ab), apa);
+      lpphi = authalic.inverse(Math.asin(ab));
       out.x = lplam;
       out.y = lpphi;
     }

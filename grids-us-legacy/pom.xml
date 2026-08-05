@@ -1,0 +1,148 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.emilevictor.neoproj4j</groupId>
+        <artifactId>neoproj4j-modules</artifactId>
+        <version>1.3.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-grids-us-legacy</artifactId>
+    <packaging>jar</packaging>
+    <name>neoProj4J US grids (legacy CTABLE V2)</name>
+    <description>
+        Opt-in US datum-shift grid pack: PROJ 9.8.1's in-tree CTABLE V2 grids `conus` and `alaska`,
+        published under /proj4j-data/grids/ for the neoProj4J resolver chain. Resources only, no code,
+        no dependencies. Adding this artifact to a classpath retires the NAD27 -> NAD83 no-op defect
+        in the conterminous United States and Alaska with no reader work at all, because
+        org.locationtech.proj4j.datum.CTABLEV2 already reads the format.
+    </description>
+
+    <!-- Repeated rather than inherited: Maven appends this module's artifactId to an inherited
+         <url> and <scm>. See the long note in the root POM; keep the values in step with it. -->
+    <url>https://github.com/emilevictor/neoProj4J</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+        <!-- Covers the two grids this pack exists to ship, redistributed verbatim from PROJ 9.8.1
+             data/tests/{conus,alaska}. PROJ's COPYING places data files under the same MIT terms
+             as its source. -->
+        <license>
+            <name>MIT License (PROJ)</name>
+            <url>https://raw.githubusercontent.com/emilevictor/neoProj4J/develop/LICENSE.PROJ</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/emilevictor/neoProj4J</url>
+        <connection>scm:git:https://github.com/emilevictor/neoProj4J.git</connection>
+        <developerConnection>scm:git:git@github.com:emilevictor/neoProj4J.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <properties>
+        <!-- Data only; there is nothing to compile or test here. -->
+        <maven.compiler.skip>true</maven.compiler.skip>
+        <maven.test.skip>true</maven.test.skip>
+
+        <!-- Published, unlike conformance/golden/benchmark.
+             `maven.package.skip` used to be set false here; it was inert and has been removed. -->
+        <maven.deploy.skip>false</maven.deploy.skip>
+        <maven.install.skip>false</maven.install.skip>
+
+        <!-- Upstream pins. The bytes are the blobs at these object ids in the PROJ repository, at
+             tag 9.8.1 = f08fa86c478c4bbbf003b1ec751dd84aa6eca486. Verified with `git cat-file`. -->
+        <proj.rev>9.8.1</proj.rev>
+        <proj.rev.sha>f08fa86c478c4bbbf003b1ec751dd84aa6eca486</proj.rev.sha>
+        <grid.conus.blob>44b4900f3168a5b87794f41d201d03d5aea0b964</grid.conus.blob>
+        <grid.alaska.blob>bb6be2ffbd55cb96416fd77cc07845f832883549</grid.alaska.blob>
+        <grid.conus.bytes>264424</grid.conus.bytes>
+        <grid.alaska.bytes>1053928</grid.alaska.bytes>
+
+        <!-- Unpacked total 1,318,352 B. The jar deflates the two grids to roughly 1.13 MiB; the
+             enforcer ceiling below is deliberately close, so a data bump that blows the budget fails
+             the build instead of surprising a downstream container image. -->
+        <grid.pack.max.bytes>1400000</grid.pack.max.bytes>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- MIT requires the notice to travel with the file. This pack is nothing but PROJ's
+                 grids, so the root LICENSE.PROJ is embedded in the artifact, not merely linked. -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>embed-proj-license</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/..</directory>
+                                    <includes>
+                                        <include>LICENSE.PROJ</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <!-- Hyphenated resource root, so /proj4j-data/... is not a valid Java
+                                 package name and JPMS treats it as unconditionally open. A
+                                 resource-only named module would otherwise encapsulate it. -->
+                            <Automatic-Module-Name>org.locationtech.proj4j.grids.us.legacy</Automatic-Module-Name>
+                            <Bundle-SymbolicName>org.locationtech.proj4j.grids.us.legacy</Bundle-SymbolicName>
+                            <Proj-Source-Rev>${proj.rev}</Proj-Source-Rev>
+                            <Proj-Source-Commit>${proj.rev.sha}</Proj-Source-Commit>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- A data bump that blows the size budget must fail the build, not surprise a
+                 downstream Spark image. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>grid-pack-size-budget</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesSize>
+                                    <maxsize>${grid.pack.max.bytes}</maxsize>
+                                    <files>
+                                        <file>${project.build.directory}/${project.build.finalName}.jar</file>
+                                    </files>
+                                </requireFilesSize>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

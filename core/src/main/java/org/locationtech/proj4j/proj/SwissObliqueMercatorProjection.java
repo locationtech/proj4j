@@ -29,6 +29,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 */
 public class SwissObliqueMercatorProjection extends Projection {
 
+  private static final long serialVersionUID = 5252033951754363918L;
+
   private static final int NITER = 6;
 
 	private double  K, c, hlf_e, kR, cosp0, sinp0;

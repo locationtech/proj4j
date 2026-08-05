@@ -28,6 +28,9 @@ package org.locationtech.proj4j.proj;
  * radiating at uniform angular intervals from the apex of the flattened cone. 
  */
 public abstract class ConicProjection extends Projection {
+
+	private static final long serialVersionUID = 5392047270781610454L;
+
 	
 	public String toString() {
 		return "Conic";

@@ -20,20 +20,75 @@
 package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.*;
+import org.locationtech.proj4j.util.ConformalLat;
 import org.locationtech.proj4j.util.ProjectionMath;
 
+/**
+ * Stereographic azimuthal projection, {@code 9.8.1:src/projections/stere.cpp}.
+ *
+ * <h2>One deliberate divergence from PROJ 9.8.1 — do not "fix" it back</h2>
+ *
+ * The ellipsoidal inverse here calls {@link ConformalLat#phi2} where upstream
+ * ({@code stere.cpp:173-188}) still runs its own {@code NITER = 8}, {@code CONV = 1e-10}
+ * Newton loop with a {@code pow} on every trip. <b>The two solve the same fixed point.</b>
+ * Upstream iterates
+ * <pre>
+ *   phi = 2 atan(tp * ((1 + e sin phi)/(1 - e sin phi))^(halfe)) - halfpi
+ * </pre>
+ * with {@code halfpi = +pi/2, halfe = +e/2} for the oblique and equatorial aspects and
+ * {@code halfpi = -pi/2, halfe = -e/2} for the polar ones. Rearranged, both branches are
+ * exactly {@code tan(pi/4 - phi/2) = ts * ((1 - e sin phi)/(1 + e sin phi))^(e/2)}, which is
+ * the fixed point of {@code pj_phi2}, with
+ * <ul>
+ * <li><b>{@code ts = 1/tp}</b> for oblique/equatorial, where
+ *     {@code tp = tan(pi/4 + phi_l/2)}; and
+ * <li><b>{@code ts = -tp}</b> for the poles, where {@code tp = -rho/akm1}, i.e.
+ *     {@code ts = rho/akm1}.
+ * </ul>
+ * Upstream simply never refactored it. The Karney formulation is better on every axis —
+ * one or two iterations instead of up to eight, no {@code pow} in the loop, a fixed trip
+ * count (hence a platform-independent answer), and about 2 nm of error against upstream's
+ * roughly 4 um. It therefore makes proj4j differ from 9.8.1 by up to <b>~4 um</b> on
+ * {@code stere} inverses — 25,000 times inside the 0.1 mm bar the corpus sets for this
+ * projection.
+ */
 public class StereographicAzimuthalProjection extends AzimuthalProjection {
+
+	private static final long serialVersionUID = 4780435696828185438L;
 
 	private final static double TOL = 1.e-8;
 
 	private double akm1;
 
+	/**
+	 * A bare {@code +proj=stere}, i.e. the equatorial aspect with {@code +lat_ts} absent.
+	 * <p>
+	 * <b>Two defaults are fixed here, and both were wrong in the same way</b> — the class field
+	 * was standing in for a parameter PROJ defaults independently, and {@code Proj4Parser} assigns
+	 * a keyword <em>only when it is present</em>, so the class default <em>is</em> the effective
+	 * default.
+	 * <ul>
+	 * <li><b>{@code lat_0} was 90&deg;</b>, so {@code +proj=stere +ellps=GRS80} ran the polar
+	 *     aspect where PROJ runs the equatorial one. PROJ's {@code pj_init} reads {@code "rlat_0"}
+	 *     and gets 0.</li>
+	 * <li><b>{@code lat_ts} was 0</b>, but {@code 9.8.1:stere.cpp:305-309} reads it as
+	 *     {@code pj_param(...,"tlat_ts").i ? |lat_ts| : M_HALFPI} &mdash; <em>&pi;/2 when the
+	 *     keyword is absent</em>. With 0 the two polar branches take their
+	 *     {@code cos(phits)/tsfn(phits)} arm instead of {@code 2*k_0/sqrt((1+e)^(1+e)(1-e)^(1-e))},
+	 *     which scaled {@code +proj=stere +ellps=GRS80 +lat_0=-90 +k_0=0.97} by a factor of
+	 *     1.9335 &mdash; 1,056 km at the corpus's test point.</li>
+	 * </ul>
+	 * {@code +lat_ts=0} on a polar aspect is legal upstream and still reaches the other arm,
+	 * because the parser then writes the 0 explicitly.
+	 */
 	public StereographicAzimuthalProjection() {
-		this(Math.toRadians(90.0), Math.toRadians(0.0));
+		this(0.0, 0.0);
 	}
 
 	public StereographicAzimuthalProjection(double projectionLatitude, double projectionLongitude) {
 		super(projectionLatitude, projectionLongitude);
+		// stere.cpp:305-309 -- phits defaults to pi/2, not to 0, and it is read for every aspect.
+		trueScaleLatitude = ProjectionMath.HALFPI;
 		initialize();
 	}
 
@@ -67,14 +122,19 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 					   Math.sqrt(Math.pow(1+e,1+e)*Math.pow(1-e,1-e));
 				else {
 					akm1 = Math.cos(trueScaleLatitude) /
-					   ProjectionMath.tsfn(trueScaleLatitude, t = Math.sin(trueScaleLatitude), e);
+					   ConformalLat.tsfn(trueScaleLatitude, t = Math.sin(trueScaleLatitude), e);
 					t *= e;
 					akm1 /= Math.sqrt(1. - t * t);
 				}
 				break;
+			// 9.8.1:stere.cpp:262-270 handles EQUIT and OBLIQ in ONE branch, so the
+			// equatorial aspect also gets sinX1 = 0, cosX1 = 1. proj4j split them and
+			// left the equatorial case with sinphi0 = cosphi0 = 0, which made the whole
+			// ellipsoidal equatorial *inverse* collapse to (0, 0) for every input --
+			// tp = 2*atan2(rho*cosphi0, akm1) = 0, so ts = 1 and phi2(1) = 0.
+			// For phi0 = 0 the shared formula still yields akm1 = 2*k0, so the forward
+			// direction is unchanged.
 			case EQUATOR:
-				akm1 = 2. * scaleFactor;
-				break;
 			case OBLIQUE:
 				t = Math.sin(projectionLatitude);
 				X = 2. * Math.atan(ssfn(projectionLatitude, t, e)) - ProjectionMath.HALFPI;
@@ -159,7 +219,15 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 				coslam = -coslam;
 				sinphi = -sinphi;
 			case NORTH_POLE:
-				xy.x = akm1 * ProjectionMath.tsfn(phi, sinphi, e);
+				// 9.8.1:stere.cpp:83-86. Exactly at the pole ConformalLat.tsfn returns
+				// cos(pi/2)/2 = 3.06e-17 rather than the 0 that the old tan-based tsfn
+				// produced by accident; upstream special-cases it, and the corpus asserts
+				// `+proj=stere +lat_0=90 +lat_ts=70; accept 0 90; expect 0 0` at
+				// tolerance 1e-15 m.
+				if (Math.abs(phi - ProjectionMath.HALFPI) < 1e-15)
+					xy.x = 0;
+				else
+					xy.x = akm1 * ConformalLat.tsfn(phi, sinphi, e);
 				xy.y = - xy.x * coslam;
 				break;
 			}
@@ -203,13 +271,14 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 				break;
 			}
 		} else {
-			double cosphi, sinphi, tp, phi_l, rho, halfe, halfpi;
+			double cosphi, sinphi, ts, phi_l, rho;
 
 			rho = ProjectionMath.distance(x, y);
 			switch (mode) {
 			case OBLIQUE:
 			case EQUATOR:
 			default:	// To prevent the compiler complaining about uninitialized vars.
+				double tp;
 				cosphi = Math.cos( tp = 2. * Math.atan2(rho * cosphi0 , akm1) );
 				sinphi = Math.sin(tp);
 				if (rho <= 0) {
@@ -218,31 +287,22 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 				else {
 				  phi_l = Math.asin(cosphi * sinphi0 + (y * sinphi * cosphi0 / rho));
 				}
-				tp = Math.tan(.5 * (ProjectionMath.HALFPI + phi_l));
+				// ts = 1 / tan(pi/4 + phi_l/2) -- see the class comment on the divergence.
+				ts = 1. / Math.tan(.5 * (ProjectionMath.HALFPI + phi_l));
 				x *= sinphi;
 				y = rho * cosphi0 * cosphi - y * sinphi0* sinphi;
-				halfpi = ProjectionMath.HALFPI;
-				halfe = .5 * e;
 				break;
 			case NORTH_POLE:
 				y = -y;
 			case SOUTH_POLE:
-				phi_l = ProjectionMath.HALFPI - 2. * Math.atan(tp = - rho / akm1);
-				halfpi = -ProjectionMath.HALFPI;
-				halfe = -.5 * e;
+				// ts = -tp with tp = -rho/akm1.
+				ts = rho / akm1;
 				break;
 			}
-			for (int i = 8; i-- != 0; phi_l = lp.y) {
-				sinphi = e * Math.sin(phi_l);
-				lp.y = 2. * Math.atan(tp * Math.pow((1.+sinphi)/(1.-sinphi), halfe)) - halfpi;
-				if (Math.abs(phi_l - lp.y) < EPS10) {
-					if (mode == SOUTH_POLE)
-						lp.y = -lp.y;
-					lp.x = (x == 0. && y == 0.) ? 0. : Math.atan2(x, y);
-					return lp;
-				}
-			}
-			throw new ConvergenceFailureException("Iteration didn't converge");
+			lp.y = ConformalLat.phi2(ts, e);
+			if (mode == SOUTH_POLE)
+				lp.y = -lp.y;
+			lp.x = (x == 0. && y == 0.) ? 0. : Math.atan2(x, y);
 		}
 		return lp;
 	}

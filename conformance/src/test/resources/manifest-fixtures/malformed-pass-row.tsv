@@ -1,0 +1,4 @@
+# A manifest that records a PASS. Strict parsing must reject it, naming line 4: the manifest
+# holds only non-PASS expectations, and an absent key already means "expected to pass".
+key	expected	reason
+gie/builtins.gie#0:0@0011aabb	PASS	this row must not exist

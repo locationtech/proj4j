@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class PutninsP5Projection extends Projection {
 
+	private static final long serialVersionUID = 6159881199702550035L;
+
 	protected double A;
 	protected double B;
 

@@ -1,0 +1,240 @@
+name: Golden Master
+
+# THE BEHAVIOURAL CHANGE DETECTOR.
+#
+# `golden` answers exactly one question - "did we change proj4j's behaviour in a way we did not
+# mean to?" - over 53,430 rows covering 9,013 registry CRS plus a synthetic parameter matrix and
+# the MetaCRS CSVs. Every row that differs from the pinned 1.4.3 baseline must be claimed by
+# exactly one rule in golden/rules.yaml, with an exact row count, a reason and an expiry, or the
+# build fails. See golden/README.md.
+#
+# WHY THIS FILE EXISTS. Until it did, the gate ran ONLY when a human typed the command. The
+# module is not in the root pom's default <modules> - that is deliberate, so `mvn install` stays
+# fast and `core` stays dependency-free - and no workflow passed `-Pgolden`, so nothing in CI
+# compiled golden/src/main either. That is worse than it sounds: golden/pom.xml states a signal
+# it could not send, namely "if a change to core breaks the default-profile compile of
+# golden/src/main, that is a signal, not an inconvenience". Nothing compiled it, so nothing could
+# fire. This job restores both properties: the compile happens, and the sweep runs.
+#
+# THIS JOB IS RED TODAY, AND THAT IS THE CORRECT OUTCOME. Measured 2026-08-01 on a frozen
+# snapshot of the working tree:
+#
+#     12,023 UNCHANGED · 41,407 CHANGED · 0 ADDED · 0 REMOVED · 39,116 INTENDED · 2,291 UNEXPLAINED
+#
+# The 2,291 are the triage backlog - other streams' in-flight changes that have not yet been
+# claimed by a rule - not a defect in this module and not a reason to soften the job. See
+# golden/README.md's triage sections for the breakdown and the owners.
+#
+# DO NOT ADD `continue-on-error` TO GET PAST THEM. golden/README.md says so directly, and the
+# reason is that the alternative is strictly better: a `status: pending` rule is visible in the
+# diff, must match exactly zero rows, and fails loudly the moment it matches one. A
+# continue-on-error job is invisible in the diff and fails never. A gate that reports success
+# because it cannot see is the exact failure this file was written to end.
+#
+# VERIFICATION STATUS. The Maven invocation below - flags and all - was run locally on Temurin 21
+# against a frozen /tmp snapshot, and was shown BOTH to fail on the real backlog and to fail with
+# a COUNT_MISMATCH naming the rule when a pinned `expected_rows` was altered by one. The YAML
+# itself has not executed; treat the first run as its first test.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # BLOCKING. Generate the table from the working tree, merge-join it against
+  # golden/baseline/1.4.3, apply golden/rules.yaml, and fail on any UNEXPLAINED row, DEAD_RULE,
+  # PENDING_RULE_FIRED, EXPIRED_RULE or COUNT_MISMATCH.
+  golden:
+    name: Golden master (behavioural regression, blocking)
+    runs-on: ubuntu-latest
+    # The sweep itself is ~20 s once core is built; the budget is almost entirely the reactor
+    # build and a cold Maven cache. Generous rather than tuned - tighten it once there is a
+    # measured number from a real run.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-golden-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-golden-
+            ${{ runner.os }}-maven-
+
+      # EVERY FLAG HERE IS LOAD-BEARING. Removing any one of them either breaks the run or,
+      # worse, makes it pass without measuring anything.
+      #
+      #   -Pgolden
+      #       Does TWO separate things and both are required. (a) The root pom's `golden` profile
+      #       is what adds <module>golden</module>; without it `-pl golden` cannot even resolve
+      #       the module. (b) It flips golden.skip to false. Without (b) GoldenMasterTest
+      #       Assume-s itself out and surefire reports it SKIPPED - a green job that swept nothing.
+      #       The guard step below exists for exactly that failure mode.
+      #
+      #   -pl golden -am
+      #       -am is required: `-pl golden` alone cannot resolve neoproj4j / neoproj4j-epsg from the
+      #       reactor. geoapi, db, grids-us-legacy and conformance are not on golden's dependency
+      #       path and are not built.
+      #
+      #   -Dtest='org.locationtech.proj4j.golden.*Test'
+      #       NOT an optimisation - it is what keeps the job honest. `-am` also builds `core`,
+      #       whose suite currently has one expected failure (MetaCRSTest). Without narrowing, the
+      #       reactor stops in `core` and golden never runs, so the usual workaround is
+      #       `-Dmaven.test.failure.ignore=true` - and THAT FLAG WOULD ALSO IGNORE THE GATE'S OWN
+      #       FAILURE, turning this job green while the gate is red. The local diagnostic command
+      #       in golden/README.md uses it deliberately, because there the goal is to read the
+      #       report; here the goal is to fail. Narrowing gets both: core's red test is never
+      #       run in this job, and golden's failures stay fatal.
+      #
+      #   -Dsurefire.failIfNoSpecifiedTests=false
+      #       Required, and it looks backwards. With `-Dtest=`, surefire fails a module in which
+      #       nothing matches - and `-am` builds neoproj4j-epsg, which has NO test sources at all, so
+      #       the strict setting fails there and golden never runs. This is a known trap in this
+      #       repository; determinism.yaml carries the same flag for the same reason. The
+      #       "something actually ran" guarantee is not lost, it moves to the next step, where it
+      #       is asserted on golden's own surefire XML and is strictly stronger.
+      - name: Run the golden gate
+        run: |
+          mvn -B -ntp -Pgolden -pl golden -am verify \
+            -Dtest='org.locationtech.proj4j.golden.*Test' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dmaven.javadoc.skip=true
+
+      # NON-VACUITY. Everything above can succeed while measuring nothing, in three distinct ways,
+      # and each has its own check here. This step runs even when the gate failed (`if: always()`)
+      # because a failing gate that failed for the WRONG reason still has to be caught.
+      #
+      # Deliberately awk and shell arithmetic, never `bc`: bc is not guaranteed present on every
+      # runner image, and a gate that dies on a missing utility is indistinguishable from a gate
+      # that fails.
+      - name: Assert the sweep actually swept
+        if: always()
+        run: |
+          set -euo pipefail
+          xml=golden/target/surefire-reports/TEST-org.locationtech.proj4j.golden.GoldenMasterTest.xml
+
+          # (1) The gate test must exist. If -Pgolden did not take, the module is not even in the
+          #     reactor and there is no report at all.
+          [ -f "$xml" ] || {
+            echo "::error::no surefire report for GoldenMasterTest at $xml"
+            echo "::error::The gate did not run. -Pgolden is what adds the module AND flips"
+            echo "::error::golden.skip; a job that runs no assertions is not a pass."
+            ls -R golden/target/surefire-reports 2>/dev/null || true
+            exit 1; }
+
+          attr() { grep -o "$1=\"[0-9]*\"" "$2" | head -1 | sed 's/[^0-9]//g'; }
+          ran=$(attr tests "$xml"); skipped=$(attr skipped "$xml")
+          echo "GoldenMasterTest: tests=$ran skipped=$skipped"
+
+          # (2) It must have RUN, not been skipped. GoldenMasterTest opens with
+          #     Assume.assumeFalse(golden.skip), so a missing or ineffective -Pgolden shows up
+          #     here as a skip - and surefire reports a skip as success. Skips are never passes.
+          [ "${ran:-0}" -eq 1 ] || {
+            echo "::error::expected exactly 1 GoldenMasterTest, found ${ran:-0}"; exit 1; }
+          [ "${skipped:-0}" -eq 0 ] || {
+            echo "::error::GoldenMasterTest was SKIPPED. That means golden.skip was still true, so"
+            echo "::error::no table was generated and nothing was compared. Skips are never passes."
+            exit 1; }
+
+          # (3) The generated table must be the same size as the baseline it is diffed against.
+          #     A truncated sweep - an OOM in generation, a dictionary that failed to load, a
+          #     resource missing from the jar - would otherwise produce a small table, a small
+          #     diff, and a quiet pass. Comparing against the committed baseline rather than a
+          #     hardcoded number means a deliberate change to probes.tsv / pairs.tsv updates both
+          #     sides at once and this check keeps working.
+          got=$(wc -l < golden/target/golden/golden.tsv)
+          want=$(wc -l < golden/baseline/1.4.3/golden.tsv)
+          echo "golden.tsv rows (incl. header): generated=$got baseline=$want"
+          [ "$got" -eq "$want" ] || {
+            echo "::error::the generated table has $got lines but the baseline has $want."
+            echo "::error::A row-count mismatch means the sweep did not cover the same input set,"
+            echo "::error::so the diff below it is not comparable. Do not re-pin to make this"
+            echo "::error::agree - find out which inputs went missing."
+            exit 1; }
+
+          # (4) Every golden test must have run and none may be skipped. rules.yaml schema
+          #     validation, the probe derivation and the merge-join self-tests all live here and
+          #     an Assume creeping into any of them would hide it.
+          sum() {
+            grep -ho "$1=\"[0-9]*\"" golden/target/surefire-reports/TEST-org.locationtech.proj4j.golden.*.xml \
+              | sed 's/[^0-9]//g' | awk '{n += $1} END {print n + 0}'
+          }
+          total=$(sum tests); totalskip=$(sum skipped)
+          echo "golden module: tests=$total skipped=$totalskip"
+          [ "$total" -ge 40 ] || {
+            echo "::error::only $total tests ran in the golden module; expected at least 40."
+            echo "::error::Tests were dropped, renamed out of the -Dtest pattern, or not compiled."
+            exit 1; }
+          [ "$totalskip" -eq 0 ] || {
+            echo "::error::$totalskip golden tests were skipped. Skips are never passes."; exit 1; }
+
+          echo "Non-vacuity satisfied: the gate ran, over the full $want-line table, with no skips."
+
+      # THE POINT OF THE JOB IS THIS ARTEFACT. When the gate fails, the per-row verdict file is the
+      # answer - it names, for every changed row, the rule that claimed it or the rules that
+      # declined it and why. `if-no-files-found: error` because an absent report after a run is
+      # itself a finding.
+      - name: Upload the golden report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-report
+          path: |
+            golden/target/golden/golden-report.tsv
+            golden/target/golden/golden-summary.txt
+            golden/target/golden/golden-messages.tsv
+            golden/target/golden/golden.tsv
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-golden
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Golden master"
+            echo ""
+            if [ -f golden/target/golden/golden-summary.txt ]; then
+              echo '```'
+              cat golden/target/golden/golden-summary.txt
+              echo '```'
+            fi
+            echo ""
+            echo "Full per-row verdicts are in the \`golden-report.tsv\` artifact. A failing row is"
+            echo "either UNEXPLAINED (no rule claimed it) or claimed by a rule whose"
+            echo "\`expected_rows\` no longer matches. Neither is fixed by editing the baseline or"
+            echo "widening a rule - see \`golden/README.md\`, \"Policy: gie always wins\"."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Must stay last. actions/cache saves ~/.m2/repository in a post-job step that runs after
+      # every step here; without the scrub a locally-built proj4j snapshot would be baked into the
+      # cache and could silently satisfy a later run's inter-module dependencies, letting a run
+      # "pass" against stale jars from an earlier commit. `if: always()` so a failed build - which
+      # is the expected state of this job today - also scrubs.
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"

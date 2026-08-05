@@ -1,0 +1,48 @@
+# Synthetic fixture: roundtrip phasing against a deliberately lossy operation.
+#
+# The fake's forward is `2x + lossy`, its inverse is `x / 2`. One
+# inverse-of-forward cycle therefore adds lossy/2, and the composition is NOT
+# symmetric: forward-of-inverse would add lossy, so a runner that round-tripped
+# in the wrong order measures exactly twice the correct residual.
+#
+# With lossy = 0.002 and n = 5 the residual is 5 * 0.001 = 0.005 per ordinate in
+# x and in y, i.e. hypot(0.005, 0.005) = 7.0710678 mm. Blocks 2 and 3 bracket
+# that between 7 mm and 8 mm, which rules out the 14.14 mm of the wrong order
+# and the 1.41 mm of a single cycle.
+<gie-strict>
+-------------------------------------------------------------------------------
+operation  fake lossy=0.002
+-------------------------------------------------------------------------------
+accept     1000 2000
+roundtrip  5 1 mm
+-------------------------------------------------------------------------------
+operation  fake lossy=0.002
+-------------------------------------------------------------------------------
+accept     1000 2000
+roundtrip  5 1 m
+-------------------------------------------------------------------------------
+operation  fake lossy=0.002
+-------------------------------------------------------------------------------
+accept     1000 2000
+roundtrip  5 7 mm
+-------------------------------------------------------------------------------
+operation  fake lossy=0.002
+-------------------------------------------------------------------------------
+accept     1000 2000
+roundtrip  5 8 mm
+-------------------------------------------------------------------------------
+# No argument at all: 100 trips, which the test verifies by counting calls.
+operation  fake lossy=0.002
+-------------------------------------------------------------------------------
+accept     1000 2000
+tolerance  1 m
+roundtrip
+-------------------------------------------------------------------------------
+# The residual metric is selected by angular INPUT. The same lossy operation
+# with a RADIANS left-hand side turns 0.005 into a geodesic ~43 km, which no
+# metres tolerance can absorb -- whereas the Euclidean branch would have passed.
+operation  fake lossy=0.002 left=RADIANS
+-------------------------------------------------------------------------------
+accept     10 20
+roundtrip  5 1 m
+</gie-strict>

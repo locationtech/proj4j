@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class CrasterProjection extends Projection {
 
+	private static final long serialVersionUID = 5199454051644828149L;
+
 	private final static double XM = 0.97720502380583984317;
 	private final static double RXM = 1.02332670794648848847;
 	private final static double YM = 3.06998012383946546542;

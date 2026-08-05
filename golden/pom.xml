@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.emilevictor.neoproj4j</groupId>
+        <artifactId>neoproj4j-modules</artifactId>
+        <version>1.3.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>neoproj4j-golden</artifactId>
+    <packaging>jar</packaging>
+    <name>neoProj4J Golden Master Compatibility Suite</name>
+    <description>
+        Golden-master behavioural regression suite.
+
+        Answers exactly one question: "did we change proj4j behaviour we did not mean to?" It has NO
+        opinion about correctness - that is the gie/GIGS conformance module's job, and where the two
+        disagree, gie always wins (see README.md, "Policy").
+
+        This module is NOT PUBLISHED (maven.deploy.skip / maven.install.skip). It exists to produce a
+        checked-in table of observed outputs for ~9,013 registry CRS plus a synthetic parameter matrix,
+        and to diff a fresh run against the table pinned from the released 1.4.3.
+    </description>
+
+    <properties>
+        <!-- Never published. This module's whole output is a diff report. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <gpg.skip>true</gpg.skip>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- WHAT THE TWO DEPENDENCY PROFILES DIFFER BY.
+
+             Default: the reactor build (whatever is in the working tree)
+                      io.github.emilevictor.neoproj4j:neoproj4j{,-epsg}:${project.version}
+             -Pgolden-baseline: the RELEASED 1.4.3 from Maven Central
+                      org.locationtech.proj4j:proj4j{,-epsg}:1.4.3
+
+             THE BASELINE COORDINATES ARE PINNED TO THE OLD GROUP FOREVER, AND MUST NOT BE RENAMED.
+             The baseline is DEFINED as the observed output of the artifact that Maven Central
+             actually serves; that artifact will always be org.locationtech.proj4j:proj4j:1.4.3.
+             Point this at the new coordinates and the suite silently compares the new code against
+             itself and reports a clean run - the exact failure this module exists to prevent.
+
+             Until the rename these were one property, `golden.proj4j.version`, which could not
+             express two groupIds. They are now three properties each, overridden together by the
+             `golden-baseline` profile at the bottom of this file.
+
+             GoldenGenerator must compile and run unchanged against both, which is the entire point
+             of this module: it may only touch API that existed in 1.4.3. If a change to core breaks
+             the default-profile compile of golden/src/main, that is a signal, not an inconvenience. -->
+        <golden.proj4j.groupId>io.github.emilevictor.neoproj4j</golden.proj4j.groupId>
+        <golden.proj4j.core.artifactId>neoproj4j</golden.proj4j.core.artifactId>
+        <golden.proj4j.epsg.artifactId>neoproj4j-epsg</golden.proj4j.epsg.artifactId>
+        <golden.proj4j.version>${project.version}</golden.proj4j.version>
+
+        <!-- snakeyaml is TEST SCOPE AND ONLY IN THIS MODULE. core/ must stay dependency-free; this
+             module is never published, so a test-scope YAML parser here costs downstream nothing. -->
+        <snakeyaml.version>2.2</snakeyaml.version>
+
+        <!-- The heavy sweep is opt-in. A plain `mvn install` compiles this module and runs only its
+             fast self-tests (hex round-tripping, probe derivation, the merge join, the rules
+             engine). The ~53k-row generate-and-diff is bound to the `golden` profile. -->
+        <golden.skip>true</golden.skip>
+
+        <!-- Where the checked-in data lives, and which baseline to diff against. Passed to the JVM
+             rather than discovered, because "search upwards for a directory called golden" is the
+             kind of thing that silently works on a laptop and silently does something else in CI. -->
+        <golden.dir>${project.basedir}</golden.dir>
+        <golden.baseline>1.4.3</golden.baseline>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${golden.proj4j.groupId}</groupId>
+            <artifactId>${golden.proj4j.core.artifactId}</artifactId>
+            <version>${golden.proj4j.version}</version>
+        </dependency>
+        <!-- Compile scope, not test: GoldenGenerator lives in src/main and reads the registry
+             dictionaries (proj4/nad/epsg, esri, world, nad83, nad27) straight off the classpath.
+             Those five files ARE the input set. -->
+        <dependency>
+            <groupId>${golden.proj4j.groupId}</groupId>
+            <artifactId>${golden.proj4j.epsg.artifactId}</artifactId>
+            <version>${golden.proj4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <skipIfEmpty>true</skipIfEmpty>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <golden.skip>${golden.skip}</golden.skip>
+                        <golden.dir>${golden.dir}</golden.dir>
+                        <golden.baseline>${golden.baseline}</golden.baseline>
+                        <golden.out>${project.build.directory}/golden</golden.out>
+                    </systemPropertyVariables>
+                    <!-- Determinism, and it MUST be argLine rather than systemPropertyVariables:
+                         Locale.getDefault() and the default charset are initialised during JVM
+                         startup, before surefire can set a system property inside the fork. Setting
+                         them the other way looks correct and does nothing.
+
+                         KEEP THE PIN. THE REASON GIVEN HERE UNTIL 2026-08-03 WAS WRONG, AND THE
+                         wrong reason is recorded rather than deleted because it is the kind that
+                         gets a pin removed by someone who checks it.
+
+                         It said: "Proj4FileReader.java:41 calls authorityCode.toLowerCase() with no
+                         Locale, so under tr_TR 'ESRI' becomes 'esri' with a dotless i and all 2,954
+                         ESRI codes become unresolvable." That call is Proj4FileReader.java:76 and it
+                         reads toLowerCase(Locale.ROOT), with the reason in a comment at :63. It was
+                         already guarded when this comment was written. The consequence described is
+                         accurate about the hazard and the count is right; the code is not the site.
+                         InitFileCacheTest.theAuthorityFoldsUnderLocaleRootNotTheDefaultLocale now
+                         pins it - it installs tr-TR, asserts the locale is genuinely hostile before
+                         asserting anything else, and fails with "proj4/nad/esri" (dotless i) when
+                         the fold is mutated to the default locale.
+
+                         THE REAL REASONS, both still live in core/src/main:
+                           - ProjCoordinate.java:37-38 - public static DecimalFormat with no Locale,
+                             patched only by .replace(",", ".") at :424/:426, which fixes the decimal
+                             separator and nothing else. It is also a public MUTABLE static of a
+                             class that is not thread safe.
+                           - units/Unit.java:41,56 - public static final NumberFormat format =
+                             NumberFormat.getNumberInstance(), default locale. Only the PARSE
+                             formatter (:53,:60) was pinned to Locale.ROOT; the format half was not.
+                           - units/AngleFormat.java:65 - same shape.
+                         Those are also why this suite formats every float with Double.toHexString
+                         rather than trusting a formatter at all. -->
+                    <argLine>-Duser.language=en -Duser.country=US -Duser.timezone=UTC -Dfile.encoding=UTF-8 -Xmx2g</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- ============================================================================
+             mvn -Pgolden verify
+                 Generate from the working tree, diff against baseline/1.4.3, apply rules.yaml.
+             ============================================================================ -->
+        <profile>
+            <id>golden</id>
+            <properties>
+                <golden.skip>false</golden.skip>
+            </properties>
+        </profile>
+
+        <!-- ============================================================================
+             mvn -Pgolden,golden-baseline -pl golden verify -Dgolden.regenerate=true
+                 Generate from the RELEASED 1.4.3 and overwrite baseline/1.4.3.
+
+             Note the deliberate absence of -am: the baseline must not be able to see the working
+             tree's code at all. Everything resolves from Maven Central.
+
+             ALL FOUR properties move together. The groupId and both artifactIds revert to the
+             UPSTREAM names because that is what Maven Central serves at 1.4.3 and always will;
+             they are not affected by this project's rename and must never be updated to match it.
+             ============================================================================ -->
+        <profile>
+            <id>golden-baseline</id>
+            <properties>
+                <golden.proj4j.groupId>org.locationtech.proj4j</golden.proj4j.groupId>
+                <golden.proj4j.core.artifactId>proj4j</golden.proj4j.core.artifactId>
+                <golden.proj4j.epsg.artifactId>proj4j-epsg</golden.proj4j.epsg.artifactId>
+                <golden.proj4j.version>1.4.3</golden.proj4j.version>
+            </properties>
+        </profile>
+    </profiles>
+</project>

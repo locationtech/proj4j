@@ -20,6 +20,9 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 
 public class LinearProjection extends Projection {
+
+	private static final long serialVersionUID = 132177987862432856L;
+
 	
 	public ProjCoordinate project(ProjCoordinate src, ProjCoordinate dst) {
 		dst.x = src.x;

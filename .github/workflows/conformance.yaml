@@ -1,0 +1,481 @@
+name: Conformance
+
+# PROJ's own conformance corpus, vendored from rev 9.8.1, run against proj4j - plus the
+# guarantee that what is vendored really is what upstream produces.
+#
+# Separate from ci.yaml on purpose: the corpus sweep is thousands of assertions and must
+# not sit in the path of a normal build. Blocking vs advisory is stated per job and
+# summarised in .github/workflows/README.md.
+#
+# VERIFICATION STATUS (corpus job, 2026-08-01). The Maven invocation below - flags and all -
+# was run locally on Temurin 21 against a scratch -Dmaven.repo.local, and three controls were
+# executed against it:
+#
+#   1. unmodified              -> exit 0, "7378/7895 genuine passes", diff.regressed 0
+#   2. one manifest row removed -> exit 1, naming the assertion key as REGRESSED
+#   3. baseline file absent    -> exit 1, naming the ABSENT BASELINE as the cause, not a
+#                                 regression count
+#
+# The previous note here read "not executed locally - there is no JDK and no Maven on the
+# authoring machine", and the command it guarded could not have produced a conformance
+# number at all - see the corpus job's comment. The other two jobs in this file are still
+# unexecuted; treat their first run as their first test.
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Mondays 04:17 UTC. Off the hour deliberately - the top of the hour is when every
+    # cron on GitHub fires at once and scheduled runs get delayed.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Single source of truth for the pin, mirroring conformance/sync-upstream.sh. If these
+  # disagree with the script the script wins and the job fails loudly - which is the point.
+  PROJ_REV: '9.8.1'
+  PROJ_REV_SHA: 'f08fa86c478c4bbbf003b1ec751dd84aa6eca486'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # BLOCKING. The conformance number. `mvn -Pconformance verify` flips
+  # gie.corpus.skip to false and runs the full corpus sweep, diffing the observed
+  # outcomes against the checked-in expected-outcome manifest. A regression - any
+  # assertion that used to pass and now does not - fails this job.
+  #
+  # -pl conformance -am builds root + core + epsg + conformance only; geoapi, db and
+  # grids-us-legacy are not on the conformance module's dependency path and there is no
+  # reason to pay for them here.
+  #
+  # THIS JOB NEVER RAN THE SWEEP UNTIL 2026-08-01, AND THE REASON IS WORTH KEEPING.
+  # The command was a bare `mvn -B -ntp -Pconformance -pl conformance -am verify`. `-am`
+  # also builds `core`, whose suite carries one expected MetaCRSTest failure, so the
+  # reactor stopped there and the conformance module was reported SKIPPED - measured:
+  #
+  #     Proj4J ........................ FAILURE [ 25.736 s]
+  #     Proj4J PROJ Conformance Suite . SKIPPED
+  #
+  # (Quoted verbatim from that run. The pom `<name>` has since become `neoProj4J`, so the same
+  #  failure would print `neoProj4J ...` today - the transcript is left unedited because it is a
+  #  measurement, not an example.)
+  #
+  # A blocking job that has never executed its gate is not a control. golden.yaml had
+  # already solved exactly this and the fix is copied from it - see the flag notes below.
+  #
+  # MEASURED RUNTIME: ~5 s for the sweep once core is compiled, on an M-series laptop with
+  # a warm scratch repo. The 90-minute budget is therefore wildly generous; it is left
+  # alone until there is a number from a real runner, because a cold Maven cache and a
+  # from-scratch core compile are the whole cost here, not the corpus.
+  corpus:
+    name: Corpus sweep (blocking)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-conformance-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # EVERY FLAG HERE IS LOAD-BEARING, and two of them are here to STOP this job passing
+      # without measuring anything.
+      #
+      #   -Pconformance
+      #       Flips gie.corpus.skip to false. Without it GieConformanceTest emits a single
+      #       ABORTED container ("disabled by -Dgie.corpus.skip=true") and surefire reports
+      #       it as a skip, i.e. as success. The guard step below catches that specifically.
+      #
+      #   -pl conformance -am
+      #       -am is required: `-pl conformance` alone cannot resolve neoproj4j / neoproj4j-epsg
+      #       from a fresh checkout.
+      #
+      #   -Dtest='org.locationtech.proj4j.conformance.**.*Test'
+      #       This is what gets past core's expected MetaCRSTest failure. NOT
+      #       -Dmaven.test.failure.ignore=true: that flag forces exit 0, so it would also
+      #       ignore THE GATE'S OWN FAILURE and turn this job green while the corpus is
+      #       red. Narrowing gets past core without disarming anything - core simply runs
+      #       no tests in this job.
+      #
+      #       THE DOUBLE STAR IS NOT COSMETIC. golden.yaml writes
+      #       `org.locationtech.proj4j.golden.*Test` and that works there only because
+      #       every golden test sits directly in one package. EVERY conformance test lives
+      #       in a SUB-package (bridge/, manifest/, parse/, report/, runner/), and surefire's
+      #       single `*` does not cross a package separator. Measured: the single-star
+      #       pattern here produces "No tests to run." followed by BUILD SUCCESS - a
+      #       perfectly green job that swept nothing. Do not "simplify" this to match
+      #       golden.yaml.
+      #
+      #   -Dsurefire.failIfNoSpecifiedTests=false
+      #       Required, and it looks backwards. With -Dtest=, surefire fails a module in
+      #       which nothing matches - and -am builds neoproj4j-epsg, which has NO test sources
+      #       at all, so the strict setting fails there and the sweep never runs. Same trap,
+      #       same flag, as golden.yaml and determinism.yaml. The "something actually ran"
+      #       guarantee is not lost; it moves to the next step, where it is asserted against
+      #       the sweep's own surefire XML and the committed baseline, and is far stronger.
+      - name: Run the PROJ conformance corpus
+        run: |
+          mvn -B -ntp -Pconformance -pl conformance -am verify \
+            -Dtest='org.locationtech.proj4j.conformance.**.*Test' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dmaven.javadoc.skip=true
+
+      # NON-VACUITY. Everything above can succeed while measuring nothing, and this step is
+      # where each of those ways is ruled out. It runs on `if: always()` because a gate that
+      # failed for the WRONG reason still has to be caught - and because when the baseline is
+      # absent the step above fails and this step is what says so in plain words.
+      #
+      # Deliberately awk and shell arithmetic, never `bc`: bc is not guaranteed present on
+      # every runner image, and a gate that dies on a missing utility is indistinguishable
+      # from a gate that fails.
+      - name: Assert the sweep actually swept
+        if: always()
+        run: |
+          set -uo pipefail
+          reports=conformance/target/surefire-reports
+          xml="$reports/TEST-org.locationtech.proj4j.conformance.runner.GieConformanceTest.xml"
+          summary=conformance/target/conformance/summary.tsv
+          index=conformance/src/test/resources/gie-corpus-index.tsv
+          manifest=conformance/src/test/resources/gie-expected-failures.tsv
+
+          fail() { echo "::error::$*"; exit 1; }
+          attr() { grep -o "$1=\"[0-9]*\"" "$2" | head -1 | sed 's/[^0-9]//g'; }
+          tsv() { awk -v k="$1" -F'\t' '$1 == k {print $2; found = 1} END {if (!found) print "MISSING"}' "$2"; }
+          rows() { grep -cv '^#' "$1"; }
+
+          # (0) The baseline is a precondition, and its absence is a DIFFERENT failure from a
+          #     regression. Named here too so the distinction survives into the job log even
+          #     though the harness itself already refuses to run without it.
+          [ -f "$manifest" ] || fail "ABSENT BASELINE: $manifest is missing. The gate cannot run \
+          without it and its absence is not a regression - restore the file, do NOT regenerate."
+          [ -f "$index" ] || fail "ABSENT BASELINE: $index is missing. Same as above."
+
+          # (1) The sweep's own report must exist. If -Pconformance did not take, or -Dtest
+          #     matched nothing, there is no report at all.
+          [ -f "$xml" ] || {
+            echo "::error::no surefire report for GieConformanceTest at $xml"
+            echo "::error::The sweep did not run. Either -Pconformance was ineffective, or the"
+            echo "::error::-Dtest pattern matched nothing - note the ** is required, see above."
+            ls -R "$reports" 2>/dev/null || true
+            exit 1; }
+
+          ran=$(attr tests "$xml"); skipped=$(attr skipped "$xml")
+          echo "GieConformanceTest: tests=$ran skipped=$skipped"
+
+          # (2) It must have SWEPT, not aborted. The skip path emits exactly one aborted
+          #     container, so `tests=1` is the tell. Skips are never passes.
+          [ "${ran:-0}" -ge 7900 ] || fail "GieConformanceTest reported only ${ran:-0} tests. \
+          The corpus is 7,923 assertions plus per-file leak checks and the gate container; a \
+          count of 1 means the sweep was skipped by gie.corpus.skip and nothing was measured."
+
+          # (3) Nothing OUTSIDE the sweep may be skipped. GieConformanceTest legitimately
+          #     reports STILL_FAILING assertions as aborted, so its own skips are expected and
+          #     are cross-checked against the manifest at (5). Everywhere else - the cross-tab
+          #     false-positive control, the lexer census, the manifest round trips - an Assume
+          #     that starts firing would hide a real loss of coverage. BridgeVerdictCrossTabTest
+          #     in particular Assume-s itself out when the corpus is not vendored.
+          others=$(ls "$reports"/TEST-*.xml | grep -v GieConformanceTest)
+          otherskips=$(printf '%s\n' "$others" | tr '\n' '\0' \
+            | xargs -0 grep -ho 'skipped="[0-9]*"' 2>/dev/null \
+            | sed 's/[^0-9]//g' | awk '{n += $1} END {print n + 0}')
+          classes=$(printf '%s\n' "$others" | grep -c .)
+          echo "other conformance test classes: $classes with $otherskips skips"
+          [ "$otherskips" -eq 0 ] || fail "$otherskips conformance tests outside the sweep were \
+          SKIPPED. Skips are never passes - find out which Assume fired."
+          [ "$classes" -ge 25 ] || fail "only $classes conformance test classes ran (expected 26 \
+          or more besides the sweep). Tests were dropped, renamed out of the -Dtest pattern, or \
+          not compiled."
+
+          # (4) The sweep must have covered the same key set as the baseline it is diffed
+          #     against. A truncated sweep - a corpus directory missing from the jar, a lexer
+          #     failure swallowing a file - would otherwise produce a small run, a small diff and
+          #     a quiet pass. Compared against the committed index rather than a hardcoded
+          #     number, so a deliberate re-vendor updates both sides at once.
+          [ -f "$summary" ] || fail "no $summary; the sweep produced no machine summary."
+          evaluated=$(tsv conformance.evaluated "$summary")
+          notrun=$(tsv conformance.notrun "$summary")
+          keys=$(rows "$index")
+          echo "assertions evaluated=$evaluated  baseline index keys=$keys  notrun=$notrun"
+          [ "$evaluated" = "$keys" ] || fail "the sweep evaluated $evaluated assertions but the \
+          committed index has $keys keys. The run did not cover the same corpus, so the diff \
+          below it is not comparable. Do NOT regenerate the baseline to absorb this - find out \
+          which assertions went missing."
+          [ "$notrun" = "0" ] || fail "$notrun assertions were never run."
+
+          # (5) The sweep's own skips are exactly the manifest's STILL_FAILING rows - no more.
+          #     This is what stops the aborted-assertion mechanism from quietly absorbing a
+          #     growing population: every skip must be a row someone wrote down.
+          stillfailing=$(tsv diff.still_failing "$summary")
+          manifestrows=$(($(rows "$manifest") - 1))   # minus the column header
+          echo "sweep skips=$skipped  still_failing=$stillfailing  manifest rows=$manifestrows"
+          [ "$skipped" = "$stillfailing" ] || fail "the sweep aborted $skipped assertions but the \
+          diff calls only $stillfailing of them STILL_FAILING."
+          [ "$stillfailing" -le "$manifestrows" ] || fail "$stillfailing STILL_FAILING assertions \
+          against a manifest of only $manifestrows rows."
+
+          # (6) The headline, and the three build-failing classifications restated by name. The
+          #     Maven step has already failed if any of these is non-zero; repeating them here
+          #     puts the reason in one line instead of in a stack trace.
+          for k in diff.regressed diff.unexpected_pass diff.disappeared; do
+            v=$(tsv "$k" "$summary")
+            echo "$k = $v"
+            [ "$v" = "0" ] || fail "$k = $v. See the conformance-report artifact for the keys."
+          done
+          echo "Non-vacuity satisfied: $evaluated assertions swept against a $keys-key baseline."
+          head -1 conformance/target/conformance/report.txt
+
+      - name: Upload conformance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-report
+          # Settled 2026-08-01: GieConformanceTest writes report.txt, summary.tsv,
+          # differences.txt and expect-failures.tsv into conformance/target/conformance/.
+          # differences.txt is the one that matters on a failure - it names every REGRESSED
+          # key with its expected and observed outcome. The surefire XML is kept because a
+          # per-assertion failure message is not in the report.
+          path: |
+            conformance/target/conformance/**
+            conformance/target/surefire-reports/**
+            conformance/src/test/resources/gie-manifest.sha256
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## PROJ conformance corpus"
+            echo ""
+            if [ -f conformance/target/conformance/report.txt ]; then
+              echo '```'
+              head -12 conformance/target/conformance/report.txt
+              echo '```'
+            else
+              echo "No report was produced. Either the sweep did not run, or the checked-in"
+              echo "baseline (\`gie-expected-failures.tsv\` + \`gie-corpus-index.tsv\`) is absent -"
+              echo "which is a hard failure by design and is **not** a regression."
+            fi
+            echo ""
+            if [ -s conformance/target/conformance/differences.txt ]; then
+              echo '```'
+              head -60 conformance/target/conformance/differences.txt
+              echo '```'
+            fi
+            echo ""
+            echo "The headline is \`genuine / (corpus - vacuous)\`. A REGRESSED row is an"
+            echo "assertion that used to pass and does not any more. It is never fixed by"
+            echo "regenerating the baseline: \`-Dgie.regenerate=true\` exists to record a"
+            echo "deliberate re-vendor, not to absorb a delta."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Same reason as ci.yaml: scrub before actions/cache's post step saves the cache, so
+      # a locally-built proj4j snapshot cannot be baked in and silently satisfy a later run.
+      - name: Remove neoproj4j artifacts from cache
+        if: always()
+        run: rm -rf "$HOME/.m2/repository/io/github/emilevictor/neoproj4j"
+
+  # ---------------------------------------------------------------------------
+  # BLOCKING. Proves the vendored corpus in this repo is byte-for-byte what the pinned
+  # upstream rev produces. Without this, "vendored from PROJ 9.8.1" is a claim in a
+  # comment; a hand-edit to a .gie file - or a well-meant fix to an expected value -
+  # would be invisible, and the conformance number would be measured against a corpus
+  # nobody can reproduce.
+  #
+  # Three independent checks:
+  #   1. shasum -c against the committed manifest: the working tree matches its own manifest.
+  #   2. re-run sync-upstream.sh from a real PROJ checkout, then git diff --exit-code:
+  #      the working tree matches upstream.
+  #   3. shasum -c again after the sync: the regenerated manifest is self-consistent.
+  vendored-corpus-matches-upstream:
+    name: Vendored corpus matches pinned PROJ (blocking)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out proj4j
+        uses: actions/checkout@v4
+        with:
+          path: proj4j
+
+      - name: Check out PROJ at the pinned rev
+        uses: actions/checkout@v4
+        with:
+          repository: OSGeo/PROJ
+          ref: ${{ env.PROJ_REV }}
+          path: PROJ
+          # fetch-depth: 0 is required, not cosmetic. sync-upstream.sh resolves the pin by
+          # NAME - `git rev-parse --verify 9.8.1^{commit}` - and then extracts with
+          # `git archive 9.8.1 test/gie`. A shallow clone can leave the tag object absent
+          # locally, in which case rev-parse fails and the script dies with
+          # "revision '9.8.1' does not exist".
+          fetch-depth: 0
+
+      - name: Confirm the checked-out PROJ rev is the pinned SHA
+        run: |
+          set -euo pipefail
+          actual="$(git -C PROJ rev-parse --verify "${PROJ_REV}^{commit}")"
+          echo "PROJ ${PROJ_REV} -> $actual"
+          if [ "$actual" != "$PROJ_REV_SHA" ]; then
+            echo "::error::PROJ ${PROJ_REV} resolves to $actual, expected $PROJ_REV_SHA"
+            exit 1
+          fi
+
+      # Comment lines are stripped first: the manifest carries a three-line header, and
+      # GNU sha256sum treats unparsable lines as an error ("WARNING: N lines are improperly
+      # formatted", exit 1). Reading from stdin also makes the check independent of which
+      # SHA-256 tool wrote the file.
+      - name: Verify the committed manifest against the committed corpus
+        working-directory: proj4j/conformance/src/test/resources
+        run: |
+          set -euo pipefail
+          grep -cv '^#' gie-manifest.sha256
+          grep -v '^#' gie-manifest.sha256 | shasum -a 256 -c -
+
+      # PROJ_DIR is passed as $1, the script's documented override
+      # (PROJ_DIR="${1:-${PROJ_DIR:-$PROJ_DIR_DEFAULT}}"); the default points at a local
+      # path that does not exist on a runner. SCRIPT_DIR is derived from BASH_SOURCE, so
+      # the script writes into the proj4j checkout regardless of the working directory.
+      - name: Re-vendor from the pinned PROJ
+        run: ./proj4j/conformance/sync-upstream.sh "$GITHUB_WORKSPACE/PROJ"
+
+      # --intent-to-add makes untracked files visible to `git diff`, so a file that
+      # upstream ADDED is caught too - a plain `git diff --exit-code` only sees
+      # modifications and deletions and would pass straight over a new .gie file.
+      - name: Assert no drift from the pinned upstream
+        working-directory: proj4j
+        run: |
+          set -euo pipefail
+          git add --intent-to-add -- conformance/src/test/resources
+          if ! git diff --exit-code -- conformance/src/test/resources; then
+            echo "::error::conformance/src/test/resources differs from what PROJ ${PROJ_REV} produces. Re-run conformance/sync-upstream.sh and commit the result."
+            git diff --stat -- conformance/src/test/resources
+            exit 1
+          fi
+          echo "Vendored corpus is identical to PROJ ${PROJ_REV} (${PROJ_REV_SHA})."
+
+      - name: Verify the regenerated manifest
+        working-directory: proj4j/conformance/src/test/resources
+        run: |
+          set -euo pipefail
+          grep -v '^#' gie-manifest.sha256 | shasum -a 256 -c -
+
+      - name: Capture the drift diff on failure
+        if: failure()
+        working-directory: proj4j
+        run: git diff -- conformance/src/test/resources > "$RUNNER_TEMP/corpus-drift.diff" || true
+
+      - name: Upload the drift diff
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-drift-pinned
+          path: ${{ runner.temp }}/corpus-drift.diff
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # ADVISORY, SCHEDULED WEEKLY. Syncs from PROJ master instead of the pin and reports what
+  # would change. This is a news feed, not a gate: it tells us upstream touched the corpus
+  # while there is still time to react, instead of at re-pin time when it is a surprise
+  # in the middle of other work. It must never fail the build.
+  #
+  # Two things this job knows about the script that a reader should not have to rediscover:
+  #   * PROJ_REV / PROJ_REV_SHA are plain assignments, not env-overridable, and the script
+  #     ALWAYS extracts from $PROJ_REV. Pointing it at a master checkout is not enough - it
+  #     would happily re-vendor 9.8.1 from the tag that checkout also fetched. So the
+  #     variables are rewritten in a sibling copy of the script, kept next to the original
+  #     because SCRIPT_DIR comes from BASH_SOURCE and decides where the files land.
+  #   * The script dies if tinshift_gpkg*.gie appear, and they exist on master. So a master
+  #     sync is EXPECTED to abort at step [1/4]. That abort is itself the drift report -
+  #     the corpus directories have already been replaced by then, so the diff is
+  #     meaningful either way.
+  upstream-drift:
+    name: Upstream corpus drift vs PROJ master (advisory)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - name: Check out proj4j
+        uses: actions/checkout@v4
+        with:
+          path: proj4j
+
+      - name: Check out PROJ master
+        uses: actions/checkout@v4
+        with:
+          repository: OSGeo/PROJ
+          ref: master
+          path: PROJ
+          # Depth 1 is enough here: actions/checkout creates a local `master` branch at the
+          # fetched commit, so `git rev-parse master` and `git archive master` both work,
+          # and no tag needs to resolve. Cheaper than the full clone the pinned job needs.
+          fetch-depth: 1
+
+      - name: Sync from master and report drift
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          master_sha="$(git -C PROJ rev-parse --verify 'master^{commit}')"
+          echo "PROJ master = $master_sha"
+
+          cp proj4j/conformance/sync-upstream.sh proj4j/conformance/sync-upstream.master.sh
+          sed -i \
+            -e "s|^PROJ_REV=.*|PROJ_REV=master|" \
+            -e "s|^PROJ_REV_SHA=.*|PROJ_REV_SHA=${master_sha}|" \
+            proj4j/conformance/sync-upstream.master.sh
+
+          # Expected to exit non-zero on the tinshift_gpkg guard - see the job comment.
+          ./proj4j/conformance/sync-upstream.master.sh "$GITHUB_WORKSPACE/PROJ" || true
+          rm -f proj4j/conformance/sync-upstream.master.sh
+
+          cd proj4j
+          git add --intent-to-add -- conformance/src/test/resources
+          {
+            echo "## Corpus drift: PROJ master vs pinned ${PROJ_REV}"
+            echo
+            echo "- pinned rev: \`${PROJ_REV}\` (\`${PROJ_REV_SHA}\`)"
+            echo "- master: \`${master_sha}\`"
+            echo
+            if git diff --quiet -- conformance/src/test/resources; then
+              echo "No drift. The corpus on master is identical to the pin."
+            else
+              echo '```'
+              git --no-pager diff --stat -- conformance/src/test/resources
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git --no-pager diff -- conformance/src/test/resources \
+            > "$RUNNER_TEMP/corpus-drift-master.diff" || true
+
+          # Put the checkout back, so nothing downstream sees a mutated tree.
+          git reset -- conformance/src/test/resources
+          git checkout -- conformance/src/test/resources
+          git clean -fdq -- conformance/src/test/resources
+
+      - name: Upload the master drift diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-drift-master
+          path: ${{ runner.temp }}/corpus-drift-master.diff
+          if-no-files-found: warn
+          retention-days: 30

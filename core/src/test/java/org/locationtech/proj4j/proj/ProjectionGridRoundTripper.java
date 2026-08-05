@@ -15,142 +15,261 @@
  *******************************************************************************/
 package org.locationtech.proj4j.proj;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.locationtech.proj4j.CRSFactory;
 import org.locationtech.proj4j.CoordinateReferenceSystem;
 import org.locationtech.proj4j.CoordinateTransform;
 import org.locationtech.proj4j.CoordinateTransformFactory;
 import org.locationtech.proj4j.ProjCoordinate;
-import org.locationtech.proj4j.proj.Projection;
 import org.locationtech.proj4j.util.ProjectionUtil;
 
-public class ProjectionGridRoundTripper
-{
-	private static final CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
-  CRSFactory csFactory = new CRSFactory();
+/**
+ * Projects a small grid of geographic coordinates into a CRS and back, and reports how far the
+ * round-trip missed.
+ * <p>
+ * <b>{@link #gridExtent(Projection)} carried four defects that between them meant the grid was
+ * frequently probed nowhere near the CRS it was supposed to be testing.</b> All four are fixed here;
+ * they are documented individually at the point of fix because the first one in particular is easy to
+ * reintroduce:
+ * <ol>
+ *   <li><b>The latitude accumulator was seeded with {@link Double#MIN_VALUE}, which is
+ *       <code>+4.9e-324</code> — the smallest positive subnormal, not a negative number.</b> The
+ *       "did we find anything?" guard was {@code latExtent[1] > Double.MIN_VALUE}, so for a CRS whose
+ *       latitude parameters are all negative the accumulated maximum (say −19.0) failed the guard, the
+ *       whole block was skipped, and the code fell back to a 10&deg; box at {@code centrey = 0.0}.
+ *       <b>Every southern-hemisphere CRS was therefore probed in the wrong hemisphere</b>, typically
+ *       thousands of kilometres outside its area of use, where a round-trip either happens to be
+ *       harmless or fails for reasons that have nothing to do with the CRS.</li>
+ *   <li><b>{@code lat == 0.0} was treated as "parameter absent"</b>, conflating it with a legitimate
+ *       equatorial value.</li>
+ *   <li><b>{@code gridWidth = 2 * dlat} was unbounded</b>: {@code +lat_1=-60 +lat_2=60} asks for a
+ *       240&deg; box, which cannot be a meaningful probe of anything.</li>
+ *   <li><b>The latitude-derived half-width was reused for longitude with no {@code cos(lat)}
+ *       scaling</b>, so the box's shape on the ground depended on where it was — at 71&deg;N
+ *       (Alaska zone 6) a "10&deg; square" is 3.1&times; wider than it is tall.</li>
+ * </ol>
+ */
+public class ProjectionGridRoundTripper {
 
-  static final String WGS84_PARAM = "+title=long/lat:WGS84 +proj=longlat +datum=WGS84 +units=degrees";
-  CoordinateReferenceSystem WGS84 = csFactory.createFromParameters("WGS84", WGS84_PARAM);
+    /**
+     * Largest probe box we will ever ask for, in degrees of latitude. Bounds defect (3): a box wider
+     * than this is not a probe of a projection, it is a probe of the projection's failure modes, and
+     * the two must not be conflated in one number.
+     */
+    static final double MAX_BOX_HEIGHT_DEG = 20.0;
 
-	private CoordinateReferenceSystem cs;
-  private CoordinateTransform transInverse;
-  private CoordinateTransform transForward;
-	private int gridSize = 4;
-	private boolean debug = false;
-	private int transformCount = 0;
-	private double[] gridExtent;
+    /** Smallest probe box, so that a degenerate {@code lat_1 == lat_2} still exercises some area. */
+    static final double MIN_BOX_HEIGHT_DEG = 2.0;
 
-	public ProjectionGridRoundTripper(CoordinateReferenceSystem cs)
-	{
-		this.cs = cs;
-    transInverse = ctFactory.createTransform(cs, WGS84);
-    transForward = ctFactory.createTransform(WGS84, cs);
-	}
+    /** Box height used when the projection declares no usable latitude at all. */
+    static final double DEFAULT_BOX_HEIGHT_DEG = 10.0;
 
-	public void setLevelDebug(boolean debug)
-	{
-		this.debug = debug;
-	}
+    /**
+     * Floor on {@code cos(centreLat)} when converting a ground-square box to degrees of longitude.
+     * 0.1 corresponds to ~84&deg;; without it a polar CRS would ask for a box hundreds of degrees
+     * wide.
+     */
+    static final double COS_LAT_FLOOR = 0.1;
 
-	public int getTransformCount()
-	{
-		return transformCount;
-	}
+    /** Keeps the box off the poles, where a lon/lat round-trip is degenerate for most projections. */
+    static final double MAX_ABS_LAT_DEG = 89.0;
 
-	public double[] getExtent()
-	{
-		return gridExtent;
-	}
-	public boolean runGrid(double tolerance)
-	{
-		gridExtent = gridExtent(cs.getProjection());
-		double minx = gridExtent[0];
-		double miny = gridExtent[1];
-		double maxx = gridExtent[2];
-		double maxy = gridExtent[3];
+    private static final CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
 
-    ProjCoordinate p = new ProjCoordinate();
-		double dx = (maxx - minx) / gridSize;
-		double dy = (maxy - miny) / gridSize;
-		for (int ix = 0; ix <= gridSize; ix++) {
-			for (int iy = 0; iy <= gridSize; iy++) {
-				 p.x = ix == gridSize ?
-					 		maxx
-					 		: minx + ix * dx;
+    private final CRSFactory csFactory = new CRSFactory();
 
-				 p.y = iy == gridSize ?
-						 	maxy
-					 		: miny + iy * dy;
+    static final String WGS84_PARAM = "+title=long/lat:WGS84 +proj=longlat +datum=WGS84 +units=degrees";
 
-				 boolean isWithinTol = roundTrip(p, tolerance);
-				 if (! isWithinTol)
-					 return false;
-			}
-		}
-		return true;
-	}
+    private final CoordinateReferenceSystem WGS84 = csFactory.createFromParameters("WGS84", WGS84_PARAM);
 
-  ProjCoordinate p2 = new ProjCoordinate();
-  ProjCoordinate p3 = new ProjCoordinate();
+    private final CoordinateReferenceSystem cs;
+    private final CoordinateTransform transInverse;
+    private final CoordinateTransform transForward;
+    private int gridSize = 4;
+    private boolean debug = false;
+    private int transformCount = 0;
+    private double[] gridExtent;
+    private final List<String> failures = new ArrayList<String>();
+    private double worstError = 0.0;
 
-	private boolean roundTrip(ProjCoordinate p, double tolerance)
-	{
-		transformCount++;
+    public ProjectionGridRoundTripper(CoordinateReferenceSystem cs) {
+        this.cs = cs;
+        transInverse = ctFactory.createTransform(cs, WGS84);
+        transForward = ctFactory.createTransform(WGS84, cs);
+    }
 
-    transForward.transform(p, p2);
-    transInverse.transform(p2, p3);
+    public void setLevelDebug(boolean debug) {
+        this.debug = debug;
+    }
 
-		if (debug)
-			System.out.println(ProjectionUtil.toString(p) + " -> " + ProjectionUtil.toString(p2) + " ->  " + ProjectionUtil.toString(p3));
+    public int getTransformCount() {
+        return transformCount;
+    }
 
-		double dx = Math.abs(p3.x - p.x);
-		double dy = Math.abs(p3.y - p.y);
+    public double[] getExtent() {
+        return gridExtent;
+    }
 
-    boolean isInTol = dx <= tolerance && dy <= tolerance;
+    /** Largest round-trip error seen, in degrees, over every point probed. */
+    public double getWorstError() {
+        return worstError;
+    }
 
-    if (! isInTol)
-      System.out.println("FAIL: " + ProjectionUtil.toString(p) + " -> " + ProjectionUtil.toString(p2) + " ->  " + ProjectionUtil.toString(p3));
+    /** Human-readable description of every point that missed, empty if none did. */
+    public List<String> getFailures() {
+        return failures;
+    }
 
+    /**
+     * Runs the whole grid and returns whether every point round-tripped within {@code tolerance}
+     * degrees.
+     * <p>
+     * Unlike the original, this does not stop at the first miss: a probe that aborts on point 1 of 25
+     * cannot tell you whether a CRS is slightly off or completely broken, and that distinction is the
+     * entire value of the test.
+     */
+    public boolean runGrid(double tolerance) {
+        gridExtent = gridExtent(cs.getProjection());
+        double minx = gridExtent[0];
+        double miny = gridExtent[1];
+        double maxx = gridExtent[2];
+        double maxy = gridExtent[3];
 
-		return isInTol;
-	}
+        double dx = (maxx - minx) / gridSize;
+        double dy = (maxy - miny) / gridSize;
+        for (int ix = 0; ix <= gridSize; ix++) {
+            for (int iy = 0; iy <= gridSize; iy++) {
+                ProjCoordinate p = new ProjCoordinate(
+                        ix == gridSize ? maxx : minx + ix * dx,
+                        iy == gridSize ? maxy : miny + iy * dy);
+                roundTrip(p, tolerance);
+            }
+        }
+        return failures.isEmpty();
+    }
 
-	public static double[] gridExtent(Projection proj)
-	{
-		// scan all lat/lon params to try and determine a reasonable extent
+    private boolean roundTrip(ProjCoordinate p, double tolerance) {
+        transformCount++;
 
-		double lon = proj.getProjectionLongitudeDegrees();
+        ProjCoordinate projected = new ProjCoordinate();
+        ProjCoordinate returned = new ProjCoordinate();
+        transForward.transform(p, projected);
+        transInverse.transform(projected, returned);
 
-		double[] latExtent = new double[] {Double.MAX_VALUE, Double.MIN_VALUE };
-		updateLat(proj.getProjectionLatitudeDegrees(), latExtent);
-		updateLat(proj.getProjectionLatitude1Degrees(), latExtent);
-		updateLat(proj.getProjectionLatitude2Degrees(), latExtent);
+        if (debug) {
+            System.out.println(ProjectionUtil.toString(p) + " -> " + ProjectionUtil.toString(projected)
+                    + " ->  " + ProjectionUtil.toString(returned));
+        }
 
-		double centrex = lon;
-		double centrey = 0.0;
-		double gridWidth = 10;
+        double dx = Math.abs(returned.x - p.x);
+        double dy = Math.abs(returned.y - p.y);
+        double err = Math.max(dx, dy);
+        // NaN-safe on purpose: a non-finite round-trip must be a failure, not a comparison that
+        // quietly evaluates to false.
+        if (!(err <= worstError)) {
+            worstError = err;
+        }
 
-		if (latExtent[0] < Double.MAX_VALUE && latExtent[1] > Double.MIN_VALUE) {
-			// got a good candidate
+        boolean isInTol = dx <= tolerance && dy <= tolerance;
+        if (!isInTol) {
+            failures.add(ProjectionUtil.toString(p) + " -> " + ProjectionUtil.toString(projected)
+                    + " -> " + ProjectionUtil.toString(returned)
+                    + "  (dLon " + dx + ", dLat " + dy + ")");
+        }
+        return isInTol;
+    }
 
-			double dlat = latExtent[1] - latExtent[0];
-			if (dlat > 0) gridWidth = 2 * dlat;
-		  centrey = (latExtent[1] + latExtent[0]) /2;
-		}
-		double[] extent = new double[4];
-		extent[0] = centrex - gridWidth/2;
-		extent[1] = centrey - gridWidth/2;
-		extent[2] = centrex + gridWidth/2;
-		extent[3] = centrey + gridWidth/2;
-		return extent;
-	}
+    /**
+     * Chooses a lon/lat box to probe, from whatever the projection declares about its own origin.
+     * <p>
+     * Returned as {@code { minLon, minLat, maxLon, maxLat }}.
+     * <p>
+     * <b>Note on "absent" parameters.</b> {@link Projection} offers no absent-sentinel:
+     * {@code projectionLatitude}, {@code projectionLatitude1} and {@code projectionLatitude2} are all
+     * plain {@code double}s initialised to {@code 0.0} ({@code Projection.java:66,76,81}), so a CRS
+     * that genuinely sits on the equator is indistinguishable from one that declares no latitude.
+     * The original code responded by dropping every {@code 0.0} inside {@code updateLat}, which is
+     * defect (2). This version instead applies an explicit precedence rule and never discards a value
+     * from the arithmetic — {@code 0.0} is only ever used to <em>select</em> which rule applies, and
+     * that limitation is stated rather than hidden. Giving {@code Projection} a NaN default would
+     * remove the ambiguity outright, but that is a main-source change.
+     */
+    public static double[] gridExtent(Projection proj) {
+        double lat0 = proj.getProjectionLatitudeDegrees();
+        double lat1 = proj.getProjectionLatitude1Degrees();
+        double lat2 = proj.getProjectionLatitude2Degrees();
+        double lon0 = proj.getProjectionLongitudeDegrees();
 
-	private static void updateLat(double lat, double[] latExtent)
-	{
-		// 0.0 indicates not set (for most projections?)
-		if (lat == 0.0) return;
-		if (lat < latExtent[0])
-			latExtent[0] = lat;
-		if (lat > latExtent[1])
-			latExtent[1] = lat;
-	}
+        boolean haveStandardParallels = lat1 != 0.0 || lat2 != 0.0;
+        boolean haveBothStandardParallels = lat1 != 0.0 && lat2 != 0.0;
+
+        // ---- centre latitude -------------------------------------------------------------------
+        // Defect (1): the old accumulator was seeded { Double.MAX_VALUE, Double.MIN_VALUE } and
+        // Double.MIN_VALUE is +4.9e-324. There is no accumulator here at all, so the sign of the
+        // hemisphere cannot be lost. If a min/max is ever reintroduced, seed the maximum with
+        // -Double.MAX_VALUE or Double.NEGATIVE_INFINITY -- never Double.MIN_VALUE.
+        double centreLat;
+        if (lat0 != 0.0) {
+            centreLat = lat0;
+        } else if (haveStandardParallels) {
+            centreLat = 0.5 * (lat1 + lat2);
+        } else {
+            centreLat = 0.0;
+        }
+        centreLat = clamp(centreLat, -MAX_ABS_LAT_DEG, MAX_ABS_LAT_DEG);
+
+        // ---- box height ------------------------------------------------------------------------
+        // Defect (3): 2 * dlat, unbounded. +lat_1=-60 +lat_2=60 gave a 240-degree box.
+        double heightDeg = DEFAULT_BOX_HEIGHT_DEG;
+        if (haveBothStandardParallels) {
+            double dlat = Math.abs(lat2 - lat1);
+            if (dlat > 0.0) {
+                heightDeg = clamp(2.0 * dlat, MIN_BOX_HEIGHT_DEG, MAX_BOX_HEIGHT_DEG);
+            }
+        }
+
+        // ---- box width -------------------------------------------------------------------------
+        // Defect (4): the latitude half-width was reused verbatim for longitude, so the box's
+        // proportions on the ground varied with latitude. One degree of longitude spans
+        // cos(lat) degrees' worth of ground, so a ground-square box needs height / cos(lat) degrees
+        // of longitude -- floored near the poles and capped for the same reason as the height.
+        double cosLat = Math.max(Math.cos(Math.toRadians(centreLat)), COS_LAT_FLOOR);
+        double widthDeg = clamp(heightDeg / cosLat, MIN_BOX_HEIGHT_DEG, MAX_BOX_HEIGHT_DEG);
+
+        // ---- assemble, keeping the box on the globe --------------------------------------------
+        double halfH = 0.5 * heightDeg;
+        double halfW = 0.5 * widthDeg;
+        double minLat = centreLat - halfH;
+        double maxLat = centreLat + halfH;
+        if (minLat < -MAX_ABS_LAT_DEG) {
+            double shift = -MAX_ABS_LAT_DEG - minLat;
+            minLat += shift;
+            maxLat += shift;
+        } else if (maxLat > MAX_ABS_LAT_DEG) {
+            double shift = maxLat - MAX_ABS_LAT_DEG;
+            minLat -= shift;
+            maxLat -= shift;
+        }
+
+        double centreLon = lon0;
+        double minLon = centreLon - halfW;
+        double maxLon = centreLon + halfW;
+        if (minLon < -180.0) {
+            double shift = -180.0 - minLon;
+            minLon += shift;
+            maxLon += shift;
+        } else if (maxLon > 180.0) {
+            double shift = maxLon - 180.0;
+            minLon -= shift;
+            maxLon -= shift;
+        }
+
+        return new double[] { minLon, minLat, maxLon, maxLat };
+    }
+
+    private static double clamp(double v, double lo, double hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
 }

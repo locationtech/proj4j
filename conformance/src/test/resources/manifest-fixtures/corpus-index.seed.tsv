@@ -1,0 +1,40 @@
+# proj4j gie/GIGS conformance - corpus index (SEED / ILLUSTRATIVE).
+#
+# Every assertion key present when the sibling manifest was generated, one per line, in
+# canonical order. The real index has ~8,017 lines; this one is a fixture holding the keys
+# used by expected-failures.seed.tsv plus two assertions that are expected to PASS (and so
+# appear here but NOT in the manifest).
+#
+# Regenerate together with the manifest:
+#   mvn -Pconformance verify -Dgie.regenerate=true
+#
+gie/adams_hemi.gie#0:12@1a2b3c4d
+gie/builtins.gie#0:0@0011aabb
+gie/builtins.gie#0:1@0022ccdd
+gie/epsg_grid.gie#0:0@2b3c4d5e
+gie/epsg_grid.gie#1:0@3c4d5e6f
+gigs/5101.4-jhs.gie.failing#0:0@4d5e6f70
+gigs/5101.4-jhs.gie.failing#1:0@5e6f7081
+gigs/5101.4-jhs.gie.failing#2:0@6f708192
+gigs/5105.1.gie.failing#0:0@708192a3
+gigs/5105.1.gie.failing#1:0@8192a3b4
+gigs/5105.1.gie.failing#2:0@92a3b4c5
+gigs/5110.gie.failing#0:0@a3b4c5d6
+gigs/5110.gie.failing#2:0@b4c5d6e7
+gigs/5110.gie.failing#2:1@c5d6e7f8
+gigs/5111.2.gie.failing#0:0@d6e7f809
+gigs/5111.2.gie.failing#1:0@e7f8091a
+gigs/5111.2.gie.failing#2:0@f8091a2b
+gigs/5203.1.gie.failing#0:0@091a2b3c
+gigs/5203.1.gie.failing#1:0@1a2b3c4e
+gigs/5203.1.gie.failing#2:0@2b3c4e5f
+gigs/5204.1.gie.failing#0:0@3c4e5f60
+gigs/5204.1.gie.failing#2:0@4e5f6071
+gigs/5205.1.gie.failing#0:0@5f607182
+gigs/5205.1.gie.failing#2:0@60718293
+gigs/5206.gie.failing#0:0@718293a4
+gigs/5206.gie.failing#2:0@8293a4b5
+gigs/5207.1.gie.failing#0:0@93a4b5c6
+gigs/5207.1.gie.failing#2:0@a4b5c6d7
+gigs/5207.2.gie.failing#0:0@b5c6d7e8
+gigs/5207.2.gie.failing#2:0@c6d7e8f9

@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class QuarticAuthalicProjection extends SineTangentSeriesProjection {
 
+	private static final long serialVersionUID = -3777395340559758855L;
+
 	public QuarticAuthalicProjection() {
 		super( 2., 2., false );
 	}

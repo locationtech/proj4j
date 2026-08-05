@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class McBrydeThomasFlatPolarSine1Projection extends SineTangentSeriesProjection {
 
+	private static final long serialVersionUID = -7506592265021916377L;
+
 	public McBrydeThomasFlatPolarSine1Projection() {
 		super( 1.48875, 1.36509, false );
 	}

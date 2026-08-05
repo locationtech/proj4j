@@ -19,11 +19,28 @@ package org.locationtech.proj4j;
 /**
  * Signals that an authority code is unknown
  * and cannot be mapped to a CRS definition.
+ * <p>
+ * {@link #cause()} is {@link ErrorCause#UNKNOWN_CRS}.
  *
  * @author mbdavis
  */
-public class UnknownAuthorityCodeException extends Proj4jException {
+public class UnknownAuthorityCodeException extends CrsCreationException {
+
+    private static final long serialVersionUID = -8058065898082079043L;
+
+    /** The cause reported by every constructor that does not take one explicitly. */
+    private static final ErrorCause DEFAULT_CAUSE = ErrorCause.UNKNOWN_CRS;
+
     public UnknownAuthorityCodeException(String message) {
-        super(message);
+        super(DEFAULT_CAUSE, message);
+    }
+
+    /**
+     * @param cause   a refinement of {@link ErrorCause#UNKNOWN_CRS}
+     * @param message the human-readable detail message
+     * @since 1.5.0
+     */
+    public UnknownAuthorityCodeException(ErrorCause cause, String message) {
+        super(cause, message);
     }
 }

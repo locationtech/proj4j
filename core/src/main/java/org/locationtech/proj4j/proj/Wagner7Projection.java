@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class Wagner7Projection extends Projection {
 
+	private static final long serialVersionUID = -538142418803560156L;
+
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		double theta, ct, D;
 

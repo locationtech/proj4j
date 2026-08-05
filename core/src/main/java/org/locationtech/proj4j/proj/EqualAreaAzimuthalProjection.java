@@ -21,9 +21,30 @@ package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.AuthalicLat;
 import org.locationtech.proj4j.util.ProjectionMath;
 
+/**
+ * Lambert equal-area azimuthal. Not registered under any proj name — {@code +proj=laea} maps to
+ * {@link LambertAzimuthalEqualAreaProjection} — but it is public API and it implements the same
+ * algorithm, so it tracks {@code 9.8.1:src/projections/laea.cpp} for the same reasons.
+ *
+ * <p>{@code ProjectionMath.authset}/{@code authlat}/{@code qsfn} are replaced by
+ * {@link AuthalicLat}, the order-6 port of {@code 9.8.1:src/latitudes.cpp}. The third-order series
+ * they implement is up to <b>2.211 mm</b> off at latitude 18.01 degrees on GRS80, 22 times the
+ * 0.1 mm bar this family's conformance rows set.
+ *
+ * <p>The forward direction also changes shape, following {@code laea.cpp:39-46} and
+ * {@code laea.cpp:283-285}: the authalic latitude {@code xi} comes from the direct
+ * {@code phi -> xi} series and {@code q} is recovered as {@code sin(xi) * qp}, instead of computing
+ * {@code q} first and then {@code sinb = q/qp}, {@code cosb = sqrt(1 - sinb^2)}. Upstream stopped
+ * using the {@code asin} form because it loses relative accuracy near the poles. {@code cea} and
+ * {@code aea} keep raw {@code q} in their forwards — see {@code cea.cpp:21}, {@code aea.cpp:70} —
+ * so this is a per-projection decision, not a blanket rule.
+ */
 public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
+
+	private static final long serialVersionUID = -8002324637336088184L;
 
 	private double sinb1;
 	private double cosb1;
@@ -33,19 +54,27 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 	private double qp;
 	private double dd;
 	private double rq;
-	private double[] apa;
+
+	/**
+	 * The order-6 authalic-latitude machinery. Built once per CRS in {@link #initialize()}:
+	 * its coefficient tables depend only on the ellipsoid, and precomputing them is the point.
+	 * Immutable, {@link java.io.Serializable} and safe to share across the clones this class
+	 * hands out.
+	 */
+	private AuthalicLat authalic;
 
 	public EqualAreaAzimuthalProjection() {
 		initialize();
 	}
 
+	/**
+	 * Retained for source compatibility. The array that used to need deep-copying here is gone;
+	 * {@link AuthalicLat} is immutable, so sharing the reference with the clone is correct.
+	 */
 	public Object clone() {
-		EqualAreaAzimuthalProjection p = (EqualAreaAzimuthalProjection)super.clone();
-		if (apa != null)
-			p.apa = (double[])apa.clone();
-		return p;
+		return super.clone();
 	}
-	
+
 	public void initialize() {
 		super.initialize();
 		if (spherical) {
@@ -56,9 +85,9 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 		} else {
 			double sinphi;
 
-			qp = ProjectionMath.qsfn(1., e, one_es);
+			authalic = new AuthalicLat(es);
+			qp = authalic.qp();
 			mmf = .5 / (1. - es);
-			apa = ProjectionMath.authset(es);
 			switch (mode) {
 			case NORTH_POLE:
 			case SOUTH_POLE:
@@ -72,8 +101,11 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 			case OBLIQUE:
 				rq = Math.sqrt(.5 * qp);
 				sinphi = Math.sin(projectionLatitude);
-				sinb1 = ProjectionMath.qsfn(sinphi, e, one_es) / qp;
-				cosb1 = Math.sqrt(1. - sinb1 * sinb1);
+				// laea.cpp:283-285: the authalic latitude of lat_0 through the direct series,
+				// then its sine and cosine, rather than sinb1 = q/qp and sqrt(1 - sinb1^2).
+				double b1 = authalic.forward(projectionLatitude, sinphi, Math.cos(projectionLatitude));
+				sinb1 = Math.sin(b1);
+				cosb1 = Math.cos(b1);
 				dd = Math.cos(projectionLatitude) / (Math.sqrt(1. - es * sinphi * sinphi) *
 				   rq * cosb1);
 				ymf = (xmf = rq) / dd;
@@ -121,10 +153,12 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 			coslam = Math.cos(lam);
 			sinlam = Math.sin(lam);
 			sinphi = Math.sin(phi);
-			q = ProjectionMath.qsfn(sinphi, e, one_es);
+			// laea.cpp:39-46: xi from the direct phi -> xi series, q recovered as sin(xi)*qp.
+			double xi = authalic.forward(phi, sinphi, Math.cos(phi));
+			q = Math.sin(xi) * qp;
 			if (mode == OBLIQUE || mode == EQUATOR) {
-				sinb = q / qp;
-				cosb = Math.sqrt(1. - sinb * sinb);
+				sinb = Math.sin(xi);
+				cosb = Math.cos(xi);
 			}
 			switch (mode) {
 			case OBLIQUE:
@@ -155,7 +189,11 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 				break;
 			case NORTH_POLE:
 			case SOUTH_POLE:
-				if (q >= 0.) {
+				// laea.cpp:75 uses 1e-15, not 0. Now that q comes from sin(xi)*qp rather than
+				// the exact-q formula, `qp - q` at the pole is rounding noise rather than an
+				// exact zero, and sqrt of a denormal would place the point sub-millimetres off
+				// the origin instead of on it.
+				if (q >= 1e-15) {
 					xy.x = (b = Math.sqrt(q)) * sinlam;
 					xy.y = coslam * (mode == SOUTH_POLE ? b : -b);
 				} else
@@ -234,7 +272,7 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 				break;
 			}
 			lp.x = Math.atan2(x, y);
-			lp.y = ProjectionMath.authlat(Math.asin(ab), apa);
+			lp.y = authalic.inverse(Math.asin(ab));
 		}
 		return lp;
 	}

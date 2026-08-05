@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class GallProjection extends Projection {
 
+	private static final long serialVersionUID = 818622085019578883L;
+
 	private final static double YF = 1.70710678118654752440;
 	private final static double XF = 0.70710678118654752440;
 	private final static double RYF = 0.58578643762690495119;

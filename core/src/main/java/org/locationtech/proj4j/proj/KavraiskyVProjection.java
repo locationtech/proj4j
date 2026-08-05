@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class KavraiskyVProjection extends SineTangentSeriesProjection {
 
+	private static final long serialVersionUID = 5726640106530761339L;
+
 	public KavraiskyVProjection() {
 		super( 1.50488, 1.35439, false );
 	}

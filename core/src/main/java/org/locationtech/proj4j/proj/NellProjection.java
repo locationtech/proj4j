@@ -19,26 +19,53 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ConvergenceFailureException;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class NellProjection extends Projection {
 
+	private static final long serialVersionUID = 1682859829774558016L;
+
 	private final static int MAX_ITER = 10;
 	private final static double LOOP_TOL = 1e-7;
 
+	/**
+	 * Forward projection. Port of PROJ 9.8.1 {@code nell.cpp}'s {@code nell_s_forward}.
+	 * <p>
+	 * <b>Fail-closed</b>, plus a repair the throw depends on. Three defects from the 2006
+	 * C&rarr;Java conversion, all the same mistranslation of C's mutate-then-read idiom:
+	 * <ul>
+	 * <li>the initial estimate was written as {@code out.y *= …} — scaling the caller's
+	 *     destination ordinate, i.e. whatever stale value it held — where upstream scales
+	 *     {@code lp.phi};</li>
+	 * <li>the Newton correction was also subtracted from {@code out.y}, so {@code lpphi} never
+	 *     changed and the correction was identical on every trip;</li>
+	 * <li>there was no convergence test, and the two output lines then used the unsolved
+	 *     {@code lpphi} — so {@code nell}'s forward was, in effect, {@code y = phi} with a
+	 *     cosine-of-the-wrong-angle easting.</li>
+	 * </ul>
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		double k, V;
 		int i;
+		final double phi = lpphi;
 
 		k = 2. * Math.sin(lpphi);
 		V = lpphi * lpphi;
-		out.y *= 1.00371 + V * (-0.0935382 + V * -0.011412);
+		lpphi *= 1.00371 + V * (-0.0935382 + V * -0.011412);
+		V = Double.NaN;
 		for (i = MAX_ITER; i > 0 ; --i) {
-			out.y -= V = (lpphi + Math.sin(lpphi) - k) /
+			lpphi -= V = (lpphi + Math.sin(lpphi) - k) /
 				(1. + Math.cos(lpphi));
 			if (Math.abs(V) < LOOP_TOL)
 				break;
+		}
+		if (i == 0) {
+			throw new ConvergenceFailureException(this,
+					"forward parametric-latitude iteration did not converge to " + LOOP_TOL
+							+ " within " + MAX_ITER + " iterations for latitude " + phi
+							+ " rad (last correction " + V + ")");
 		}
 		out.x = 0.5 * lplam * (1. + Math.cos(lpphi));
 		out.y = lpphi;

@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class FoucautProjection extends SineTangentSeriesProjection {
 
+	private static final long serialVersionUID = -8747812553558470225L;
+
 	public FoucautProjection() {
 		super( 2., 2., true );
 	}

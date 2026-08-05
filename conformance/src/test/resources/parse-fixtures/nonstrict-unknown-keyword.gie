@@ -1,0 +1,9 @@
+<gie>
+
+operation +proj=aea +ellps=GRS80 +lat_1=0 +lat_2=2
+accept  2 1
+expect  222571.608757106 110653.326743030
+
+unknown_keyword
+
+</gie>

@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class PerspectiveConicProjection extends SimpleConicProjection {
 
+	private static final long serialVersionUID = 4712467714690834547L;
+
 	public PerspectiveConicProjection() {
 		super( SimpleConicProjection.PCONIC );
 	}

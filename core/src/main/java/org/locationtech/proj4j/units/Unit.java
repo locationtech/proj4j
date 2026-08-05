@@ -18,6 +18,7 @@ package org.locationtech.proj4j.units;
 
 import java.io.Serializable;
 import java.text.NumberFormat;
+import java.util.Locale;
 import java.util.Objects;
 
 public class Unit implements Serializable {
@@ -31,12 +32,34 @@ public class Unit implements Serializable {
 
     public String name, plural, abbreviation;
     public double value;
+
+    /**
+     * The <em>display</em> formatter, deliberately left on the default locale: {@link #format(double)}
+     * and its overloads render a measurement for a human, and a reader in Germany should see a
+     * decimal comma. Do not use it to read a value back -- see {@link #PARSE}.
+     */
     public static final NumberFormat format;
+
+    /**
+     * The <em>parsing</em> formatter, pinned to {@link Locale#ROOT}, because
+     * {@link #parse(String)} reads a machine-written value out of a CRS definition and those are
+     * always ASCII with a decimal point.
+     *
+     * <p>Measured on Temurin 21 with the default-locale formatter this method used to share:
+     * {@code parse("1.5")} returns <b>15</b> under {@code de_DE} and {@code tr_TR} (the point is
+     * read as a grouping separator) and <b>1</b> under {@code lt_LT} and {@code ar_EG} (the point
+     * terminates the number). Only {@code Locale.ROOT} returns 1.5 everywhere.
+     */
+    private static final NumberFormat PARSE;
 
     static {
         format = NumberFormat.getNumberInstance();
         format.setMaximumFractionDigits(2);
         format.setGroupingUsed(false);
+
+        PARSE = NumberFormat.getNumberInstance(Locale.ROOT);
+        PARSE.setMaximumFractionDigits(2);
+        PARSE.setGroupingUsed(false);
     }
 
     public Unit(String name, String plural, String abbreviation, double value) {
@@ -56,7 +79,7 @@ public class Unit implements Serializable {
 
     public double parse(String s) throws NumberFormatException {
         try {
-            return format.parse(s).doubleValue();
+            return PARSE.parse(s).doubleValue();
         }
         catch (java.text.ParseException e) {
             throw new NumberFormatException(e.getMessage());
@@ -94,9 +117,36 @@ public class Unit implements Serializable {
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p><b>Bit-identical to the {@code Objects.hash(getClass(), name, value)} it replaces, and
+     * deliberately so.</b> {@code Objects.hash} is specified as
+     * {@code Arrays.hashCode(new Object[]{...})}, i.e. the {@code 31}-chain below seeded with 1, so
+     * every value this returns is the value it always returned. What is gone is the allocation:
+     * an {@code Object[3]} and a {@code Double} box, <b>measured at 56 B/op</b>, on the
+     * transform-cache lookup path — {@code Projection.hashCode} calls {@code getUnits().hashCode()}
+     * and {@code CoordinateReferenceSystem.hashCode} calls that, so it is paid on every cache probe.
+     *
+     * <p>Keeping the value identical is not fastidiousness: a changed hash reorders every
+     * {@code HashMap} keyed on a {@code Unit}, a {@code Projection} or a CRS, and this repository
+     * measures behaviour with a 53,430-row golden master. An optimisation that also perturbs
+     * iteration order is two changes reported as one.
+     *
+     * <p>Two pre-existing inconsistencies are preserved rather than fixed here, because fixing
+     * either <em>would</em> change the value: {@code equals} ignores {@code getClass()} while this
+     * includes it, and {@code equals} compares {@code value} with {@code ==} (under which
+     * {@code -0.0} equals {@code 0.0}) while {@code Double.hashCode} separates them. Neither is
+     * reachable today — {@code Unit} has no subclass with an equal name, and no unit has a scale
+     * factor of zero — but they belong in whatever change owns this class next.
+     */
     @Override
     public int hashCode() {
-        return Objects.hash(this.getClass(), name, value);
+        int h = 1;
+        h = 31 * h + this.getClass().hashCode();
+        h = 31 * h + (name == null ? 0 : name.hashCode());
+        h = 31 * h + Double.hashCode(value);
+        return h;
     }
     
 }

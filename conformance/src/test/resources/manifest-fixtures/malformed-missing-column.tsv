@@ -1,0 +1,4 @@
+# A manifest with a two-column row. Strict parsing must reject it, naming line 4.
+key	expected	reason
+gie/builtins.gie#0:0@0011aabb	FAIL	a well-formed row
+gie/builtins.gie#0:1@0022ccdd	FAIL

@@ -1,18 +1,38 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.locationtech.proj4j</groupId>
-    <artifactId>proj4j-modules</artifactId>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-modules</artifactId>
     <!-- Version is set here explicitly, since Jenkins doesn't work with the jgitver plugin.
          See https://github.com/locationtech/proj4j/issues/57 for more details.
 
          Alternatively, it could be set to <version>${revision}</version> and overrided at start `mvn -Drevision=1.1.4-SNAPSHOT install`
-         jgitver plugin always overrides the version set here. -->
+         jgitver plugin always overrides the version set here.
+
+         NOTE: this literal is DEAD in any normal build - jgitver rewrites it from the git tag. It is
+         live only when jgitver is bypassed (`-Djgitver.skip=true`, which every scratch-repo build
+         needs), and a build that publishes under it would publish 1.3.1-SNAPSHOT. See
+         HOWTORELEASE.txt, "Tag first". -->
     <version>1.3.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Proj4J Root</name>
-    <url>https://github.com/locationtech/proj4j</url>
-    <description>Java port of the Proj.4 library for coordinate reprojection</description>
+    <name>neoProj4J Root</name>
+    <!-- MAVEN APPENDS THE CHILD'S ARTIFACT ID TO AN INHERITED <url> AND TO ALL THREE <scm>
+         CHILDREN. Left alone, `core` publishes <url>https://github.com/emilevictor/neoProj4J/neoproj4j
+         </url> and <developerConnection>scm:git:git@github.com:emilevictor/neoProj4J.git/neoproj4j
+         </developerConnection> - synthetic values that no module ever declared and that 404.
+
+         The documented fix is child.project.url.inherit.append.path="false" (and the three
+         child.scm.*.inherit.append.path siblings). IT WAS TRIED HERE AND MEASURED TO DO NOTHING on
+         Maven 3.9.16: a two-module A/B with and without the attribute produced byte-identical
+         `help:effective-pom` output, both appending. The same probe DOES report the un-appended
+         value when the child declares its own <url>, so the instrument discriminates.
+
+         So <url> and <scm> are repeated verbatim in each of the five PUBLISHED modules - core,
+         epsg, geoapi, db, grids-us-legacy - and must be kept in step with the values here.
+         conformance, golden and benchmark are never published and are left to inherit. -->
+    <url>https://github.com/emilevictor/neoProj4J</url>
+    <description>neoProj4J - a fork of LocationTech Proj4J brought to PROJ 9.8.1 parity. Java port of
+        the PROJ library for coordinate reprojection.</description>
 
     <licenses>
         <license>
@@ -21,12 +41,19 @@
         </license>
     </licenses>
 
+    <!-- <developerConnection> is REQUIRED by Maven Central and was absent on every module. -->
     <scm>
-        <url>https://github.com/locationtech/proj4j.git</url>
-        <connection>scm:git:https://github.com/locationtech/proj4j.git</connection>
+        <url>https://github.com/emilevictor/neoProj4J</url>
+        <connection>scm:git:https://github.com/emilevictor/neoProj4J.git</connection>
+        <developerConnection>scm:git:git@github.com:emilevictor/neoProj4J.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
+    <!-- Upstream's developers and contributors stay credited, unchanged: this is a fork of their
+         work and Apache 2.0 s4(c) is not optional. The fork maintainer is appended, not
+         substituted. geoapi/pom.xml used to SHADOW this list rather than add to it, so the
+         published proj4j-geoapi POM credited only Desruisseaux; it now repeats these four and adds
+         him. -->
     <developers>
         <developer>
             <id>echeipesh</id>
@@ -42,6 +69,14 @@
             <id>pomadchin</id>
             <name>Grigory Pomadchin</name>
             <url>https://github.com/pomadchin</url>
+        </developer>
+        <developer>
+            <id>emilevictor</id>
+            <name>Emile Victor</name>
+            <url>https://github.com/emilevictor</url>
+            <roles>
+                <role>neoProj4J fork maintainer</role>
+            </roles>
         </developer>
     </developers>
 
@@ -140,21 +175,6 @@
 
     <profiles>
         <profile>
-            <id>eclipse</id>
-            <distributionManagement>
-                <repository>
-                    <id>repo.eclipse.org</id>
-                    <name>Proj4J Repository - Releases</name>
-                    <url>https://repo.eclipse.org/content/repositories/proj4j-releases/</url>
-                </repository>
-                <snapshotRepository>
-                    <id>repo.eclipse.org</id>
-                    <name>Proj4J Repository - Snapshots</name>
-                    <url>https://repo.eclipse.org/content/repositories/proj4j-snapshots/</url>
-                </snapshotRepository>
-            </distributionManagement>
-        </profile>
-        <profile>
             <id>central</id>
             <build>
                 <plugins>
@@ -185,17 +205,85 @@
                 </plugins>
             </build>
         </profile>
+        <!-- Golden-master behavioural regression suite: compares this tree against a real proj4j
+             1.4.3 baseline from Maven Central, over 53,430 probe rows. It answers "did we change
+             behaviour we did not mean to?", which no other regime here answers.
+
+             Deliberately NOT in the default <modules> below: a plain `mvn install` must not pay for
+             the full sweep. Run it with `mvn -Pgolden verify`. See golden/README.md. -->
+        <profile>
+            <id>golden</id>
+            <modules>
+                <module>golden</module>
+            </modules>
+        </profile>
+        <!-- JMH harness plus the Tier 1 (allocation) and Tier 2 (deterministic op-count) performance
+             gates. Also NOT in the default <modules>: a plain build must neither compile this nor
+             download JMH, so that `core` stays dependency-free. Never published.
+             Run with `mvn -Pbench -pl benchmark -am package`. See benchmark/README.md. -->
+        <profile>
+            <id>bench</id>
+            <modules>
+                <module>benchmark</module>
+            </modules>
+        </profile>
+        <!-- Head-to-head A/B against released upstream org.locationtech.proj4j:proj4j:1.4.3. Separate
+             from `bench` because its coordinates are swappable by a second profile, and a gate whose
+             library can be switched under it is not a gate - so the Tier 1/Tier 2 baselines stay in
+             benchmark/ and this module gates nothing. Also NOT in the default <modules>, same reason
+             as `bench`: a plain build must not download JMH.
+             Run with `mvn -Pbench-ab -pl benchmark-ab -am package` for the fork jar, then
+             `mvn -Pbench-ab,bench-ab-baseline -pl benchmark-ab package` (no -am) for the baseline.
+             See benchmark-ab/pom.xml. -->
+        <profile>
+            <id>bench-ab</id>
+            <modules>
+                <module>benchmark-ab</module>
+            </modules>
+        </profile>
     </profiles>
 
     <modules>
         <module>core</module>
         <module>epsg</module>
         <module>geoapi</module>
+        <!-- PROJ's in-tree CTABLE V2 grids (conus, alaska), vendored verbatim with their blob
+             SHAs stamped into the manifest. Published, unlike conformance/golden/benchmark, because
+             without a reachable grid NAD27 -> NAD83 has no datum shift to apply.
+             Only 2 of PROJ's 7 US grids exist in CTABLE V2 form; the other 5 are GeoTIFF-only and
+             arrive with that reader. See grids-us-legacy/README.md. -->
+        <module>grids-us-legacy</module>
+        <!-- PROJ 9.8.1's authority database (EPSG v12.029 + ESRI + IGNF + IAU_2015 + NKG), transcoded
+             to a deterministic read-only binary index and read by a pure-Java reader. Published;
+             implements org.locationtech.proj4j.spi.ProjDatabase. 6,746,032 B unpacked / 1,775,029 B
+             as a jar - 34% smaller unpacked than the raw proj.db - and its only dependency is proj4j
+             itself: no SQLite driver, no native library. See db/README.md. -->
+        <module>db</module>
+        <!-- Runs PROJ 9.8.1's own gie/GIGS conformance corpora against proj4j.
+             Not published (maven.deploy.skip / maven.install.skip). The heavy corpus sweep is
+             opt-in via `mvn -Pconformance verify`; a plain build only runs its fast unit tests. -->
+        <module>conformance</module>
     </modules>
 
     <properties>
-        <maven.deploy.skip>true</maven.deploy.skip>
+        <!-- DEPLOY. This value applies to THIS POM, which must itself be published: every child's
+             <parent> block names it, so a consumer that cannot fetch neoproj4j-modules cannot
+             resolve any of the five artifacts. Before this change `mvn deploy` published NOTHING -
+             the value here was `true` and no module overrode it.
+
+             EVERY module states its own intent; nothing relies on inheritance, because inheritance
+             is what made the previous configuration silently publish zero artifacts:
+                 published     core, epsg, geoapi, db, grids-us-legacy -> false
+                 not published conformance, golden, benchmark          -> true
+             That is also why this is not a `-Dmaven.deploy.skip=false` on the command line: a CLI
+             override is global and would publish conformance/golden/benchmark as well.
+
+             A NEW MODULE INHERITS `false` AND WILL PUBLISH. Set it explicitly, either way.
+
+             `maven.package.skip` used to be set here (true) and overridden to false in db and
+             grids-us-legacy. It is INERT - no plugin in this build reads it - so all three
+             settings are gone rather than being carried forward as decoration. -->
+        <maven.deploy.skip>false</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
-        <maven.package.skip>true</maven.package.skip>
     </properties>
 </project>

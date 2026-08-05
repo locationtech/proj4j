@@ -32,6 +32,8 @@ import java.text.DecimalFormat;
  */
 public class ProjCoordinate implements Serializable {
 
+    private static final long serialVersionUID = -2978758815712780733L;
+
     public static String DECIMAL_FORMAT_PATTERN = "0.0###############";
     public static DecimalFormat DECIMAL_FORMAT = new DecimalFormat(DECIMAL_FORMAT_PATTERN);
 
@@ -300,18 +302,55 @@ public class ProjCoordinate implements Serializable {
         }
     }
 
+    /**
+     * Whether this coordinate and another are the same point, on <b>all three</b> ordinates.
+     *
+     * <h4>{@code z} used to be ignored, and that quietly weakened every coordinate comparison</h4>
+     *
+     * <p>This method compared {@code x} and {@code y} only, and {@link #hashCode()} hashed the same
+     * two. Nothing in the library announced that, so every {@code assertEquals} on a
+     * {@code ProjCoordinate} was silently a 2D assertion — {@code RepeatedTransformTest} among them,
+     * where the transform under test invents a {@code z} from a 2D input (EPSG:4326 to EPSG:27700
+     * returns {@code z ~= -49.85}), so a drifting height could not have been seen. The fix belongs
+     * here rather than at the call sites: a caller that genuinely wants a 2D comparison already has
+     * {@link #areXOrdinatesEqual(ProjCoordinate, double)} and
+     * {@link #areYOrdinatesEqual(ProjCoordinate, double)}, and asking every caller to opt in to
+     * comparing {@code z} is the arrangement that produced the blind spot.
+     *
+     * <h4>{@code NaN} compares equal to {@code NaN}, per ordinate</h4>
+     *
+     * <p>Required, not cosmetic. {@code NaN} is this class's <em>sentinel for "no height"</em> — the
+     * two-argument constructor, {@link #setValue(double, double)} and {@link #clearZ()} all set
+     * {@code z = Double.NaN} deliberately — so under {@code z != p.z} a horizontal-only coordinate
+     * would never have equalled another horizontal-only coordinate, and adding {@code z} to a raw
+     * {@code !=} comparison would have made {@code equals} almost always false. It also removes the
+     * standing {@code equals}/{@code hashCode} contract violation: {@code hashCode} has always used
+     * {@link Double#doubleToLongBits(double)}, which gives all {@code NaN}s one canonical hash, so
+     * two objects that hashed alike could not compare alike.
+     *
+     * <p>{@code -0.0} still equals {@code 0.0}, as it did, and {@link #hashCode()} normalises
+     * {@code -0.0} to {@code 0.0} to keep the two consistent in that direction as well.
+     *
+     * @param other the object to compare against
+     * @return true if {@code other} is a ProjCoordinate with the same x, y and z
+     */
     public boolean equals(Object other) {
         if (!(other instanceof ProjCoordinate)) {
             return false;
         }
         ProjCoordinate p = (ProjCoordinate) other;
-        if (x != p.x) {
-            return false;
-        }
-        if (y != p.y) {
-            return false;
-        }
-        return true;
+        return sameOrdinate(x, p.x) && sameOrdinate(y, p.y) && sameOrdinate(z, p.z);
+    }
+
+    /**
+     * Ordinate equality: {@code ==}, widened so that the absent-value sentinel equals itself.
+     *
+     * @param a one ordinate
+     * @param b the other
+     * @return true if both are the same value, or both are {@code NaN}
+     */
+    private static boolean sameOrdinate(double a, double b) {
+        return a == b || (Double.isNaN(a) && Double.isNaN(b));
     }
 
     /**
@@ -324,17 +363,25 @@ public class ProjCoordinate implements Serializable {
         int result = 17;
         result = 37 * result + hashCode(x);
         result = 37 * result + hashCode(y);
+        // z is part of equals, so it must be here too. It was in neither.
+        result = 37 * result + hashCode(z);
         return result;
     }
 
     /**
      * Computes a hash code for a double value, using the algorithm from
      * Joshua Bloch's book <i>Effective Java"</i>
+     * <p>
+     * {@code -0.0} is normalised to {@code 0.0} first, because
+     * {@link #equals(Object)} compares with {@code ==} and {@code -0.0 == 0.0}; without the
+     * normalisation the two would be equal with different hashes. {@code Double.doubleToLongBits}
+     * already collapses every {@code NaN} to one bit pattern, which is what makes the
+     * {@code NaN}-equals-{@code NaN} rule in {@code equals} consistent with this.
      *
      * @return a hashcode for the double value
      */
     private static int hashCode(double x) {
-        long f = Double.doubleToLongBits(x);
+        long f = Double.doubleToLongBits(x == 0.0 ? 0.0 : x);
         return (int) (f ^ (f >>> 32));
     }
 

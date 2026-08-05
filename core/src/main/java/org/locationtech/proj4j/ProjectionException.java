@@ -22,20 +22,53 @@ import org.locationtech.proj4j.proj.Projection;
  * Signals that an erroneous situation has
  * occured during the computation of
  * a projected coordinate system value.
+ * <p>
+ * {@link #cause()} is {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}: historically this is the
+ * exception the projection kernels throw when a coordinate lies outside the domain on which the
+ * projection is defined. Where the real reason is a failed iteration rather than an
+ * out-of-domain input, throw {@link ConvergenceFailureException} instead, or pass
+ * {@link ErrorCause#NUMERICAL_FAILURE} explicitly.
  *
  * @author mbdavis
  */
-public class ProjectionException extends Proj4jException {
+public class ProjectionException extends CrsTransformException {
+
+    private static final long serialVersionUID = 5072367677711578814L;
+
+    /** The cause reported by every constructor that does not take one explicitly. */
+    private static final ErrorCause DEFAULT_CAUSE = ErrorCause.COORDINATE_OUT_OF_DOMAIN;
 
     public static String ERR_17 = "non-convergent inverse meridinal dist";
 
-    public ProjectionException() {}
+    public ProjectionException() {
+        super(DEFAULT_CAUSE, null);
+    }
 
     public ProjectionException(String message) {
-        super(message);
+        super(DEFAULT_CAUSE, message);
     }
 
     public ProjectionException(Projection proj, String message) {
         this(proj.toString() + ": " + message);
+    }
+
+    /**
+     * @param cause   a refinement of {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}
+     * @param message the human-readable detail message
+     * @since 1.5.0
+     */
+    public ProjectionException(ErrorCause cause, String message) {
+        super(cause, message);
+    }
+
+    /**
+     * @param cause   a refinement of {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}
+     * @param proj    the projection that rejected the coordinate; its
+     *                {@link Projection#toString()} is prepended to the message
+     * @param message the human-readable detail message
+     * @since 1.5.0
+     */
+    public ProjectionException(ErrorCause cause, Projection proj, String message) {
+        super(cause, proj.toString() + ": " + message);
     }
 }

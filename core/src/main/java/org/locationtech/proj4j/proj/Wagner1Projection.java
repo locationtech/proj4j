@@ -21,6 +21,8 @@ package org.locationtech.proj4j.proj;
 
 public class Wagner1Projection extends UrmaevFlatPolarSinusoidalProjection {
 
+	private static final long serialVersionUID = -351493369545299665L;
+
 	public String toString() {
 		return "Wagner I";
 	}

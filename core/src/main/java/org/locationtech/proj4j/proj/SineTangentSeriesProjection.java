@@ -25,6 +25,9 @@ import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 class SineTangentSeriesProjection extends ConicProjection {
+
+	private static final long serialVersionUID = 8359778409248280371L;
+
 	private double C_x;
 	private double C_y;
 	private double C_p;

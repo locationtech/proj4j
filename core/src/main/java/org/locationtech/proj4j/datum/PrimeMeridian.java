@@ -28,6 +28,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 // The list of named prime meridians is defined in proj.4 in pj_datums.c
 public final class PrimeMeridian implements Serializable {
 
+    private static final long serialVersionUID = -1485872774200417031L;
+
     private final String name;
     private final double offsetFromGreenwich;
 
@@ -80,6 +82,21 @@ public final class PrimeMeridian implements Serializable {
         return name;
     }
 
+    /**
+     * The offset east of Greenwich, in radians.
+     * <p>
+     * Needed because {@link #getName()} is not a faithful identifier: a numeric {@code +pm=} is
+     * named {@code "user-provided"}, which {@link #forName(String)} does not recognise, so
+     * reconstructing such a meridian from its name silently yields Greenwich. Anything copying a
+     * prime meridian from one {@code Projection} to another has to be able to see the value.
+     *
+     * @return the offset from Greenwich, radians, positive east
+     * @since 1.5.0
+     */
+    public double getOffsetFromGreenwich() {
+        return offsetFromGreenwich;
+    }
+
     public void toGreenwich(ProjCoordinate coord) {
         coord.x += this.offsetFromGreenwich;
     }
@@ -88,9 +105,19 @@ public final class PrimeMeridian implements Serializable {
         coord.x -= this.offsetFromGreenwich;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This runs on every transform-cache lookup, through
+     * {@code Projection.hashCode} and thence {@code CoordinateReferenceSystem.hashCode}.
+     * It used to read {@code new Double(offsetFromGreenwich).hashCode()}, which allocates a
+     * 16-byte box per call purely to reach a static method; {@link Double#hashCode(double)}
+     * is the same function without the box, and returns bit-identical values for every input
+     * including {@code NaN} and {@code -0.0}.
+     */
     @Override
     public int hashCode() {
-        return new Double(offsetFromGreenwich).hashCode();
+        return Double.hashCode(offsetFromGreenwich);
     }
 
     @Override

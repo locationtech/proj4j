@@ -25,6 +25,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class VanDerGrintenProjection extends Projection {
 
+	private static final long serialVersionUID = 7714215776932915539L;
+
 	private final static double TOL = 1.e-10;
 	private final static double THIRD = .33333333333333333333;
 	private final static double TWO_THRD = .66666666666666666666;
@@ -39,6 +41,18 @@ public class VanDerGrintenProjection extends Projection {
 
 		p2 = Math.abs(lpphi / ProjectionMath.HALFPI);
 		if ((p2 - TOL) > 1.) throw new ProjectionException("F");
+		/*
+		 * vandg.cpp:25-27. This operator's forward reads P->over ITSELF, which is unusual -
+		 * for every other projection +over is purely a fwd_prepare/inv_finalize concern. Past
+		 * the antimeridian the (29-3) auxiliary A changes sign, because the map continues
+		 * outward instead of folding back, and vandg.cpp's file header records the whole
+		 * +over support as a separate 2011-2014 contribution.
+		 *
+		 * Computed before the p2 clamp below, exactly as upstream orders it, and read from
+		 * isOver() rather than a field of this class so that +proj=vandg +over and
+		 * Projection.setOver agree by construction.
+		 */
+		final int sign = (isOver() && Math.abs(lplam) > Math.PI) ? -1 : 1;
 		if (p2 > 1.)
 			p2 = 1.;
 		if (Math.abs(lpphi) <= TOL) {
@@ -49,7 +63,7 @@ public class VanDerGrintenProjection extends Projection {
 			out.y = Math.PI * Math.tan(.5 * Math.asin(p2));
 			if (lpphi < 0.) out.y = -out.y;
 		} else {
-			al = .5 * Math.abs(Math.PI / lplam - lplam / Math.PI);
+			al = .5 * sign * Math.abs(Math.PI / lplam - lplam / Math.PI);
 			al2 = al * al;
 			g = Math.sqrt(1. - p2 * p2);
 			g = g / (p2 + g - 1.);
@@ -57,7 +71,13 @@ public class VanDerGrintenProjection extends Projection {
 			p2 = g * (2. / p2 - 1.);
 			p2 = p2 * p2;
 			out.x = g - p2; g = p2 + al2;
-			out.x = Math.PI * (al * out.x + Math.sqrt(al2 * out.x * out.x - g * (g2 - p2))) / g;
+			// The OUTER Math.abs is upstream's (vandg.cpp:59-60,
+			// "M_PI * fabs(al * xy.x + sqrt(...)) / g") and was missing here. It is a no-op
+			// while `al` is non-negative, which it always was before +over could reach this
+			// method - so the omission was invisible and is not invisible any more: under
+			// +over past the antimeridian `al` is negative and the bracket goes with it,
+			// which would put the easting on the wrong side of the map.
+			out.x = Math.PI * Math.abs(al * out.x + Math.sqrt(al2 * out.x * out.x - g * (g2 - p2))) / g;
 			if (lplam < 0.) out.x = -out.x;
 			out.y = Math.abs(out.x / Math.PI);
 			out.y = 1. - out.y * (out.y + 2. * al);

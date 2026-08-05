@@ -23,6 +23,9 @@ import org.locationtech.proj4j.units.Units;
  */
 public class LongLatProjection extends Projection
 {
+
+    private static final long serialVersionUID = 4367262992647079905L;
+
     // TODO: implement projection methods (which are basically just no-ops)
     /*
 

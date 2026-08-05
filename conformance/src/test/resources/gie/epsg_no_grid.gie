@@ -1,0 +1,61 @@
+### This file must contain only (crs_src, crs_dst) tuples where the best transformation
+### does NOT involve the use a grid/json/etc. resource file
+### Otherwise use epsg_grid.gie
+
+<gie-strict>
+
+###################################
+#### Generic / worldwide scope ####
+###################################
+
+# ETRS89 -> ETRS89/UTM32
+crs_src         EPSG:4258
+crs_dst         EPSG:25832
+tolerance       0.1 mm
+accept          55.0            12.0
+expect          691875.6321     6098907.8250
+
+# WGS 84 geographic 3D -> WGS 84 geocentric
+crs_src         EPSG:4979
+crs_dst         EPSG:4978
+tolerance       0.1 mm
+accept          55.0            12.0            10.0
+expect          3586475.2672    762328.8513     5201391.7147
+
+# WGS 84 geocentric -> WGS 84 geographic 3D
+crs_src         EPSG:4979
+crs_dst         EPSG:4978
+tolerance       0.1 mm
+expect          3586475.2672    762328.8513     5201391.7147
+accept          55.0            12.0            10.0
+
+###################
+#### AUSTRALIA ####
+###################
+
+# GDA2020 -> ITRF2014, using EPSG:8049 "ITRF2014 to GDA2020 (1)" 15-parameter Helmert with 2020.0 central epoch
+crs_src         EPSG:7843       # GDA2020
+crs_dst         EPSG:7912       # ITRF2014
+tolerance       0.1 mm
+accept          -33.8623        151.2077        0.0      2020.0
+expect          -33.8623        151.2077        0.0      2020.0
+
+crs_src         EPSG:7843       # GDA2020
+crs_dst         EPSG:7912       # ITRF2014
+tolerance       0.1 mm
+accept          -33.8623        151.2077        0.0      2026.0
+expect          -33.862297056   151.207701181  -0.00101  2026.0
+
+###################
+###### FINLAND ####
+###################
+
+# Test northing, easting output (actually more a gie test itself, than a EPSG one)
+crs_src         EPSG:4123       # Finland KKJ
+crs_dst         EPSG:2393       # Finland YKJ Northing, Easting
+
+tolerance       0.1 mm
+accept          60.1699         24.9384
+expect          6674944.7742    3385559.8151
+
+</gie-strict>

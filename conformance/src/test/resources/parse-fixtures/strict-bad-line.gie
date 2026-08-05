@@ -1,0 +1,6 @@
+<gie-strict>
+operation +proj=merc
+accept 12 55
+unknown_keyword
+expect 1335833.88951928 7326837.71424703
+</gie-strict>

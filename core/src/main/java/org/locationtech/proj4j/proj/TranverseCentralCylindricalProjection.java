@@ -25,6 +25,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class TranverseCentralCylindricalProjection extends CylindricalProjection {
 
+    private static final long serialVersionUID = -1679524912168461722L;
+
     public TranverseCentralCylindricalProjection() {
         minLongitude = ProjectionMath.degToRad(-60);
         maxLongitude = ProjectionMath.degToRad(60);

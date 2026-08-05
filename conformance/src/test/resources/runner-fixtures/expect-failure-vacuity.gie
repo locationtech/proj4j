@@ -1,0 +1,42 @@
+# Synthetic fixture for the three-way split of `expect failure`.
+#
+# Upstream gie scores EVERY block below except block 2 as a pass. Six of the eight are the same
+# two-line shape -- an operation that cannot be created, and a row that expected a failure -- and
+# telling them apart is the entire point of ExpectedFailureVerdict.
+#
+#  block  operation                              row                                    verdict
+#  -----  -------------------------------------  -------------------------------------  ---------------------------
+#      0  built, every transform fails           expect failure                         PASS_EXPECTED_FAILURE
+#      1  NOT_IMPLEMENTED                        expect failure                         VACUOUS  (the adams_hemi trap)
+#      2  built, transform succeeds              expect failure                         FAIL     ("failed to fail")
+#      3  INVALID_DEFINITION                     errno invalid_op_illegal_arg_value     PASS_EXPECTED_FAILURE  (ellipsoid.gie)
+#      4  INVALID_DEFINITION                     errno coord_transfm_outside_...        VACUOUS  (the corpus says PROJ built it)
+#      5  NOT_IMPLEMENTED                        errno invalid_op_illegal_arg_value     VACUOUS  (a gap is not a verdict)
+#      6  MISSING_GRID                           errno invalid_op_file_not_found_...    PASS_EXPECTED_FAILURE
+#      7  MISSING_GRID                           expect failure                        VACUOUS
+<gie-strict>
+operation  fake fail=always
+accept     1 2
+expect     failure
+operation  no-such-operator kind=NOT_IMPLEMENTED
+accept     1 2
+expect     failure
+operation  fake shift=0
+accept     1 2
+expect     failure
+operation  bad-definition kind=INVALID_DEFINITION
+accept     1 2
+expect     failure errno invalid_op_illegal_arg_value
+operation  bad-definition kind=INVALID_DEFINITION
+accept     1 2
+expect     failure errno coord_transfm_outside_projection_domain
+operation  no-such-operator kind=NOT_IMPLEMENTED
+accept     1 2
+expect     failure errno invalid_op_illegal_arg_value
+operation  absent-grid kind=MISSING_GRID
+accept     1 2
+expect     failure errno invalid_op_file_not_found_or_invalid
+operation  absent-grid kind=MISSING_GRID
+accept     1 2
+expect     failure
+</gie-strict>

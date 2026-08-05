@@ -1,0 +1,32 @@
+# Synthetic fixture: the four combinations of (did creation/transform fail?) x
+# (was failure expected?), plus a control, plus the two errno spellings.
+#
+#  block 0  creation failed,  failure expected     -> PASS
+#  block 1  creation failed,  coordinate expected  -> FAIL
+#  block 2  transform failed, failure expected     -> PASS
+#  block 3  transform worked, failure expected     -> FAIL  ("failed to fail")
+#  block 4  transform worked, coordinate expected  -> PASS  (control)
+#  block 5  a real PROJ errno name                 -> PASS  (degenerates)
+#  block 6  a legacy name PROJ itself cannot match  -> PASS  (degenerates)
+<gie-strict>
+operation  not-a-fake-operation
+expect     failure
+operation  not-a-fake-operation
+accept     1 2
+expect     1 2
+operation  fake fail=always
+accept     1 2
+expect     failure
+operation  fake shift=0
+accept     1 2
+expect     failure
+operation  fake shift=0
+accept     1 2
+expect     1 2
+operation  fake fail=always
+accept     1 2
+expect     failure errno coord_transfm_invalid_coord
+operation  fake fail=always
+accept     1 2
+expect     failure errno pjd_err_axis
+</gie-strict>

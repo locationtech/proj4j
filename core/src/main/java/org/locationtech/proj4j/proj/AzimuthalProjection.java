@@ -25,6 +25,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
  */
 public abstract class AzimuthalProjection extends Projection {
 
+	private static final long serialVersionUID = -5590774380842159499L;
+
 	public final static int NORTH_POLE = 1;
 	public final static int SOUTH_POLE = 2;
 	public final static int EQUATOR = 3;
@@ -34,8 +36,53 @@ public abstract class AzimuthalProjection extends Projection {
 	protected double sinphi0, cosphi0;
 	private double mapRadius = 90.0;
 
+	/**
+	 * {@code lat_0 = lon_0 = 0}, which is what PROJ defaults them to.
+	 * <p>
+	 * <b>This used to be 45 degrees on both axes.</b> {@code parser/Proj4Parser} assigns
+	 * {@code +lat_0}/{@code +lon_0} only when the keyword is present, so this constructor - not
+	 * PROJ - defined the effective default for every azimuthal projection whose definition
+	 * omitted them, and every such definition was silently oblique at 45&deg;. Every
+	 * {@code +proj=ortho +ellps=WGS84} row in {@code builtins.gie:5658-5738} measured it, and a
+	 * frozen A/B puts the figure at <b>40 assertions</b> - see the table below.
+	 * <p>
+	 * <b>The two numbers this defect was first reported with are both artefacts of a second bug,
+	 * and neither is a projection.</b> The report was {@code (170, 10) -> 5145289.58} against
+	 * "the equatorial answer {@code 1090725.665}". In fact {@code 5145289.577} is exactly
+	 * {@code a*cos(10)*sin(170-45)} and {@code 1090725.665} is exactly {@code a*cos(10)*sin(170)},
+	 * i.e. both are the value the old
+	 * {@code OrthographicAzimuthalProjection}'s unconditional {@code xy.x = cosphi*sin(lam)} wrote
+	 * <em>after</em> the visibility guard had already poisoned both ordinates - the same
+	 * expression, evaluated at two different central meridians. There is no "equatorial answer" to
+	 * compare against: the visibility dot product is {@code -0.277} at 45/45 and {@code -0.970} at
+	 * 0/0, so <em>both</em> aspects reject the point, and {@code proj 9.8.1} prints {@code * *}
+	 * for both. The correct default therefore turns a wrong coordinate into a domain refusal here,
+	 * not into a different coordinate.
+	 * <p>
+	 * Only two classes reach this constructor: {@link OrthographicAzimuthalProjection} and the
+	 * unregistered {@link EqualAreaAzimuthalProjection}. {@code gnom}, {@code stere}, {@code aeqd}
+	 * and {@code ups} already chain through {@code this(0.0, 0.0)} or set their own pole. That
+	 * enumeration is pinned, with a positive control, by
+	 * {@code proj.AzimuthalCentreDefaultTest} - a superclass default is exactly the kind of change
+	 * whose blast radius must be counted rather than assumed.
+	 * <p>
+	 * The blast radius, measured on a frozen tree by reverting one cause at a time and re-running
+	 * the whole gie corpus (7,923 assertions):
+	 * <table border="1">
+	 * <caption>{@code ortho} passing assertions, 2x2</caption>
+	 * <tr><th>{@code ortho} class</th><th>default 45/45</th><th>default 0/0</th></tr>
+	 * <tr><td>1.4.3</td><td>97</td><td>105</td></tr>
+	 * <tr><td>ported</td><td>108</td><td><b>148</b></td></tr>
+	 * </table>
+	 * <p>
+	 * No other operator moves in either direction - {@code aeqd}, {@code gnom}, {@code stere},
+	 * {@code ups} and {@code laea} are bit-for-bit unchanged across all four cells. Note that the
+	 * effects are strongly non-additive: {@code +8} for the default alone and {@code +11} for the
+	 * class alone, but {@code +51} together, so 32 of the 51 assertions need both. Measuring
+	 * either cause on its own would have under-reported it by a factor of five.
+	 */
 	public AzimuthalProjection() {
-		this( Math.toRadians(45.0), Math.toRadians(45.0) );
+		this( 0.0, 0.0 );
 	}
 
 	public AzimuthalProjection(double projectionLatitude, double projectionLongitude) {
@@ -57,7 +104,7 @@ public abstract class AzimuthalProjection extends Projection {
 	}
 
 	public boolean inside(double lon, double lat) {
-		return ProjectionMath.greatCircleDistance( Math.toRadians(lon), Math.toRadians(lat), projectionLongitude, projectionLatitude) < Math.toRadians(mapRadius);
+		return ProjectionMath.greatCircleDistance( ProjectionMath.toRad(lon), ProjectionMath.toRad(lat), projectionLongitude, projectionLatitude) < ProjectionMath.toRad(mapRadius);
 	}
 
 	/**

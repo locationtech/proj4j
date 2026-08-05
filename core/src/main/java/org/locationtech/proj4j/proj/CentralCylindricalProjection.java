@@ -25,11 +25,13 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class CentralCylindricalProjection extends CylindricalProjection {
 
+	private static final long serialVersionUID = -2769616671159644937L;
+
 	private final static double EPS10 = 1.e-10;
 
 	public CentralCylindricalProjection() {
-		minLatitude = Math.toRadians(-80);
-		maxLatitude = Math.toRadians(80);
+		minLatitude = ProjectionMath.toRad(-80);
+		maxLatitude = ProjectionMath.toRad(80);
 	}
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {

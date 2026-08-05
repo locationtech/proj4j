@@ -28,6 +28,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
  */
 public class AngleFormat extends NumberFormat {
 
+    private static final long serialVersionUID = -1805856094196103692L;
+
     public static final char CH_MIN_SYMBOL = '\'';
     public static final String STR_SEC_SYMBOL = "\"";
     public static final char CH_DEG_SYMBOL = '\u00b0';
@@ -87,7 +89,7 @@ public class AngleFormat extends NumberFormat {
             }
         }
 
-        double ddmmss = isDegrees ? number : Math.toDegrees(number);
+        double ddmmss = isDegrees ? number : ProjectionMath.toDeg(number);
         int iddmmss = (int)Math.round(ddmmss * 3600);
         if (iddmmss < 0)
             iddmmss = -iddmmss;
@@ -196,7 +198,7 @@ public class AngleFormat extends NumberFormat {
         } else {
             result = Double.parseDouble(text);
             if (!isDegrees)
-                result = Math.toRadians(result);
+                result = ProjectionMath.toRad(result);
         }
         if (parsePosition != null)
             parsePosition.setIndex(text.length());

@@ -23,6 +23,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class RectangularPolyconicProjection extends Projection {
 
+	private static final long serialVersionUID = -3462641469228621316L;
+
 	private double phi0;
 	private double phi1;
 	private double fxa;

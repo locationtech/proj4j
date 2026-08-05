@@ -36,3 +36,6 @@ _SUCCESS
 tags
 .vscode
 .metals
+
+# Claude Code agent worktrees and local session state
+.claude/

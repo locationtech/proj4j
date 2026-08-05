@@ -22,6 +22,9 @@ import org.locationtech.proj4j.ProjCoordinate;
  * A projection which does nothing. Use this for drawing non-geographical overlays.
  */
 public class NullProjection extends Projection {
+
+  private static final long serialVersionUID = -594210686511856068L;
+
   
   public NullProjection()
   {

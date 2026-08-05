@@ -14,6 +14,9 @@ package org.locationtech.proj4j.geodesic;
  * can be caught by the usual catch clauses.
  **********************************************************************/
 public class GeographicErr extends RuntimeException {
+
+    private static final long serialVersionUID = 2018137717214726709L;
+
     /**
      * Constructor
      * <p>

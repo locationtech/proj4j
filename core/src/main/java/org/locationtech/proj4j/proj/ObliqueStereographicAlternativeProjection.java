@@ -25,6 +25,8 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class ObliqueStereographicAlternativeProjection extends GaussProjection {
 
+  private static final long serialVersionUID = 6458882163460756500L;
+
   private double sinc0;
   private double cosc0;
   private double R2;

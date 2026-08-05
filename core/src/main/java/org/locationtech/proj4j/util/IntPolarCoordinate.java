@@ -19,6 +19,8 @@ import java.io.Serializable;
 
 public final class IntPolarCoordinate implements Serializable {
 
+    private static final long serialVersionUID = 7434875552387864261L;
+
     public int lam, phi;
 
     public IntPolarCoordinate(IntPolarCoordinate that) {
@@ -35,9 +37,20 @@ public final class IntPolarCoordinate implements Serializable {
         return String.format("ILP %x:%x", lam, phi);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The combiner was {@code |}; see {@link org.locationtech.proj4j.util.PolarCoordinate#hashCode()}.
+     * A grid's {@code lim} is a small pair of positive ints, so the old expression's high bits were
+     * always zero and its low bits saturated: {@code 100|17*100} and {@code 101|17*101} both come
+     * out with almost every bit of the smaller operand absorbed.
+     */
     @Override
     public int hashCode() {
-        return lam | (17 * phi);
+        int h = 17;
+        h = 31 * h + lam;
+        h = 31 * h + phi;
+        return h;
     }
 
     @Override

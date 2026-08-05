@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.emilevictor.neoproj4j</groupId>
+        <artifactId>neoproj4j-modules</artifactId>
+        <version>1.3.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>neoproj4j-conformance</artifactId>
+    <packaging>jar</packaging>
+    <name>neoProj4J PROJ Conformance Suite</name>
+    <description>
+        Runs PROJ's own gie and GIGS conformance corpora, vendored from PROJ 9.8.1, against neoProj4J.
+
+        This module is NOT PUBLISHED. It exists only to produce a conformance number and to gate
+        regressions. The vendored corpus carries third-party licence obligations - see
+        src/test/resources/NOTICE-gie.md, which is a licence requirement and not documentation.
+
+        The corpus is re-synced by conformance/sync-upstream.sh, which is pinned to a single PROJ rev.
+    </description>
+
+    <properties>
+        <!-- Never published: this module vendors third-party test data and produces no artifact
+             anyone should depend on. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <gpg.skip>true</gpg.skip>
+
+        <junit.jupiter.version>5.10.2</junit.jupiter.version>
+        <junit.platform.version>1.10.2</junit.platform.version>
+
+        <!-- The heavy conformance run is opt-in. A plain `mvn install` compiles this module and runs
+             only its fast unit tests (the lexer, the manifest, the comparator plumbing); the corpus
+             sweep is bound to the `conformance` profile. -->
+        <gie.corpus.skip>true</gie.corpus.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j-epsg</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5. The conformance runner needs @TestFactory: 8017 assertions cannot be modelled
+             as static @Test methods, and JUnit 4's Parameterized gives useless failure names.
+             junit-vintage is NOT needed here - this module has no JUnit 4 tests. core/ keeps
+             JUnit 4 untouched. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- No main sources; everything lives in src/test. Skip the main compile so an empty
+                 src/main/java is not required. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <skipIfEmpty>true</skipIfEmpty>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Hermeticity, mirroring 9.8.1:cmake/ProjTest.cmake's proj_test_set_properties:
+                         the corpus run must not be influenced by any grid or config outside this
+                         module. proj4j core reads no environment variables, but the runner resolves
+                         vendored resources relative to these. -->
+                    <environmentVariables>
+                        <PROJ_SKIP_READ_USER_WRITABLE_DIRECTORY>YES</PROJ_SKIP_READ_USER_WRITABLE_DIRECTORY>
+                    </environmentVariables>
+                    <systemPropertyVariables>
+                        <gie.corpus.skip>${gie.corpus.skip}</gie.corpus.skip>
+                    </systemPropertyVariables>
+                    <!-- Determinism: pin locale, charset and timezone so a corpus run is
+                         reproducible regardless of the developer's environment.
+                         Proj4FileReader.java:41 calls toLowerCase() with no Locale, which under
+                         tr_TR turns "ESRI" into "esri" with a dotless i and makes all 2,954 ESRI
+                         codes unresolvable - see reference/performance.md.
+
+                         These MUST be argLine, not systemPropertyVariables. Surefire applies
+                         systemPropertyVariables inside the already-started fork, whereas
+                         Locale.getDefault() and the default charset are initialised during JVM
+                         startup - so setting them that way looks right and does nothing. argLine
+                         becomes real JVM command-line arguments and is applied before init. -->
+                    <argLine>-Duser.language=en -Duser.country=US -Duser.timezone=UTC -Dfile.encoding=UTF-8</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <!-- mvn -Pconformance verify
+                 Runs the full 8017-assertion corpus sweep and diffs it against the checked-in
+                 expected-outcome manifest.
+
+                 mvn -Pconformance verify -Dgie.regenerate=true
+                 Rewrites the manifest from the observed run, preserving existing reason text. -->
+            <id>conformance</id>
+            <properties>
+                <gie.corpus.skip>false</gie.corpus.skip>
+            </properties>
+        </profile>
+    </profiles>
+</project>

@@ -21,9 +21,12 @@ package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.FastStrictTrig;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class McBrydeThomasFlatPolarParabolicProjection extends Projection {
+
+	private static final long serialVersionUID = -1265108225027350150L;
 
 	private final static double CS = .95257934441568037152;
 	private final static double FXC = .92582009977255146156;
@@ -32,10 +35,20 @@ public class McBrydeThomasFlatPolarParabolicProjection extends Projection {
 	private final static double C13 = .33333333333333333333;
 	private final static double ONEEPS = 1.0000001;
 
+	/**
+	 * Port of {@code mbtfpp_s_forward} ({@code 9.8.1:src/projections/mbtfpp.cpp:18-25}).
+	 * <p>
+	 * <b>Upstream reassigns {@code lp.phi = asin(CSy * sin(lp.phi))} and both following lines read
+	 * the reassigned value.</b> The previous transcription computed it into {@code out.y}, then
+	 * overwrote {@code out.y} and used the <em>original</em> latitude in both formulas — 6.0 km at
+	 * {@code +proj=mbtfpp +a=6400000} and {@code (2, 1)}. The inverse never had the defect, so the
+	 * two directions were not mutual inverses. Note the constant is upstream's {@code CSy}; the
+	 * field is named {@code CS} here for source compatibility.
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		out.y = Math.asin(CS * Math.sin(lpphi));
-		out.x = FXC * lplam * (2. * Math.cos(C23 * lpphi) - 1.);
-		out.y = FYC * Math.sin(C13 * lpphi);
+		double phi = ProjectionMath.asinChecked(CS * FastStrictTrig.sin(lpphi));
+		out.x = FXC * lplam * (2. * FastStrictTrig.cos(C23 * phi) - 1.);
+		out.y = FYC * FastStrictTrig.sin(C13 * phi);
 		return out;
 	}
 

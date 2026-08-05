@@ -24,6 +24,8 @@ import org.locationtech.proj4j.ProjCoordinate;
 
 public class LaskowskiProjection extends Projection {
 
+	private static final long serialVersionUID = 992691847231906932L;
+
 	private final static double a10 =  0.975534;
 	private final static double a12 = -0.119161;
 	private final static double a32 = -0.0143059;

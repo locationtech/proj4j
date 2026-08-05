@@ -1,0 +1,4 @@
+# A manifest whose key has a truncated content hash. Strict parsing must reject it, naming
+# line 4. A silently-skipped bad key would default that assertion to "expected to pass".
+key	expected	reason
+gie/builtins.gie#0:0@00aa	FAIL	hash is 4 hex digits, not 8

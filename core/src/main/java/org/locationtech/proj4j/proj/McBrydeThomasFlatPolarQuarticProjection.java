@@ -19,11 +19,14 @@
  */
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ConvergenceFailureException;
 import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.ProjectionException;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class McBrydeThomasFlatPolarQuarticProjection extends PseudoCylindricalProjection {
+
+	private static final long serialVersionUID = 642253065229040967L;
 
 	private final static int NITER = 20;
 	private final static double EPS = 1e-7;
@@ -35,15 +38,38 @@ public class McBrydeThomasFlatPolarQuarticProjection extends PseudoCylindricalPr
 	private final static double FXC = 0.31245971410378249250;
 	private final static double RXC = 3.20041258076506210122;
 
+	/**
+	 * Forward projection. Port of PROJ 9.8.1 {@code mbtfpq.cpp}'s {@code mbtfpq_s_forward}.
+	 * <p>
+	 * <b>Fail-closed</b>, plus a repair the throw depends on. Two defects from the 2006
+	 * C&rarr;Java conversion:
+	 * <ul>
+	 * <li>the Newton iteration subtracted its correction from {@code out.y} — the caller's
+	 *     destination ordinate, holding whatever stale value was there — where upstream
+	 *     subtracts it from {@code lp.phi}. {@code lpphi} therefore never changed, so
+	 *     {@code th1} was the same value on every trip: the loop could not converge, and the two
+	 *     lines after it used the raw geographic latitude where the solved parametric latitude
+	 *     belongs;</li>
+	 * <li>there was no convergence test, so exhausting {@code NITER} produced an ordinary-looking
+	 *     coordinate.</li>
+	 * </ul>
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		double th1, c;
+		double th1 = Double.NaN, c;
 		int i;
+		final double phi = lpphi;
 
 		c = C * Math.sin(lpphi);
 		for (i = NITER; i > 0; --i) {
-			out.y -= th1 = (Math.sin(.5*lpphi) + Math.sin(lpphi) - c) /
+			lpphi -= th1 = (Math.sin(.5*lpphi) + Math.sin(lpphi) - c) /
 				(.5*Math.cos(.5*lpphi)  + Math.cos(lpphi));
 			if (Math.abs(th1) < EPS) break;
+		}
+		if (i == 0) {
+			throw new ConvergenceFailureException(this,
+					"forward parametric-latitude iteration did not converge to " + EPS
+							+ " within " + NITER + " iterations for latitude " + phi
+							+ " rad (last correction " + th1 + ")");
 		}
 		out.x = FXC * lplam * (1.0 + 2. * Math.cos(lpphi)/Math.cos(0.5 * lpphi));
 		out.y = FYC * Math.sin(0.5 * lpphi);

@@ -2,19 +2,38 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-      <groupId>org.locationtech.proj4j</groupId>
-      <artifactId>proj4j-modules</artifactId>
+      <groupId>io.github.emilevictor.neoproj4j</groupId>
+      <artifactId>neoproj4j-modules</artifactId>
       <version>1.3.1-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.locationtech.proj4j</groupId>
-    <artifactId>proj4j</artifactId>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j</artifactId>
     <packaging>bundle</packaging>
-    <name>Proj4J</name>
-    <description>Java port of the Proj.4 library for coordinate reprojection</description>
+    <name>neoProj4J</name>
+    <description>neoProj4J - a fork of LocationTech Proj4J brought to PROJ 9.8.1 parity. Java port of
+        the PROJ library for coordinate reprojection.</description>
+
+    <!-- Repeated rather than inherited: Maven appends this module's artifactId to an inherited
+         <url> and <scm>. See the long note in the root POM; keep the values in step with it. -->
+    <url>https://github.com/emilevictor/neoProj4J</url>
+    <scm>
+        <url>https://github.com/emilevictor/neoProj4J</url>
+        <connection>scm:git:https://github.com/emilevictor/neoProj4J.git</connection>
+        <developerConnection>scm:git:git@github.com:emilevictor/neoProj4J.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
+        <!-- Published. -->
+        <maven.deploy.skip>false</maven.deploy.skip>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- DELIBERATELY NOT RENAMED, here and in Automatic-Module-Name below. The Java packages
+             stay org.locationtech.proj4j, so the OSGi and JPMS module names must match them: this
+             artifact is a drop-in SUBSTITUTE for org.locationtech.proj4j:proj4j, not something that
+             coexists with it. Consumers' `requires` clauses and OSGi Import-Package wiring keep
+             working; only the Maven coordinate moved. -->
         <bundle-symbolicname>org.locationtech.proj4j</bundle-symbolicname>
         <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
         <osgi-version-qualifier>${maven.build.timestamp}</osgi-version-qualifier>
@@ -22,8 +41,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.locationtech.proj4j</groupId>
-            <artifactId>proj4j-epsg</artifactId>
+            <groupId>io.github.emilevictor.neoproj4j</groupId>
+            <artifactId>neoproj4j-epsg</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

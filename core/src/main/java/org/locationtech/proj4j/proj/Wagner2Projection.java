@@ -20,26 +20,40 @@
 package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
+import org.locationtech.proj4j.util.FastStrictTrig;
 import org.locationtech.proj4j.util.ProjectionMath;
 
 public class Wagner2Projection extends Projection {
+
+	private static final long serialVersionUID = 5110056924073256024L;
 
 	private final static double C_x = 0.92483;
 	private final static double C_y = 1.38725;
 	private final static double C_p1 = 0.88022;
 	private final static double C_p2 = 0.88550;
 
+	/**
+	 * Port of {@code wag2_s_forward} ({@code 9.8.1:src/projections/wag2.cpp:14-20}).
+	 * <p>
+	 * <b>Upstream reassigns {@code lp.phi} in place</b> — {@code lp.phi = aasin(C_p1 * sin(C_p2 *
+	 * lp.phi))} — and both following lines read the reassigned value. The previous transcription
+	 * dropped that result into {@code out.y}, overwrote it on the next line but one, and used the
+	 * <em>original</em> latitude in both, so the northing was {@code C_y * phi} instead of
+	 * {@code C_y * aasin(...)}: 34.2 km at {@code +proj=wag2 +a=6400000} and {@code (2, 1)}. Same
+	 * defect, same shape, as {@link UrmaevFlatPolarSinusoidalProjection}.
+	 */
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		out.y = ProjectionMath.asin(C_p1 * Math.sin(C_p2 * lpphi));
-		out.x = C_x * lplam * Math.cos(lpphi);
-		out.y = C_y * lpphi;
+		double phi = ProjectionMath.asinChecked(C_p1 * FastStrictTrig.sin(C_p2 * lpphi));
+		out.x = C_x * lplam * FastStrictTrig.cos(phi);
+		out.y = C_y * phi;
 		return out;
 	}
 
+	/** Port of {@code wag2_s_inverse} ({@code 9.8.1:src/projections/wag2.cpp:22-28}). */
 	public ProjCoordinate projectInverse(double xyx, double xyy, ProjCoordinate out) {
-		out.y = xyy / C_y;
-		out.x = xyx / (C_x * Math.cos(out.y));
-		out.y = ProjectionMath.asin(Math.sin(out.y) / C_p1) / C_p2;
+		double phi = xyy / C_y;
+		out.x = xyx / (C_x * FastStrictTrig.cos(phi));
+		out.y = ProjectionMath.asinChecked(FastStrictTrig.sin(phi) / C_p1) / C_p2;
 		return out;
 	}
 

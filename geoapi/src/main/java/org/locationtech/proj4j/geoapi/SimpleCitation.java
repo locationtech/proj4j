@@ -46,8 +46,8 @@ final class SimpleCitation implements Citation, ResponsibleParty, Contact, Onlin
     /**
      * The citation for the PROJ4J software.
      */
-    static final SimpleCitation PROJ4J = new SimpleCitation("PROJ4J", "Eclipse Foundation",
-            "LocationTech", "https://projects.eclipse.org/projects/locationtech");
+    static final SimpleCitation PROJ4J = new SimpleCitation("neoProj4J", "neoProj4J contributors",
+            "neoProj4J", "https://github.com/emilevictor/neoProj4J");
 
     /**
      * The title of the dataset or project.
