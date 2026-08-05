@@ -1420,7 +1420,12 @@ together with a freshly generated baseline (see [Commands](#commands)).
 
 ## CI wiring
 
-> **DONE, 2026-08-01. The job exists: `.github/workflows/golden.yaml`.** It is blocking, it is red
+> **DE-SCOPED 2026-08-05.** The job still exists at `.github/workflows/golden.yaml` and still fails
+> on the real backlog when run, but it no longer triggers on push or pull_request -- only on a weekly
+> schedule and `workflow_dispatch`. The decision and what it costs are recorded in that file's header.
+> Re-enable the triggers once the backlog is triaged; do not soften the job instead.
+>
+> Previously: **DONE, 2026-08-01. The job exists.** It was blocking, it is red
 > today on the 2,291-row backlog, and that is the intended state. Read
 > `.github/workflows/README.md` for the surrounding context; what follows is kept because the
 > reasoning still applies and because the snippet below is *not* what shipped — three flags had to
