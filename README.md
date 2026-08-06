@@ -1,8 +1,5 @@
 # neoProj4J
 
-<!-- TODO(coordinates): add CI and artifact-repository badges for this fork once the
-     coordinates and the publishing pipeline are settled. -->
-
 neoProj4J is a Java library for converting coordinates between different geospatial coordinate reference systems.
 It is designed to be compatible with `proj.4` parameters and derives some of its implementation from the `proj.4` sources.
 
@@ -26,101 +23,109 @@ OGP GIGS conformance suites.
 
 ## User Guide
 
-<!-- TODO(coordinates): this fork is not published to Maven Central; state where its artifacts
-     are actually published once the coordinates are settled. -->
+neoProj4J is published to Maven Central under its own coordinates. Note that the groupId is **not**
+upstream's — depending on `org.locationtech.proj4j:proj4j` gets you upstream Proj4J, not this fork.
 
-**!Important!** As of `1.2.2` version, `proj4-core` contains no EPSG Licensed files.
-In order to make neoProj4J properly operate, it makes sense to consider the `proj4-epsg` dependency usage.
+| artifact | | |
+|---|---|---|
+| `neoproj4j` | required | the library |
+| `neoproj4j-epsg` | required in practice | the EPSG/ESRI dictionaries and the `conus` grid |
+| `neoproj4j-geoapi` | optional | [GeoAPI](https://www.geoapi.org/) wrappers |
+| `neoproj4j-db` | optional | PROJ 9.8.1's authority database, as a pure-Java reader |
+| `neoproj4j-grids-us-legacy` | optional | PROJ's CTABLE V2 US grids (`conus`, `alaska`) |
+
+All five share the groupId `io.github.emilevictor.neoproj4j` and are versioned together. The current
+release is `2.0.0`.
+
+**!Important!** The core artifact contains no EPSG-licensed files. Add `neoproj4j-epsg` unless you
+supply CRS definitions yourself — without it, `createFromName("epsg:4326")` cannot resolve anything.
 
 ### Using neoProj4J with Maven
-
-<!-- TODO(coordinates): groupId/artifactId in the snippet below are still upstream's. -->
 
 To include neoProj4J in a Maven project, add a dependency block like the following:
 ```xml
 <properties>
-    <proj4j.version>{latest version}</proj4j.version>
+    <neoproj4j.version>2.0.0</neoproj4j.version>
 </properties>
 <dependency>
-    <groupId>org.locationtech.proj4j</groupId>
-    <artifactId>proj4j</artifactId>
-    <version>${proj4j.version}</version>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j</artifactId>
+    <version>${neoproj4j.version}</version>
 </dependency>
 ```
-where `{latest version}` refers to the latest released version.
 
-#### Proj4j EPSG
+#### neoProj4J EPSG
 
-`Proj4J-EPSG` module distributes a portion of the EPSG dataset. This artifact is released the [EPSG database distribution license](LICENSE.EPSG). It also redistributes PROJ 9.8.1's `conus` datum-shift grid verbatim under [PROJ's MIT license](LICENSE.PROJ), which is what makes NAD27 transforms shift correctly across the conterminous United States with only `proj4j` and `proj4j-epsg` on the classpath.
+The `neoproj4j-epsg` module distributes a portion of the EPSG dataset, under the [EPSG database distribution license](LICENSE.EPSG). It also redistributes PROJ 9.8.1's `conus` datum-shift grid verbatim under [PROJ's MIT license](LICENSE.PROJ), which is what makes NAD27 transforms shift correctly across the conterminous United States with only `neoproj4j` and `neoproj4j-epsg` on the classpath.
 
-To include `Proj4J-EPSG` in a Maven project, add a dependency block like the following:
 ```xml
-<properties>
-    <proj4j.version>{latest version}</proj4j.version>
-</properties>
 <dependency>
-    <groupId>org.locationtech.proj4j</groupId>
-    <artifactId>proj4j-epsg</artifactId>
-    <version>${proj4j.version}</version>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-epsg</artifactId>
+    <version>${neoproj4j.version}</version>
 </dependency>
 ```
-where `{latest version}` refers to the latest released version.
 
-#### Using Proj4j with GeoAPI
+#### Using neoProj4J with GeoAPI
 
-`Proj4j-GeoAPI` module provides wrappers for using neoProj4J behind [GeoAPI](https://www.geoapi.org/) interfaces.
+The `neoproj4j-geoapi` module provides wrappers for using neoProj4J behind [GeoAPI](https://www.geoapi.org/) interfaces.
 GeoAPI is a set of Java interfaces derived from OGC/ISO standards
 for using different implementations of metadata and referencing services through a standard API.
-To include the module in a Maven project, add a dependency block like the following:
+
 ```xml
-<properties>
-    <proj4j.version>{latest version}</proj4j.version>
-</properties>
 <dependency>
-    <groupId>org.locationtech.proj4j</groupId>
-    <artifactId>proj4j-geoapi</artifactId>
-    <version>${proj4j.version}</version>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-geoapi</artifactId>
+    <version>${neoproj4j.version}</version>
 </dependency>
 ```
-where `{latest version}` refers to the latest released version.
 Usage examples are available on the [GeoAPI site](https://www.geoapi.org/java/examples/usage.html).
+
+#### The PROJ authority database
+
+The `neoproj4j-db` module carries PROJ 9.8.1's authority database — EPSG v12.029, ESRI, IGNF,
+IAU_2015 and NKG — transcoded to a deterministic read-only binary index and read by a pure-Java
+reader. There is no SQLite driver and no native library. It is opt-in: the core never scans for it,
+and adding it to the classpath is what enables it. See [db/README.md](db/README.md).
+
+```xml
+<dependency>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-db</artifactId>
+    <version>${neoproj4j.version}</version>
+</dependency>
+```
+
+#### Legacy US datum-shift grids
+
+The `neoproj4j-grids-us-legacy` module vendors PROJ's in-tree CTABLE V2 grids (`conus` and `alaska`)
+verbatim, with their blob checksums recorded in the manifest. Without a reachable grid, a
+NAD27 → NAD83 transform has no datum shift to apply. Only 2 of PROJ's 7 US grids exist in CTABLE V2
+form; the other 5 are GeoTIFF-only. See [grids-us-legacy/README.md](grids-us-legacy/README.md).
+
+```xml
+<dependency>
+    <groupId>io.github.emilevictor.neoproj4j</groupId>
+    <artifactId>neoproj4j-grids-us-legacy</artifactId>
+    <version>${neoproj4j.version}</version>
+</dependency>
+```
 
 ### Using neoProj4J with Gradle
 
-<!-- TODO(coordinates): group/artifact in the snippets in this section are still upstream's. -->
-
-To include neoProj4J in a Gradle project, add a dependency block like the following:
-
-```
+```groovy
 dependencies {
-    implementation 'org.locationtech.proj4j:proj4j:{latest version}'
+    implementation 'io.github.emilevictor.neoproj4j:neoproj4j:2.0.0'
+    implementation 'io.github.emilevictor.neoproj4j:neoproj4j-epsg:2.0.0'
+
+    // optional
+    implementation 'io.github.emilevictor.neoproj4j:neoproj4j-geoapi:2.0.0'
+    implementation 'io.github.emilevictor.neoproj4j:neoproj4j-db:2.0.0'
+    implementation 'io.github.emilevictor.neoproj4j:neoproj4j-grids-us-legacy:2.0.0'
 }
 ```
-where `{latest version}` refers to the latest released version.
 
-#### Proj4j EPSG
-
-`Proj4J-EPSG` module distributes a portion of the EPSG dataset. This artifact is released the [EPSG database distribution license](LICENSE.EPSG). It also redistributes PROJ 9.8.1's `conus` datum-shift grid verbatim under [PROJ's MIT license](LICENSE.PROJ), which is what makes NAD27 transforms shift correctly across the conterminous United States with only `proj4j` and `proj4j-epsg` on the classpath.
-
-To include `Proj4J-EPSG` in a Gradle project, add the following line to the dependency block:
-
-```
-    implementation 'org.locationtech.proj4j:proj4j-epsg:{latest version}'
-```
-where `{latest version}` refers to the latest released version.
-
-#### Using Proj4j with GeoAPI
-
-`Proj4j-GeoAPI` module provides wrappers for using neoProj4J behind [GeoAPI](https://www.geoapi.org/) interfaces.
-GeoAPI is a set of Java interfaces derived from OGC/ISO standards
-for using different implementations of metadata and referencing services through a standard API.
-To include the module in a Gradle project, add the following line to the dependency block:
-
-```
-    implementation 'org.locationtech.proj4j:proj4j-geoapi:{latest version}'
-```
-where `{latest version}` refers to the latest released version.
-Usage examples are available on the [GeoAPI site](https://www.geoapi.org/java/examples/usage.html).
+See the Maven sections above for what each artifact contains.
 
 ### Basic Usage
 
@@ -157,15 +162,38 @@ ProjCoordinate result = new ProjCoordinate();
 wgsToUtm.transform(new ProjCoordinate(lon, lat), result);
 ```
 
-## Building, Testing and installing locally
+## Building and testing
 
-`mvn clean install`
+```
+mvn clean verify
+```
 
-## Publish to Maven Central
+Build with JDK 21. The modules target Java 8 bytecode, but JDK 8 cannot run the build itself, and
+JDK 23+ silently stops running the classpath annotation processors the benchmark harness needs.
 
-`mvn -Dmaven.test.skip=true -Pcentral clean package deploy`
+## Installing locally, for a downstream project to test against
 
-For more details see [HOWTORELEASE.txt](./HOWTORELEASE.txt).
+A plain `mvn install` reports BUILD SUCCESS and installs almost nothing: the root POM sets
+`maven.install.skip=true` and only two modules override it, so the reactor succeeds while `~/.m2`
+ends up without the core artifact or the parent POM. Use:
+
+```
+mvn -B -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true \
+    -Dmaven.install.skip=false -pl '!conformance' install
+```
+
+That installs the parent POM plus all five published modules, each with a `-sources` jar.
+
+## Publishing to Maven Central
+
+```
+mvn -Pcentral deploy -DskipTests -pl '!conformance'
+```
+
+Every flag there matters, the tag must be in place before you start, and a green build means
+"staged", not "released". Read [HOWTORELEASE.txt](./HOWTORELEASE.txt) first — in particular the part
+about publishing your public key to a keyserver, which is the step that will otherwise fail the
+deployment with an error that does not name the cause.
 
 ## Contributing
 
