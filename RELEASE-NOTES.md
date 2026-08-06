@@ -1,20 +1,21 @@
-# proj4j release notes — 1.5.0 and 2.0.0
+# neoProj4J 2.0.0 release notes
 
-**Status: draft, for review. Nothing here is released.** Version numbers, dates and the split between
-the two releases are proposals. Figures are measured unless labelled otherwise; where a number is an
+Released 2026-08-06 to Maven Central as `io.github.emilevictor.neoproj4j:neoproj4j:2.0.0`, forked from
+LocationTech Proj4J 1.4.3. Figures are measured unless labelled otherwise; where a number is an
 estimate or is still pending it says so, because on this project laundering an estimate into a fact
 has cost real rework.
 
-Two releases, and the split is the whole point:
+**2.0.0 is the engine flip.** The corrected numerical core, the corrected defaults and fail-closed
+error semantics are the behaviour of the existing API, not an opt-in alongside it. The new
+`org.locationtech.proj4j.api` facade is additive and costs you nothing, but the numbers underneath the
+old API have moved. Upgrading means reading this document.
 
-| | |
-|---|---|
-| **1.5.0** | **Additive.** New API alongside the old, new correctness *available* but the legacy path unchanged where it can be. Upgrade should be a version bump. |
-| **2.0.0** | **The engine flip.** The corrected numerical core, the corrected defaults, and fail-closed error semantics become the behaviour of the existing API. Upgrade requires reading this document. |
+An earlier plan staged this work as an additive 1.5.0 followed by a behaviour-changing 2.0.0. That
+split was abandoned and everything shipped in 2.0.0; there is no 1.5.0 and there will not be one. The
+groupId changed too, so this is not a version bump of `org.locationtech.proj4j:proj4j` — nothing
+upgrades into it by accident, which is the protection the two-release split was there to provide.
 
-The reason for two releases rather than one is that most of what follows changes *numbers*, and a
-library that silently moves someone's coordinates is worse than one that makes them opt in. If you
-only read one section, read [Compatibility](#compatibility-what-moves-and-by-how-much).
+If you only read one section, read [Compatibility](#compatibility-what-moves-and-by-how-much).
 
 **Where the numbers come from.** Every figure below was measured locally, most of them on a frozen
 snapshot with an A/B against an otherwise identical tree. The CI workflow files are committed, but
@@ -51,7 +52,7 @@ diff. That is the sharpest argument on record that a change-detecting gate canno
 
 The change is not merely "an exception where a number used to be": the number was **wrong**. The 40
 witness rows that motivated the fix all probe latitude exactly `40.000000` — the southern edge of
-`ntv1_can.dat`, the only NAD27 grid `proj4j-epsg` ships. The forward finds the point inside the box
+`ntv1_can.dat`, the only NAD27 grid `neoproj4j-epsg` ships. The forward finds the point inside the box
 and shifts it *south* of 40°N, out of the box; the `else` branch then returned it unchanged, so the
 inverse leg never ran. `epsg:26721` probe 2 moved `fx` by −92.756 m and `ix` by +0.001090° ≈ 93.1 m —
 the residue *equals* the forward shift, which is what proves the inverse was not running rather than
@@ -257,15 +258,16 @@ and `wintri`; `hammer.cpp:86-87`; `nsper.cpp:167-168`; `lagrng.cpp:101-102`). Th
 here too.
 
 > **The gate does *not* key on `hasInverse()`**, and that detail matters if you were relying on it.
-> `hasInverse()` is a hand-maintained declaration that was **read nowhere in `core/src/main` before
-> 1.5.0**, and it is wrong in both directions: `KrovakProjection` and `NewZealandMapGridProjection`
+> `hasInverse()` is a hand-maintained declaration that was **read nowhere in `core/src/main` in
+> 1.4.3**, and it is wrong in both directions: `KrovakProjection` and `NewZealandMapGridProjection`
 > implement `projectInverse` without declaring it, while `LandsatProjection` declares it while
 > overriding nothing. A `hasInverse()`-keyed gate rejected **EPSG:2065, EPSG:5514 and EPSG:27200 —
 > three working CRS**. The shipped gate interrogates the class hierarchy for a declared
 > `projectInverse(double, double, ProjCoordinate)` instead, and those three still work.
 
 If your code has `try { inverse } catch { }` or treats a finite result as success, that code was
-relying on the old behaviour. The 1.5.0 → 2.0.0 gap exists so you can find out which.
+relying on the old behaviour. Find out which before you upgrade: a call that used to return a
+plausible-looking finite number now throws.
 
 ### Grid handling
 
@@ -530,7 +532,7 @@ The invented-height fix in §5 above is covered by a dedicated unit test, not by
   `+datum=OSGB36` in PROJ picks OSTN15, **1.784 m** from the legacy Helmert proj4j applies; `nzgd49` is
   **2.248 m**. This is a **data-vintage gap, not an arithmetic defect** — on the parameter strings each
   engine is actually given, the two agree.
-- **A pure-Java, zero-dependency reader for a transcoded 9.8.1 database exists** (`proj4j-db`, Phase 1),
+- **A pure-Java, zero-dependency reader for a transcoded 9.8.1 database exists** (`neoproj4j-db`, Phase 1),
   but wiring operation *selection* through it is not complete, so the numbers above still describe the
   default path. When it does land it changes an answer that is currently correct-by-accident: the facade
   throws `BALLPARK_REJECTED` for `EPSG:4267 → EPSG:4269`, which is right without the database and
@@ -559,7 +561,7 @@ The invented-height fix in §5 above is covered by a dedicated unit test, not by
 **Neither of the following is in this build.** They are listed here so that nobody reads their absence
 as a decision, and so that no figure below is quoted before it exists.
 
-> ### ⏳ PLACEHOLDER — `conus` in `proj4j-epsg`
+> ### ⏳ PLACEHOLDER — `conus` in `neoproj4j-epsg`
 >
 > **Status: in flight, not landed.** Verified today: `epsg/src/main/resources/proj4/nad/` ships
 > `ntv1_can.dat` and no other grid.
@@ -573,11 +575,11 @@ as a decision, and so that no figure below is quoted before it exists.
 >
 > `9.8.1:data/tests/conus` is **264,424 bytes** of CTABLE V2, a format `datum/CTABLEV2.java` already
 > reads, so folding it in costs zero new parsing code. Today it is available only through the separate
-> `proj4j-grids-us-legacy` artifact (**1,192,986 B** as a jar, `conus` + `alaska`, resources only) and,
+> `neoproj4j-grids-us-legacy` artifact (**1,192,986 B** as a jar, `conus` + `alaska`, resources only) and,
 > at *test* scope, to `core`.
 >
 > **This section will state the artifact contents and a measured size when the change lands. No
-> `proj4j-epsg` size is quoted here on purpose** — the figure that stood in the project's own packaging
+> `neoproj4j-epsg` size is quoted here on purpose** — the figure that stood in the project's own packaging
 > notes was measured today as **7,603,235 B** against a long-recorded 2,518,313 B, a 3× error, and it is
 > exactly the kind of number that goes straight into release material.
 
@@ -682,11 +684,13 @@ is ~2 pm, eight orders inside the tightest corpus tolerance.
 
 ## Upgrade guidance
 
-**To 1.5.0.** Should be a version bump. The new `org.locationtech.proj4j.api` facade is additive, has
-zero runtime dependencies, and the legacy types are **not** deprecated. Verified: `EPSG:4267 → 4269`
-still transforms through the legacy factory, and `createTransform` output is bit-identical.
+Coming from `org.locationtech.proj4j:proj4j:1.4.3`, change the groupId and artifactId as well as the
+version — see the [README](README.md) for the coordinates. Package names are unchanged, so no imports
+move: the new `org.locationtech.proj4j.api` facade is additive, has zero runtime dependencies, and the
+legacy types are **not** deprecated. Verified: `EPSG:4267 → 4269` still transforms through the legacy
+factory.
 
-**To 2.0.0**, in order:
+What to check, in order:
 
 1. **If you use `+nadgrids` or `+datum=NAD27` anywhere near the edge of your grid coverage**, expect
    `COORDINATE_OUTSIDE_GRID` where you previously got the input coordinate back. 1,949 golden-master

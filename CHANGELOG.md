@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Work towards PROJ 9.8.1 parity, staged as an additive **1.5.0** and a behaviour-changing **2.0.0**.
+### Pending — in flight, not yet released
+
+- **⏳ `conus` folded into `neoproj4j-epsg`.** Verified: `epsg/src/main/resources/proj4/nad/` currently
+  ships `ntv1_can.dat` and no other grid, whose footprint is 40°N–84°N, 142°W–44°W. `9.8.1:data/tests/conus`
+  is 264,424 B of CTABLE V2, a format `datum/CTABLEV2.java` already reads. Until it lands, a released
+  build needs `neoproj4j-grids-us-legacy` (1,192,986 B jar, `conus` + `alaska`) on the classpath. **No
+  `neoproj4j-epsg` artifact size is quoted anywhere in these notes on purpose** — the figure recorded in
+  the project's own packaging notes was measured today as 7,603,235 B against a long-standing claim of
+  2,518,313 B
+- **⏳ Relaxing `ClasspathResourceResolver.isSafeName`** to permit interior path segments while still
+  rejecting a leading `/` or `\`, spaces, and any `.` / `..` / empty segment. The corpus writes
+  `+file=tests/…` and `+grids=tests/…`, which PROJ resolves by appending the token to a search
+  directory; proj4j can currently reach **no** `tests/…` file, and roughly **100 assertions** sit
+  behind that one rule, concentrated in `gridshift`, `geotiff_grids`, `defmodel` and `tinshift`. **No
+  revised conformance figure is quoted for it here**, and none should be until it is measured on a
+  quiesced tree
+
+## [2.0.0] - 2026-08-06
+
+The first neoProj4J release: PROJ 9.8.1 parity, forked from upstream Proj4J 1.4.3. Published to Maven
+Central under `io.github.emilevictor.neoproj4j` — a new groupId, so this is not a drop-in version bump
+of `org.locationtech.proj4j:proj4j`.
+
 **Every measured behaviour change, with its magnitude, is in [RELEASE-NOTES.md](RELEASE-NOTES.md)** —
 this file lists what changed, that file tells you how far your coordinates move. Read it before
 upgrading.
@@ -175,9 +197,9 @@ Silent wrong answers:
   result far enough to look like a bug
 - **NAD27 → NAD83 in CONUS: 95.573 m at San Francisco.** The code half is fixed — the parser called
   `setGrids(null)` on the *static* `Datum.NAD27` singleton, destroying the grid list process-wide.
-  **The data half is a packaging question that is still open**: `proj4j-epsg` ships `ntv1_can.dat` and
-  nothing else, so `conus` reaches a released build only through `proj4j-grids-us-legacy`. See
-  *Pending* below
+  **The data half is a packaging question that is still open**: `neoproj4j-epsg` ships `ntv1_can.dat`
+  and nothing else, so `conus` reaches a released build only through `neoproj4j-grids-us-legacy`. See
+  *Pending* under [Unreleased]
 - **NTv2**: "only 1 subfile supported" silently used subgrid 1 for the whole file, and interpolation
   read the captured *parent* table after descending into a child. A point in Alberta got no shift at
   all while the transform reported success
@@ -301,7 +323,7 @@ Other boundaries:
 - **The legacy path has no `proj.db`.** `+datum=OSGB36` differs from PROJ by **1.784 m** (PROJ picks
   OSTN15), `nzgd49` by **2.248 m**. This is a **data-vintage gap, not an arithmetic defect** — given
   the same parameter strings the two engines agree. A pure-Java zero-dependency reader for a
-  transcoded 9.8.1 database exists (`proj4j-db`, Phase 1), but operation *selection* is not yet wired
+  transcoded 9.8.1 database exists (`neoproj4j-db`, Phase 1), but operation *selection* is not yet wired
   through it
 - **The shipped EPSG dictionary is v9.2-era (2017)** against PROJ 9.8.1's v12.029
 - **NaN sign and payload are architecture-dependent and outside the bit-for-bit determinism
@@ -335,23 +357,6 @@ Other boundaries:
   8 CRS pairs × 20 operations pinned
 - **No CI run backs any figure in this file.** The workflow files are committed; everything above was
   measured locally
-
-### Pending — in flight, not in this build
-
-- **⏳ `conus` folded into `proj4j-epsg`.** Verified: `epsg/src/main/resources/proj4/nad/` currently
-  ships `ntv1_can.dat` and no other grid, whose footprint is 40°N–84°N, 142°W–44°W. `9.8.1:data/tests/conus`
-  is 264,424 B of CTABLE V2, a format `datum/CTABLEV2.java` already reads. Until it lands, a released
-  build needs `proj4j-grids-us-legacy` (1,192,986 B jar, `conus` + `alaska`) on the classpath. **No
-  `proj4j-epsg` artifact size is quoted anywhere in these notes on purpose** — the figure recorded in
-  the project's own packaging notes was measured today as 7,603,235 B against a long-standing claim of
-  2,518,313 B
-- **⏳ Relaxing `ClasspathResourceResolver.isSafeName`** to permit interior path segments while still
-  rejecting a leading `/` or `\`, spaces, and any `.` / `..` / empty segment. The corpus writes
-  `+file=tests/…` and `+grids=tests/…`, which PROJ resolves by appending the token to a search
-  directory; proj4j can currently reach **no** `tests/…` file, and roughly **100 assertions** sit
-  behind that one rule, concentrated in `gridshift`, `geotiff_grids`, `defmodel` and `tinshift`. **No
-  revised conformance figure is quoted for it here**, and none should be until it is measured on a
-  quiesced tree
 
 ## [1.4.3] - 2026-06-02
 
@@ -474,7 +479,8 @@ Other boundaries:
 - Fix possible `null` dereference [#16](https://github.com/locationtech/proj4j/pull/16)
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
-[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/emilevictor/neoProj4J/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/emilevictor/neoProj4J/compare/v1.4.3...v2.0.0
 [1.4.3]: https://github.com/locationtech/proj4j/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/locationtech/proj4j/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/locationtech/proj4j/compare/v1.4.0...v1.4.1
