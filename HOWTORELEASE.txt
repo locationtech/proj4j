@@ -53,16 +53,14 @@ Traps:
     tags it can now see are all unreachable and the answer is still 0.0.0-SNAPSHOT.
     fetch-depth: 0 fetches the full history and, with it, the tags. Use that.
 
-  - THE REMOTE HAS NO TAGS AT ALL. `git ls-remote --tags origin` against
-    github.com/emilevictor/neoProj4J returns nothing: the 18 tags in this tree
-    (v0.2.0 ... v1.4.3, _old/eclipse_initial) are local only and have never been pushed.
-    Until they are, fetch-depth: 0 changes nothing on its own - a full clone of a
-    tagless remote still yields 0.0.0-SNAPSHOT. So, in order:
+  - A TAG YOU HAVE NOT PUSHED DOES NOT EXIST AS FAR AS CI IS CONCERNED. fetch-depth: 0
+    fetches everything the REMOTE has, which is not the same as everything you have, and a
+    full clone of a tagless remote still yields 0.0.0-SNAPSHOT. All tags are currently on
+    origin; confirm that before trusting any version string in CI, and push a new release
+    tag explicitly rather than relying on it being carried along:
 
-        git push origin --tags        # or --follow-tags on the next push
-        # then re-run any workflow and confirm the version it logs
-
-    Do this before adding a release job, and before trusting any version string in CI.
+        git ls-remote --tags origin
+        git push origin v2.0.0        # or --follow-tags on the next push
 
 
 Publishing to Maven Central
@@ -74,22 +72,180 @@ Prerequisites, in the order they will block you:
   2. Namespace ownership of io.github.emilevictor, proved by the GitHub account
      `emilevictor`. This is why the groupId is shaped that way -- an io.github.<user>
      namespace is verified by the matching GitHub account and needs no DNS record.
-  3. A published GPG key. Central rejects unsigned artifacts. maven-gpg-plugin is wired
-     into the `central` profile; note its <configuration> is empty, so the key is taken
-     from the environment.
-  4. ~/.m2/settings.xml with a <server> whose <id> matches central-publishing-maven-plugin's
-     <publishingServerId>. Use a Central Portal user token, not an account password.
+  3. A GPG key whose PUBLIC half is published to a keyserver -- not merely a key you can
+     sign with. See "The signing key" below. This is the most likely thing to stop you, and
+     it fails with a message that does not name the cause.
+  4. ~/.m2/settings.xml with a <server> block. See "settings.xml" below.
 
-Then:
+Then, with HEAD on the release tag and the working tree clean:
 
-    mvn -Pcentral -DskipTests deploy
+    mvn -Pcentral deploy -DskipTests -pl '!conformance'
 
-The `central` profile carries central-publishing-maven-plugin and maven-gpg-plugin.
-Sources and javadoc jars are produced unconditionally, so that part needs no flags.
+Every flag there is load-bearing.
 
-NOT YET DONE FROM THIS TREE. gpg signing has never run here and no artifact has ever
-been pushed to Central from this repository. Treat the first release as untested, and
-verify the staged deployment in the Portal UI before releasing it.
+  -Pcentral
+      Carries central-publishing-maven-plugin and maven-gpg-plugin. Sources and javadoc
+      jars are produced unconditionally by the root build, so that part needs no flags.
+
+  -pl '!conformance'
+      The publishing plugin is a build EXTENSION, so its publish goal is injected into
+      every module in the reactor regardless of maven.deploy.skip. conformance/ attaches no
+      artifact, so the injected goal has nothing to stage and fails the build with "The
+      packaging for this project did not assign a file to the build artifact". See
+      conformance/pom.xml for why setting skipPublishing on that module is a worse fix.
+
+  -DskipTests
+      A deploy run is not where you want to find out whether the tests pass: gate on
+      `mvn -B verify` first, then tag, then deploy. If you sign from a smartcard with a
+      cached touch policy this is not merely tidier, it is necessary. One touch authorises
+      signing for a short window (~15 s on common defaults); a full test run puts far more
+      than that between two signing steps, the cache lapses, and gpg reports "Card error".
+      That message reads as a hardware or PIN fault and is neither. `gpg --card-status`
+      distinguishes them: a wrong PIN decrements the retry counter, a lapsed touch cache
+      leaves it untouched.
+
+First released from this tree: 2.0.0, on 2026-08-06.
+
+
+The signing key
+------------------------------------------------------------------------------
+
+Central does not merely check that the .asc files are well-formed. It resolves your public
+key BY FINGERPRINT from a public keyserver, querying from its own infrastructure. If that
+lookup fails, every signature in the bundle is rejected:
+
+    Invalid signature for file: <artifact>.jar
+    Could not find a public key by the key fingerprint
+
+Those signatures are valid. The key is simply not published. Nothing in the message says
+so, and Sonatype's own quickstart does not mention the requirement.
+
+Find the fingerprint of the primary key that will sign -- the one carrying the [SC]
+capability, not a signing subkey:
+
+    gpg --list-secret-keys --keyid-format=long --fingerprint
+
+Put it in a shell variable. A 40-character fingerprint pasted inline wraps in most
+terminals, and the whitespace that wrapping injects produces
+
+    curl: (3) URL rejected: Malformed input to a URL function
+
+which looks like a keyserver problem and is not.
+
+    FPR=<40 hex characters, no spaces>
+
+Publish it, then read it back:
+
+    gpg --keyserver hkps://keyserver.ubuntu.com --send-keys "$FPR"
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "$FPR"
+
+IF YOUR NETWORK BLOCKS KEYSERVERS, --send-keys hangs at "sending key" rather than failing.
+hkp:// is port 11371, which is commonly blocked; some networks block hkps:// on 443 too, in
+which case gpg has no keyserver reachability at all. The keyserver's plain HTTPS interface
+still works, so bypass gpg's networking entirely:
+
+    gpg --armor --export "$FPR" > /tmp/pubkey.asc
+    curl -X POST --data-urlencode "keytext@/tmp/pubkey.asc" \
+        https://keyserver.ubuntu.com/pks/add                        # expect HTTP 200
+    curl "https://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=0x$FPR" \
+        | gpg --show-keys
+
+That is a complete fix and not a partial one: Central queries keyservers from its own side,
+so your local reachability never enters into validation.
+
+One trap in the read-back. If $FPR is unset the query becomes `search=0x`, which returns a
+large pile of unrelated strangers' keys rather than an error -- if the output is not your
+key, check the variable before concluding anything about the upload.
+
+IF YOUR KEY CARRIES A USER ID YOU DO NOT WANT ON A PUBLIC KEYSERVER -- a work address on a
+key you also use personally, say -- filter it at export time rather than editing your
+keyring:
+
+    gpg --export-options export-clean \
+        --export-filter keep-uid='mbox = you@example.com' \
+        --armor --export "$FPR" > /tmp/pubkey.asc
+
+and publish that file. `gpg --show-keys` on it confirms which user IDs you are about to
+make public. Two things to understand first:
+
+  - Keyservers are append-only and MERGE rather than replace. One later plain
+    `gpg --send-keys` from your default keyring publishes every user ID on the key,
+    permanently. There is no undo and no delete.
+  - `deluid` is the wrong tool. Removing a user ID locally and re-adding it later does not
+    restore its original self-signature or any third-party certifications it had collected,
+    and anything that re-exports the key afterwards silently loses that identity. Filter the
+    export; leave the keyring alone.
+
+CHECK THE EXPIRY BEFORE YOU TAG. An expired key fails validation exactly like an
+unpublished one. `gpg --list-keys` shows the date; `gpg --edit-key "$FPR"` then `expire`
+extends it. An extended key must then be re-published -- the keyserver copy does not
+update itself.
+
+maven-gpg-plugin is wired into the `central` profile with an empty <configuration>, so the
+key comes from the gpg agent rather than from Maven. Export GPG_TTY=$(tty) so pinentry has
+somewhere to prompt.
+
+
+settings.xml
+------------------------------------------------------------------------------
+
+~/.m2/settings.xml needs one <server> block:
+
+    <settings>
+      <servers>
+        <server>
+          <id>central</id>
+          <username>...</username>
+          <password>...</password>
+        </server>
+      </servers>
+    </settings>
+
+  - The <id> must match <publishingServerId> in the `central` profile in pom.xml, which is
+    currently `central`. That is an unfortunate name in the general case: Maven reserves the
+    id `central` for the built-in Central REPOSITORY, so if the same settings.xml also
+    configures a mirror or repository under that id, credentials intended for one can be
+    presented to the other. It is safe here only because nothing else in this project uses
+    the id.
+  - The credentials are a Central Portal USER TOKEN, generated under your Portal account.
+    They are not your account login; a password fails with a 401 that reads like a
+    permissions problem.
+  - To keep the token out of the file, use ${env.CENTRAL_TOKEN_USERNAME} and
+    ${env.CENTRAL_TOKEN_PASSWORD} and export those two variables. Maven expands ${env.VAR};
+    a bare ${VAR} is passed through verbatim and will not work.
+
+
+After the deploy: nothing is published yet
+------------------------------------------------------------------------------
+
+The `central` profile sets autoPublish=false, deliberately. A successful deploy uploads a
+bundle and leaves it at VALIDATED in the Portal, where it stays until you press Publish. A
+green build means "staged", not "released".
+
+    https://central.sonatype.com/publishing/deployments
+
+A VALIDATED deployment holds the version -- you cannot re-upload the same coordinates
+without dropping it first. A FAILED one does not, and can be left alone.
+
+After you press Publish, the Portal says PUBLISHED quickly, repo1 lags by up to about 30
+minutes, and search.maven.org can take hours. The only check that means anything is repo1:
+
+    for a in neoproj4j neoproj4j-epsg neoproj4j-geoapi neoproj4j-db \
+             neoproj4j-grids-us-legacy neoproj4j-modules; do
+      printf '%s ' "$a"
+      curl -s -o /dev/null -w '%{http_code}\n' \
+        "https://repo1.maven.org/maven2/io/github/emilevictor/neoproj4j/$a/2.0.0/$a-2.0.0.pom"
+    done
+
+All six must return 200.
+
+A BUILD FAILURE AT THE VERY END IS NOT NECESSARILY A PUBLISHING FAILURE. The upload happens
+at the last module in the reactor, so a plugin that crashes after uploading still leaves a
+valid deployment behind -- central-publishing-maven-plugin 0.7.0 did exactly that, failing
+on a field it did not recognise in Central's reply. Check the Portal before re-running
+anything. In particular, do NOT edit a file to fix it and retry immediately: any edit
+dirties the working tree, jgitver then computes X.Y.(Z+1)-SNAPSHOT instead of the tagged
+version, and the retry publishes the wrong coordinates.
 
 
 Installing locally (for a downstream consumer to test against)
