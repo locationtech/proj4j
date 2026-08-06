@@ -23,7 +23,23 @@
 
     <properties>
         <!-- Never published: this module vendors third-party test data and produces no artifact
-             anyone should depend on. -->
+             anyone should depend on.
+
+             maven.deploy.skip stops maven-deploy-plugin. It does NOT stop
+             central-publishing-maven-plugin, which the `central` profile installs as a build
+             extension, so that plugin's publish goal is injected into every module in the reactor.
+             This module attaches no artifact - packaging is jar, there is no src/main, and
+             maven-jar-plugin below is set skipIfEmpty - so the injected goal has no file to stage and
+             fails the build with "The packaging for this project did not assign a file to the build
+             artifact".
+
+             Release therefore runs `mvn -Pcentral deploy -DskipTests -pl '!conformance'`.
+
+             Setting skipPublishing on this module looks like the tidier fix, and plugin 0.9.0 did
+             make that flag per-module. It is NOT used here: the plugin performs the actual bundle
+             upload at the LAST module in the reactor, and this module is last, so suppressing
+             publishing here risks suppressing the upload for the whole build - a green log with
+             nothing published. The -pl exclusion is the proven route. See HOWTORELEASE.txt. -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>

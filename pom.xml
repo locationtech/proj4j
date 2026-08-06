@@ -181,7 +181,17 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.7.0</version>
+                        <!-- 0.11.0 IS A FLOOR, NOT A PREFERENCE. Do not downgrade.
+                             0.7.0 uploads the bundle successfully and then fails the build parsing
+                             Central's reply - `UnrecognizedPropertyException: Unrecognized field
+                             "warnings"`, because its response model predates a field the API now
+                             returns. The deployment is fine and waiting in the Portal; the build says
+                             otherwise. 0.8.0 fixed that. 0.11.0 also stops printing the user token
+                             identifier to the console. -->
+                        <version>0.11.0</version>
+                        <!-- A BUILD EXTENSION, which is why release runs with -pl '!conformance':
+                             the publish goal is injected into EVERY reactor module regardless of
+                             maven.deploy.skip. See conformance/pom.xml and HOWTORELEASE.txt. -->
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
