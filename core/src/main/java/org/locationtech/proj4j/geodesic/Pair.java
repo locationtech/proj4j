@@ -23,7 +23,6 @@ public class Pair {
     public double second;
     /**
      * Constructor
-     * <p>
      * @param first the first member of the pair.
      * @param second the second member of the pair.
      **********************************************************************/

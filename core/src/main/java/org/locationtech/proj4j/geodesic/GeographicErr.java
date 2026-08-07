@@ -19,7 +19,6 @@ public class GeographicErr extends RuntimeException {
 
     /**
      * Constructor
-     * <p>
      * @param msg a string message, which is accessible in the catch
      *   clause via getMessage().
      **********************************************************************/

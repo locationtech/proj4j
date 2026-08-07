@@ -39,6 +39,8 @@ public class CrsCreationException extends CrsTransformException {
     private static final long serialVersionUID = 8952705490035737960L;
 
     /**
+     * Creates an exception with an explicit cause.
+     *
      * @param cause   the machine-readable reason; required
      * @param message the human-readable detail message
      */
@@ -47,6 +49,8 @@ public class CrsCreationException extends CrsTransformException {
     }
 
     /**
+     * Creates an exception with an explicit cause, wrapping another throwable.
+     *
      * @param cause     the machine-readable reason; required
      * @param message   the human-readable detail message
      * @param throwable the underlying throwable, or null

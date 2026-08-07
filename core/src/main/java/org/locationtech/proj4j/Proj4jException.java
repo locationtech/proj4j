@@ -75,15 +75,34 @@ public class Proj4jException extends RuntimeException
 	 */
 	private final ErrorCause errorCause;
 
+	/**
+	 * Creates an exception with no message. {@link #cause()} reports
+	 * {@link ErrorCause#INTERNAL_ERROR}, since this form records no reason.
+	 */
 	public Proj4jException() {
 		this.errorCause = ErrorCause.INTERNAL_ERROR;
 	}
 
+	/**
+	 * Creates an exception with a message. {@link #cause()} reports
+	 * {@link ErrorCause#INTERNAL_ERROR}; prefer
+	 * {@link #Proj4jException(ErrorCause, String, Throwable)} where the reason is known.
+	 *
+	 * @param message the human-readable detail message
+	 */
 	public Proj4jException(String message) {
 		super(message);
 		this.errorCause = ErrorCause.INTERNAL_ERROR;
 	}
 
+	/**
+	 * Creates an exception wrapping another. {@link #cause()} reports
+	 * {@link ErrorCause#INTERNAL_ERROR}; prefer
+	 * {@link #Proj4jException(ErrorCause, String, Throwable)} where the reason is known.
+	 *
+	 * @param message the human-readable detail message
+	 * @param cause   the underlying exception, retrievable with {@link #getCause()}
+	 */
 	public Proj4jException(String message, Exception cause) {
 		super(message, cause);
 		this.errorCause = ErrorCause.INTERNAL_ERROR;

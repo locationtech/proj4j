@@ -68,13 +68,20 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
 
     private static final long serialVersionUID = 2134853818131680020L;
 
+    /** The CRS input coordinates are referenced to; returned by {@link #getSourceCRS()}. */
     private final CoordinateReferenceSystem srcCRS;
+    /** The CRS output coordinates are produced in; returned by {@link #getTargetCRS()}. */
     private final CoordinateReferenceSystem tgtCRS;
 
     // precomputed information
+
+    /** Whether the source CRS is projected, so its projection must be inverted to reach lon/lat. */
     private final boolean doInverseProjection;
+    /** Whether the target CRS is projected, so a forward projection is applied at the end. */
     private final boolean doForwardProjection;
+    /** Whether the two CRSs sit on different datums, so a datum shift is needed between them. */
     private final boolean doDatumTransform;
+    /** Whether that datum shift goes via geocentric XYZ rather than a grid or a no-op. */
     private final boolean transformViaGeocentric;
 
     /**
@@ -89,6 +96,7 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
      * values in locals and assigning once removes ~2 reloads per point at no behavioural cost.
      */
     private final GeocentricConverter srcGeoConv;
+    /** The target-side geocentric converter; see {@link #srcGeoConv}. */
     private final GeocentricConverter tgtGeoConv;
 
     /** What to do with a per-coordinate failure; never null. */
@@ -120,7 +128,9 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
     /** {@code tgtCRS.getProjection()}. Null only for the unusable {@code CS_GEO} sentinel. */
     private final Projection tgtProj;
 
+    /** {@code srcCRS}'s axis order, hoisted so the bulk path does not re-read it per point. */
     private final AxisOrder srcAxes;
+    /** {@code tgtCRS}'s axis order, hoisted so the bulk path does not re-read it per point. */
     private final AxisOrder tgtAxes;
 
     /**
@@ -134,6 +144,7 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
      * {@code -0.0}. Hence the check, rather than an unconditional skip.
      */
     private final boolean srcAxesEnu;
+    /** The target-side counterpart; see {@link #srcAxesEnu}. */
     private final boolean tgtAxesEnu;
 
     /**
@@ -148,9 +159,12 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
      * path performs the addition unconditionally, so the bulk path must too.
      */
     private final double srcPmOffset;
+    /** The target-side offset, subtracted rather than added; see {@link #srcPmOffset}. */
     private final double tgtPmOffset;
 
+    /** {@code srcCRS.getDatum()}, hoisted out of the per-point loop. */
     private final Datum srcDatum;
+    /** {@code tgtCRS.getDatum()}, hoisted out of the per-point loop. */
     private final Datum tgtDatum;
 
     /**
@@ -168,9 +182,13 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
      */
     private final boolean datumTransformIsNoOp;
 
+    /** Whether the source datum shifts via a {@code +nadgrids=} grid rather than a parameter set. */
     private final boolean srcGridShift;
+    /** Whether the target datum shifts via a {@code +nadgrids=} grid rather than a parameter set. */
     private final boolean tgtGridShift;
+    /** Whether the source datum declares a {@code +towgs84=} parameter set. */
     private final boolean srcHasToWgs84;
+    /** Whether the target datum declares a {@code +towgs84=} parameter set. */
     private final boolean tgtHasToWgs84;
 
     /**
@@ -196,6 +214,7 @@ public class BasicCoordinateTransform implements CoordinateTransform, BulkCoordi
      * {@code Grid.shift(Grid[], …)} treats null as a no-op, so a stale flag cannot dereference it.
      */
     private final Grid[] srcGrids;
+    /** The target-side resolved grid list; see {@link #srcGrids}. */
     private final Grid[] tgtGrids;
 
     /**

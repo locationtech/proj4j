@@ -59,6 +59,8 @@ public class CrsTransformException extends Proj4jException {
     private static final long serialVersionUID = 1832822012296106468L;
 
     /**
+     * Creates an exception with an explicit cause, which this class always requires.
+     *
      * @param cause   the machine-readable reason; required
      * @param message the human-readable detail message
      */
@@ -67,6 +69,8 @@ public class CrsTransformException extends Proj4jException {
     }
 
     /**
+     * Creates an exception with an explicit cause, wrapping another throwable.
+     *
      * @param cause     the machine-readable reason; required
      * @param message   the human-readable detail message
      * @param throwable the underlying throwable, or null

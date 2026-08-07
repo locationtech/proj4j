@@ -27,8 +27,18 @@ import java.io.Serializable;
  */
 public interface CoordinateTransform extends Serializable {
 
+    /**
+     * Gets the CRS that this transform expects its input coordinates to be referenced to.
+     *
+     * @return the source coordinate reference system
+     */
     CoordinateReferenceSystem getSourceCRS();
 
+    /**
+     * Gets the CRS that this transform produces its output coordinates in.
+     *
+     * @return the target coordinate reference system
+     */
     CoordinateReferenceSystem getTargetCRS();
 
 

@@ -38,21 +38,46 @@ public class ProjectionException extends CrsTransformException {
     /** The cause reported by every constructor that does not take one explicitly. */
     private static final ErrorCause DEFAULT_CAUSE = ErrorCause.COORDINATE_OUT_OF_DOMAIN;
 
+    /**
+     * The message text for PROJ.4 error 17, carried over from the C original. Public and mutable
+     * for historical reasons; a non-convergent iteration should now throw
+     * {@link ConvergenceFailureException} instead.
+     */
     public static String ERR_17 = "non-convergent inverse meridinal dist";
 
+    /**
+     * Creates an exception with no message, reporting
+     * {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}.
+     */
     public ProjectionException() {
         super(DEFAULT_CAUSE, null);
     }
 
+    /**
+     * Creates an exception reporting {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}.
+     *
+     * @param message the human-readable detail message
+     */
     public ProjectionException(String message) {
         super(DEFAULT_CAUSE, message);
     }
 
+    /**
+     * Creates an exception reporting {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}, with the
+     * projection named in the message.
+     *
+     * @param proj    the projection that rejected the coordinate; its
+     *                {@link Projection#toString()} is prepended to the message
+     * @param message the human-readable detail message
+     */
     public ProjectionException(Projection proj, String message) {
         this(proj.toString() + ": " + message);
     }
 
     /**
+     * Creates an exception with a narrower cause than
+     * {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}.
+     *
      * @param cause   a refinement of {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}
      * @param message the human-readable detail message
      * @since 1.5.0
@@ -62,6 +87,9 @@ public class ProjectionException extends CrsTransformException {
     }
 
     /**
+     * Creates an exception with a narrower cause than
+     * {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}, with the projection named in the message.
+     *
      * @param cause   a refinement of {@link ErrorCause#COORDINATE_OUT_OF_DOMAIN}
      * @param proj    the projection that rejected the coordinate; its
      *                {@link Projection#toString()} is prepended to the message

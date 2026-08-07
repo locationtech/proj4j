@@ -36,11 +36,20 @@ import org.locationtech.proj4j.proj.*;
  */
 public class Registry {
 
+    /**
+     * Creates a registry and populates its projection table. The datum and ellipsoid tables are
+     * static, so every instance shares them.
+     */
     public Registry() {
         super();
         initialize();
     }
 
+    /**
+     * The datums reachable by {@code +datum=}, searched by {@link #getDatum(String)}.
+     * <p>
+     * The array is public and its contents are mutable; treat it as read-only.
+     */
     public final static Datum[] datums = {
             Datum.WGS84,
             Datum.GGRS87,
@@ -54,6 +63,12 @@ public class Registry {
             Datum.OSGB36
     };
 
+    /**
+     * Looks up a datum by its PROJ.4 code, as used in {@code +datum=}.
+     *
+     * @param code the datum code, matched exactly and case-sensitively, e.g. {@code WGS84}
+     * @return the datum, or null if no datum in {@link #datums} has that code
+     */
     public Datum getDatum(String code) {
         for (int i = 0; i < datums.length; i++) {
             if (datums[i].getCode().equals(code)) {
@@ -63,6 +78,15 @@ public class Registry {
         return null;
     }
 
+    /**
+     * The ellipsoids reachable by {@code +ellps=}, searched by {@link #getEllipsoid(String)}.
+     * <p>
+     * This is the list {@code +ellps=} resolves against, and it is <em>not</em> the same list as
+     * {@code Ellipsoid.ellipsoids}, which only the WKT reader consults and which matches numerically
+     * rather than by name. Adding an ellipsoid to one does not add it to the other.
+     * <p>
+     * The array is public and its contents are mutable; treat it as read-only.
+     */
     public final static Ellipsoid[] ellipsoids = {
             Ellipsoid.SPHERE,
             new Ellipsoid("MERIT", 6378137.0, 0.0, 298.257, "MERIT 1983"),
@@ -121,6 +145,12 @@ public class Registry {
             Ellipsoid.PZ90,
     };
 
+    /**
+     * Looks up an ellipsoid by its PROJ.4 short name, as used in {@code +ellps=}.
+     *
+     * @param name the short name, matched exactly and case-sensitively, e.g. {@code GRS80}
+     * @return the ellipsoid, or null if no ellipsoid in {@link #ellipsoids} has that short name
+     */
     public Ellipsoid getEllipsoid(String name) {
         for (int i = 0; i < ellipsoids.length; i++) {
             if (ellipsoids[i].shortName.equals(name)) {

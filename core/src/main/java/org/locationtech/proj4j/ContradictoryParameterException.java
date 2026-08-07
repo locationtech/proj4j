@@ -45,6 +45,8 @@ public class ContradictoryParameterException extends InvalidValueException {
     private static final ErrorCause DEFAULT_CAUSE = ErrorCause.CONTRADICTORY_PARAMS;
 
     /**
+     * Creates an exception reporting {@link ErrorCause#CONTRADICTORY_PARAMS}.
+     *
      * @param message the human-readable detail message; it should name both of the parameters
      *                that disagree, and the value each implies
      */
@@ -53,6 +55,9 @@ public class ContradictoryParameterException extends InvalidValueException {
     }
 
     /**
+     * Creates an exception reporting {@link ErrorCause#CONTRADICTORY_PARAMS} and wrapping another
+     * throwable.
+     *
      * @param message   the human-readable detail message
      * @param throwable the underlying throwable, or null
      */

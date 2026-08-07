@@ -107,7 +107,6 @@ public interface ProjDatabase extends Closeable {
 
     /**
      * Every CRS of the given authority, sorted by {@link DbObjectRef} order. Unmodifiable.
-     * <p>
      * @param authName the authority, or {@code null} for all authorities
      */
     List<DbObjectRef> crsCodes(String authName);

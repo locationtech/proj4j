@@ -49,16 +49,37 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
 
     private static final long serialVersionUID = 3023636591117313777L;
 
+    /**
+     * A sentinel naming "geographic coordinates on whatever datum the other CRS uses", for
+     * specifying a transformation to or from geographic coordinates without a datum shift.
+     * <p>
+     * It is a marker, not a usable CRS: its datum and projection are both null, so
+     * {@link #getProjection()} returns null and {@link #isGeographic()} and
+     * {@link #createGeographic()} throw {@link NullPointerException}. Pass it to
+     * {@link CoordinateTransformFactory}, which recognises it; do not transform with it directly.
+     */
     // allows specifying transformations which convert to/from Geographic coordinates on the same datum
     public static final CoordinateReferenceSystem CS_GEO = new CoordinateReferenceSystem("CS_GEO", null, null, null);
 
     //TODO: add metadata like authority, id, name, parameter string, datum, ellipsoid, datum shift parameters
 
+    /** Display name; never null after construction, since the constructor derives one when given null. */
     private String name;
+    /** The PROJ.4 parameter tokens this CRS was built from, or null if it was not built from any. */
     private String[] params;
+    /** The geodetic datum. Null only for the {@link #CS_GEO} sentinel. */
     private Datum datum;
+    /** The projection method, or null for the {@link #CS_GEO} sentinel. */
     private Projection proj;
 
+    /**
+     * Creates a CRS from its parts.
+     *
+     * @param name   the display name; when null, one is derived from the projection's name
+     * @param params the PROJ.4 parameter tokens this CRS was built from, may be null
+     * @param datum  the geodetic datum
+     * @param proj   the projection method, or null for a geodetic (unprojected) CRS
+     */
     public CoordinateReferenceSystem(String name, String[] params, Datum datum, Projection proj) {
         this.name = name;
         this.params = params;
@@ -73,22 +94,51 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
         }
     }
 
+    /**
+     * Gets the display name of this CRS.
+     *
+     * @return the name; never null
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Gets the PROJ.4 parameter tokens this CRS was built from, such as {@code +proj=utm} and
+     * {@code +zone=10}.
+     * <p>
+     * The array is returned directly rather than copied, so modifying it modifies this CRS. Treat it
+     * as read-only.
+     *
+     * @return the parameter tokens, or null if this CRS was not built from a parameter list
+     */
     public String[] getParameters() {
         return params;
     }
 
+    /**
+     * Gets the geodetic datum, which maps the ellipsoid onto actual locations on the Earth.
+     *
+     * @return the datum; null only for the {@link #CS_GEO} sentinel
+     */
     public Datum getDatum() {
         return datum;
     }
 
+    /**
+     * Gets the projection method, which maps the ellipsoidal surface onto a plane.
+     *
+     * @return the projection, or null for the {@link #CS_GEO} sentinel
+     */
     public Projection getProjection() {
         return proj;
     }
 
+    /**
+     * Gets the PROJ.4 parameters as a single string, each token followed by a space.
+     *
+     * @return the parameters space-separated, or the empty string if there are none
+     */
     public String getParameterString() {
         if (params == null) return "";
 
@@ -100,6 +150,13 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
         return buf.toString();
     }
 
+    /**
+     * Whether this CRS is geographic, i.e. holds longitude and latitude rather than projected
+     * ordinates.
+     *
+     * @return true if the projection is a geographic one
+     * @throws NullPointerException if this is the {@link #CS_GEO} sentinel, which has no projection
+     */
     public Boolean isGeographic() {
         return proj.isGeographic();
     }

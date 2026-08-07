@@ -111,7 +111,6 @@ public class GeodesicLine {
     /**
      * Constructor for a geodesic line staring at latitude <i>lat1</i>, longitude
      * <i>lon1</i>, and azimuth <i>azi1</i> (all in degrees).
-     * <p>
      * @param g A {@link Geodesic} object used to compute the necessary
      *   information about the GeodesicLine.
      * @param lat1 latitude of point 1 (degrees).
@@ -133,7 +132,6 @@ public class GeodesicLine {
      * Constructor for a geodesic line staring at latitude <i>lat1</i>, longitude
      * <i>lon1</i>, and azimuth <i>azi1</i> (all in degrees) with a subset of the
      * capabilities included.
-     * <p>
      * @param g A {@link Geodesic} object used to compute the necessary
      *   information about the GeodesicLine.
      * @param lat1 latitude of point 1 (degrees).
@@ -296,7 +294,6 @@ public class GeodesicLine {
     /**
      * Compute the position of point 2 which is a distance <i>s12</i> (meters)
      * from point 1.
-     * <p>
      * @param s12 distance from point 1 to point 2 (meters); it can be
      *   negative.
      * @return a {@link GeodesicData} object with the following fields:
@@ -316,7 +313,6 @@ public class GeodesicLine {
     /**
      * Compute the position of point 2 which is a distance <i>s12</i> (meters)
      * from point 1 and with a subset of the geodesic results returned.
-     * <p>
      * @param s12 distance from point 1 to point 2 (meters); it can be
      *   negative.
      * @param outmask a bitor'ed combination of {@link GeodesicMask} values
@@ -340,7 +336,6 @@ public class GeodesicLine {
     /**
      * Compute the position of point 2 which is an arc length <i>a12</i>
      * (degrees) from point 1.
-     * <p>
      * @param a12 arc length from point 1 to point 2 (degrees); it can
      *   be negative.
      * @return a {@link GeodesicData} object with the following fields:
@@ -360,7 +355,6 @@ public class GeodesicLine {
     /**
      * Compute the position of point 2 which is an arc length <i>a12</i>
      * (degrees) from point 1 and with a subset of the geodesic results returned.
-     * <p>
      * @param a12 arc length from point 1 to point 2 (degrees); it can
      *   be negative.
      * @param outmask a bitor'ed combination of {@link GeodesicMask} values
@@ -381,7 +375,6 @@ public class GeodesicLine {
      * The general position function.  {@link #Position(double, int) Position}
      * and {@link #ArcPosition(double, int) ArcPosition} are defined in terms of
      * this function.
-     * <p>
      * @param arcmode boolean flag determining the meaning of the second
      *   parameter; if arcmode is false, then the GeodesicLine object must have
      *   been constructed with <i>caps</i> |= {@link GeodesicMask#DISTANCE_IN}.

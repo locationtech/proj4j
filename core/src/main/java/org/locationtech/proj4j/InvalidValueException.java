@@ -34,15 +34,29 @@ public class InvalidValueException extends CrsCreationException {
 	/** The cause reported by every constructor that does not take one explicitly. */
 	private static final ErrorCause DEFAULT_CAUSE = ErrorCause.INVALID_PARAM_VALUE;
 
+	/**
+	 * Creates an exception reporting {@link ErrorCause#INVALID_PARAM_VALUE}.
+	 *
+	 * @param message the human-readable detail message; it should name the parameter and its value
+	 */
 	public InvalidValueException(String message) {
 		super(DEFAULT_CAUSE, message);
 	}
 
+	/**
+	 * Creates an exception reporting {@link ErrorCause#INVALID_PARAM_VALUE} and wrapping another,
+	 * typically the {@link NumberFormatException} from parsing the value.
+	 *
+	 * @param message the human-readable detail message
+	 * @param cause   the underlying exception
+	 */
 	public InvalidValueException(String message, Exception cause) {
 		super(DEFAULT_CAUSE, message, cause);
 	}
 
 	/**
+	 * Creates an exception with a narrower cause than {@link ErrorCause#INVALID_PARAM_VALUE}.
+	 *
 	 * @param cause   a refinement of {@link ErrorCause#INVALID_PARAM_VALUE}
 	 * @param message the human-readable detail message
 	 * @since 1.5.0
@@ -52,6 +66,9 @@ public class InvalidValueException extends CrsCreationException {
 	}
 
 	/**
+	 * Creates an exception with a narrower cause than {@link ErrorCause#INVALID_PARAM_VALUE},
+	 * wrapping another throwable.
+	 *
 	 * @param cause     a refinement of {@link ErrorCause#INVALID_PARAM_VALUE}
 	 * @param message   the human-readable detail message
 	 * @param throwable the underlying throwable, or null

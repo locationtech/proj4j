@@ -39,6 +39,13 @@ import java.io.IOException;
  */
 public class CRSFactory {
 
+    /**
+     * Creates a factory. The reader and {@link Registry} it uses are static, so all instances share
+     * them and constructing a second factory costs nothing.
+     */
+    public CRSFactory() {
+    }
+
     private static Proj4FileReader csReader = new Proj4FileReader();
 
     private static Registry registry = new Registry();
@@ -74,7 +81,6 @@ public class CRSFactory {
      * (Codes are read and handled as strings).
      * </ul>
      * An example of a valid CRS name is <code>EPSG:3005</code>.
-     * <p>
      *
      * @param name the name of a coordinate system, with optional authority prefix
      * @return the {@link CoordinateReferenceSystem} corresponding to the given name

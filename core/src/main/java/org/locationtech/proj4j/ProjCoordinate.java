@@ -34,7 +34,17 @@ public class ProjCoordinate implements Serializable {
 
     private static final long serialVersionUID = -2978758815712780733L;
 
+    /** The pattern {@link #DECIMAL_FORMAT} is built from: up to 16 fractional digits, at least one. */
     public static String DECIMAL_FORMAT_PATTERN = "0.0###############";
+
+    /**
+     * The format {@link #toString()} and {@link #toShortString()} render ordinates with.
+     * <p>
+     * Public and mutable for historical reasons. Two consequences worth knowing: assigning
+     * {@link #DECIMAL_FORMAT_PATTERN} after class initialisation has no effect, because this field
+     * was already built from it; and {@link DecimalFormat} is not thread-safe, so concurrent
+     * {@code toString()} calls share one formatter.
+     */
     public static DecimalFormat DECIMAL_FORMAT = new DecimalFormat(DECIMAL_FORMAT_PATTERN);
 
     /**
@@ -87,6 +97,9 @@ public class ProjCoordinate implements Serializable {
      * the constructor defined in this class that only accepts two (2) double
      * parameters.
      *
+     * @param argX the x ordinate, or easting
+     * @param argY the y ordinate, or northing
+     * @param argZ the z ordinate, an elevation or height
      * @see #ProjCoordinate(double argX, double argY)
      */
     public ProjCoordinate(double argX, double argY, double argZ) {
@@ -101,6 +114,9 @@ public class ProjCoordinate implements Serializable {
      * the second double parameter is the y ordinate (or northing).
      * This constructor is used to create a "2D" point, so the Z ordinate
      * is automatically set to Double.NaN.
+     *
+     * @param argX the x ordinate, or easting
+     * @param argY the y ordinate, or northing
      */
     public ProjCoordinate(double argX, double argY) {
         this.x = argX;
@@ -205,6 +221,10 @@ public class ProjCoordinate implements Serializable {
         this.z = z;
     }
 
+    /**
+     * Discards the z ordinate, making this a 2D coordinate again by setting z to
+     * {@code Double.NaN} — this class's sentinel for "no height".
+     */
     public void clearZ() {
         z = Double.NaN;
     }
@@ -215,6 +235,22 @@ public class ProjCoordinate implements Serializable {
      * value of this ProjCoordinate. Because we are working with floating
      * point numbers the ordinates are considered equal if the difference
      * between them is less than the specified tolerance.
+     *
+     * <h4>The comparison is one-sided, and has been since 1.x</h4>
+     *
+     * <p>The implementation tests {@code argToCompare.x - this.x > argTolerance}, without taking the
+     * absolute value. So this returns true whenever the argument's x exceeds this coordinate's by no
+     * more than the tolerance — <em>including when it is smaller by any amount whatever</em>. With a
+     * tolerance of {@code 0.001}, {@code new ProjCoordinate(100, 0).areXOrdinatesEqual(new
+     * ProjCoordinate(0, 0), 0.001)} is true, and reversing the two operands makes it false. The
+     * relation is therefore not symmetric.
+     *
+     * <p>Documented rather than corrected because callers may depend on it. For a symmetric test of
+     * all three ordinates, use {@link #equals(Object)}, which compares exactly.
+     *
+     * @param argToCompare the coordinate to compare against
+     * @param argTolerance the largest amount by which {@code argToCompare}'s x may exceed this one's
+     * @return true if {@code argToCompare.x - this.x} is not greater than {@code argTolerance}
      */
     public boolean areXOrdinatesEqual(ProjCoordinate argToCompare,
                                       double argTolerance) {
@@ -236,6 +272,13 @@ public class ProjCoordinate implements Serializable {
      * value of this ProjCoordinate. Because we are working with floating
      * point numbers the ordinates are considered equal if the difference
      * between them is less than the specified tolerance.
+     * <p>
+     * The comparison is one-sided and not symmetric, exactly as in
+     * {@link #areXOrdinatesEqual(ProjCoordinate, double)} — see there for why.
+     *
+     * @param argToCompare the coordinate to compare against
+     * @param argTolerance the largest amount by which {@code argToCompare}'s y may exceed this one's
+     * @return true if {@code argToCompare.y - this.y} is not greater than {@code argTolerance}
      */
     public boolean areYOrdinatesEqual(ProjCoordinate argToCompare,
                                       double argTolerance) {
@@ -261,6 +304,15 @@ public class ProjCoordinate implements Serializable {
      * If both Z ordinate values are Double.NaN this method will return
      * true. If one Z ordinate value is a valid double value and one is
      * Double.Nan, this method will return false.
+     * <p>
+     * Where both values are valid, the comparison is one-sided and not symmetric, exactly as in
+     * {@link #areXOrdinatesEqual(ProjCoordinate, double)} — see there for why.
+     *
+     * @param argToCompare the coordinate to compare against
+     * @param argTolerance the largest amount by which {@code argToCompare}'s z may exceed this one's
+     * @return true if both z values are NaN, or if neither is and
+     *         {@code argToCompare.z - this.z} is not greater than {@code argTolerance};
+     *         false if exactly one of them is NaN
      */
     public boolean areZOrdinatesEqual(ProjCoordinate argToCompare,
                                       double argTolerance) {
@@ -417,6 +469,8 @@ public class ProjCoordinate implements Serializable {
      * <pre>
      *          [6241.11, 5218.25, 12.3]
      * </pre>
+     *
+     * @return the ordinates in square brackets, comma-separated
      */
     public String toShortString() {
         StringBuilder builder = new StringBuilder();
@@ -433,6 +487,14 @@ public class ProjCoordinate implements Serializable {
         return builder.toString();
     }
 
+    /**
+     * Indicates whether this coordinate carries a height.
+     * <p>
+     * Only {@code Double.NaN} counts as absent; an infinite z is reported as present. Contrast
+     * {@link #hasValidXandYOrdinates()}, which rejects infinities too.
+     *
+     * @return true if z is not {@code Double.NaN}
+     */
     public boolean hasValidZOrdinate() {
         if (Double.isNaN(this.z)) {
             return false;
@@ -445,6 +507,8 @@ public class ProjCoordinate implements Serializable {
      * Indicates if this ProjCoordinate has valid X ordinate and Y ordinate
      * values. Values are considered invalid if they are Double.NaN or
      * positive/negative infinity.
+     *
+     * @return true if both x and y are finite
      */
     public boolean hasValidXandYOrdinates() {
         if (Double.isNaN(x)) {

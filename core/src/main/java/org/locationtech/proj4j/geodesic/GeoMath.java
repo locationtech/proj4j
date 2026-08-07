@@ -22,7 +22,6 @@ public class GeoMath {
 
     /**
      * Square a number.
-     * <p>
      * @param x the argument.
      * @return <i>x</i><sup>2</sup>.
      **********************************************************************/
@@ -32,7 +31,6 @@ public class GeoMath {
      * The inverse hyperbolic tangent function.  This is defined in terms of
      * Math.log1p(<i>x</i>) in order to maintain accuracy near <i>x</i> = 0.
      * In addition, the odd parity of the function is enforced.
-     * <p>
      * @param x the argument.
      * @return atanh(<i>x</i>).
      **********************************************************************/
@@ -44,7 +42,6 @@ public class GeoMath {
 
     /**
      * Normalize a sine cosine pair.
-     * <p>
      * @param p return parameter for normalized quantities with sinx<sup>2</sup>
      *   + cosx<sup>2</sup> = 1.
      * @param sinx the sine.
@@ -57,7 +54,6 @@ public class GeoMath {
 
     /**
      * The error-free sum of two numbers.
-     * <p>
      * @param u the first number in the sum.
      * @param v the second number in the sum.
      * @param p output Pair(<i>s</i>, <i>t</i>) with <i>s</i> = round(<i>u</i> +
@@ -79,7 +75,6 @@ public class GeoMath {
 
     /**
      * Evaluate a polynomial.
-     * <p>
      * @param N the order of the polynomial.
      * @param p the coefficient array (of size <i>N</i> + <i>s</i> + 1 or more).
      * @param s starting index for the array.
@@ -100,7 +95,6 @@ public class GeoMath {
 
     /**
      * Coarsen a value close to zero.
-     * <p>
      * @param x the argument
      * @return the coarsened value.
      * <p>
@@ -122,7 +116,6 @@ public class GeoMath {
 
     /**
      * Normalize an angle.
-     * <p>
      * @param x the angle in degrees.
      * @return the angle reduced to the range [&minus;180&deg;, 180&deg;).
      * <p>
@@ -135,7 +128,6 @@ public class GeoMath {
 
     /**
      * Normalize a latitude.
-     * <p>
      * @param x the angle in degrees.
      * @return x if it is in the range [&minus;90&deg;, 90&deg;], otherwise
      *   return NaN.
@@ -146,7 +138,6 @@ public class GeoMath {
 
     /**
      * The exact difference of two angles reduced to [&minus;180&deg;, 180&deg;].
-     * <p>
      * @param x the first angle in degrees.
      * @param y the second angle in degrees.
      * @param p output Pair(<i>d</i>, <i>e</i>) with <i>d</i> being the rounded

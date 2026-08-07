@@ -35,11 +35,19 @@ public class UnsupportedParameterException extends CrsCreationException
 	/** The cause reported by every constructor that does not take one explicitly. */
 	private static final ErrorCause DEFAULT_CAUSE = ErrorCause.PROJECTION_NOT_IMPLEMENTED;
 
+	/**
+	 * Creates an exception reporting {@link ErrorCause#PROJECTION_NOT_IMPLEMENTED}.
+	 *
+	 * @param message the human-readable detail message; it should name the unsupported parameter
+	 */
 	public UnsupportedParameterException(String message) {
 		super(DEFAULT_CAUSE, message);
 	}
 
 	/**
+	 * Creates an exception with a narrower cause than
+	 * {@link ErrorCause#PROJECTION_NOT_IMPLEMENTED}.
+	 *
 	 * @param cause   a refinement of {@link ErrorCause#PROJECTION_NOT_IMPLEMENTED}
 	 * @param message the human-readable detail message
 	 * @since 1.5.0
@@ -49,6 +57,9 @@ public class UnsupportedParameterException extends CrsCreationException
 	}
 
 	/**
+	 * Creates an exception with a narrower cause than
+	 * {@link ErrorCause#PROJECTION_NOT_IMPLEMENTED}, wrapping another throwable.
+	 *
 	 * @param cause     a refinement of {@link ErrorCause#PROJECTION_NOT_IMPLEMENTED}
 	 * @param message   the human-readable detail message
 	 * @param throwable the underlying throwable, or null

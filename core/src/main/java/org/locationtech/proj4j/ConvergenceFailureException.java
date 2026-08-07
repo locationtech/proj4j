@@ -48,11 +48,20 @@ public class ConvergenceFailureException extends CrsTransformException {
     /** The cause reported by every constructor that does not take one explicitly. */
     private static final ErrorCause DEFAULT_CAUSE = ErrorCause.NUMERICAL_FAILURE;
 
+    /**
+     * Creates an exception reporting {@link ErrorCause#NUMERICAL_FAILURE}.
+     *
+     * @param message the human-readable detail message; it should say what did not converge, and
+     *                after how many iterations
+     */
     public ConvergenceFailureException(String message) {
         super(DEFAULT_CAUSE, message);
     }
 
     /**
+     * Creates an exception reporting {@link ErrorCause#NUMERICAL_FAILURE} and wrapping another
+     * throwable.
+     *
      * @param message   the human-readable detail message
      * @param throwable the underlying throwable, or null
      * @since 1.5.0

@@ -241,7 +241,6 @@ public class Geodesic {
 
     /**
      * Constructor for an ellipsoid with
-     * <p>
      * @param a equatorial radius (meters).
      * @param f flattening of ellipsoid.  Setting <i>f</i> = 0 gives a sphere.
      *   Negative <i>f</i> gives a prolate ellipsoid.
@@ -290,7 +289,6 @@ public class Geodesic {
     /**
      * Solve the direct geodesic problem where the length of the geodesic
      * is specified in terms of distance.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -319,7 +317,6 @@ public class Geodesic {
      * Solve the direct geodesic problem where the length of the geodesic is
      * specified in terms of distance and with a subset of the geodesic results
      * returned.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -343,7 +340,6 @@ public class Geodesic {
     /**
      * Solve the direct geodesic problem where the length of the geodesic
      * is specified in terms of arc length.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -373,7 +369,6 @@ public class Geodesic {
      * Solve the direct geodesic problem where the length of the geodesic is
      * specified in terms of arc length and with a subset of the geodesic results
      * returned.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -397,7 +392,6 @@ public class Geodesic {
     /**
      * The general direct geodesic problem.  {@link #Direct Direct} and
      * {@link #ArcDirect ArcDirect} are defined in terms of this function.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -462,7 +456,6 @@ public class Geodesic {
     /**
      * Define a {@link GeodesicLine} in terms of the direct geodesic problem
      * specified in terms of distance with all capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -483,7 +476,6 @@ public class Geodesic {
     /**
      * Define a {@link GeodesicLine} in terms of the direct geodesic problem
      * specified in terms of distance with a subset of the capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -508,7 +500,6 @@ public class Geodesic {
     /**
      * Define a {@link GeodesicLine} in terms of the direct geodesic problem
      * specified in terms of arc length with all capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -530,7 +521,6 @@ public class Geodesic {
      * Define a {@link GeodesicLine} in terms of the direct geodesic problem
      * specified in terms of arc length with a subset of the capabilities
      * included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -556,7 +546,6 @@ public class Geodesic {
      * Define a {@link GeodesicLine} in terms of the direct geodesic problem
      * specified in terms of either distance or arc length with a subset of the
      * capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -592,7 +581,6 @@ public class Geodesic {
 
     /**
      * Solve the inverse geodesic problem.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param lat2 latitude of point 2 (degrees).
@@ -1005,7 +993,6 @@ public class Geodesic {
     /**
      * Solve the inverse geodesic problem with a subset of the geodesic results
      * returned.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param lat2 latitude of point 2 (degrees).
@@ -1059,7 +1046,6 @@ public class Geodesic {
     /**
      * Define a {@link GeodesicLine} in terms of the inverse geodesic problem
      * with all capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param lat2 latitude of point 2 (degrees).
@@ -1080,7 +1066,6 @@ public class Geodesic {
     /**
      * Define a {@link GeodesicLine} in terms of the inverse geodesic problem
      * with a subset of the capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param lat2 latitude of point 2 (degrees).
@@ -1112,7 +1097,6 @@ public class Geodesic {
     /**
      * Set up to compute several points on a single geodesic with all
      * capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).
@@ -1131,7 +1115,6 @@ public class Geodesic {
     /**
      * Set up to compute several points on a single geodesic with a subset of the
      * capabilities included.
-     * <p>
      * @param lat1 latitude of point 1 (degrees).
      * @param lon1 longitude of point 1 (degrees).
      * @param azi1 azimuth at point 1 (degrees).

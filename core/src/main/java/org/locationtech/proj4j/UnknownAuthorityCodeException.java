@@ -31,11 +31,18 @@ public class UnknownAuthorityCodeException extends CrsCreationException {
     /** The cause reported by every constructor that does not take one explicitly. */
     private static final ErrorCause DEFAULT_CAUSE = ErrorCause.UNKNOWN_CRS;
 
+    /**
+     * Creates an exception reporting {@link ErrorCause#UNKNOWN_CRS}.
+     *
+     * @param message the human-readable detail message; it should name the code that was not found
+     */
     public UnknownAuthorityCodeException(String message) {
         super(DEFAULT_CAUSE, message);
     }
 
     /**
+     * Creates an exception with a narrower cause than {@link ErrorCause#UNKNOWN_CRS}.
+     *
      * @param cause   a refinement of {@link ErrorCause#UNKNOWN_CRS}
      * @param message the human-readable detail message
      * @since 1.5.0
