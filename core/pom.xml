@@ -28,7 +28,6 @@
         <!-- Published. -->
         <maven.deploy.skip>false</maven.deploy.skip>
 
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- DELIBERATELY NOT RENAMED, here and in Automatic-Module-Name below. The Java packages
              stay org.locationtech.proj4j, so the OSGi and JPMS module names must match them: this
              artifact is a drop-in SUBSTITUTE for org.locationtech.proj4j:proj4j, not something that

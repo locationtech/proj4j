@@ -99,6 +99,37 @@
     </dependencyManagement>
 
     <build>
+        <!-- PIN THE DEFAULT-LIFECYCLE PLUGINS. Do not delete this as boilerplate: without it the
+             build was not reproducible. Maven resolves an unpinned plugin from repository metadata,
+             so the version depends on what happens to be in the local repository - and in one
+             reactor that produced maven-resources-plugin 3.5.0 for core, epsg and grids-us-legacy
+             but 3.4.0 for geoapi and db. It also probed the 4.0.0-beta releases on every build and
+             discarded them, which is where the `Ignoring incompatible plugin version` lines came
+             from.
+
+             Every other plugin in this build is already pinned in its own <plugin> block: compiler
+             3.11.0, javadoc 3.5.0, source 3.2.1, surefire 3.1.0, jar 3.4.1, deploy 3.1.1, gpg 3.0.1,
+             central-publishing 0.11.0. These three had no block at all because nothing configures
+             them. -->
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.4</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -108,12 +139,47 @@
                     <release>8</release>
                     <debug>true</debug>
                     <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <!-- Silences `source value 8 is obsolete` and the two lines that follow it,
+                             once per module. Targeting 8 is deliberate - it is what keeps the jar a
+                             drop-in substitute for upstream - so the note is not actionable. When a
+                             future JDK really drops `source 8` this becomes a hard error, not a
+                             warning, so suppressing it cannot hide the day it matters. -->
+                        <arg>-Xlint:-options</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
                 <inherited>true</inherited>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.5.0</version>
+                <!-- Plugin-level, not execution-level, so that a bare `mvn javadoc:javadoc` from the
+                     command line behaves the same as the attach-javadocs execution below. -->
+                <configuration>
+                    <!-- Keeps every doclint check that catches a real defect - unresolvable
+                         {@link} targets, malformed HTML, bad @see, accessibility - and drops only
+                         "you did not write a comment". That last group was 2,117 of core's 2,154
+                         warnings, almost all of it in the inherited projection maths under proj/,
+                         datum/, io/wkt/ and geodesic/, where the parameter meanings are not recorded
+                         anywhere and inventing descriptions for them would be worse than silence.
+
+                         Note that zero warnings is not reachable by writing documentation: doclint
+                         requires a comment on every private field of a Serializable class, because
+                         those fields appear in the generated serialized-form.html.
+
+                         org.locationtech.proj4j and org.locationtech.proj4j.api are documented by
+                         hand and pass at FULL strictness (-Xdoclint:all), so this setting is not
+                         hiding anything in the API a caller actually touches. -->
+                    <doclint>all,-missing</doclint>
+                    <!-- Defaults to true, which makes javadoc try to link against every reactor
+                         dependency's apidocs directory. `epsg` is a dependency of core and geoapi
+                         but has no Java sources, so its apidocs has no element-list and javadoc
+                         logs `Error fetching link ... Ignored it.` at ERROR level twice per build.
+                         Nothing is lost by turning this off - each module ships its own javadoc jar.
+                         This is a SEPARATE parameter from <links>, so geoapi's external link to
+                         geoapi.org is unaffected. -->
+                    <detectOfflineLinks>false</detectOfflineLinks>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -295,5 +361,12 @@
              settings are gone rather than being carried forward as decoration. -->
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
+
+        <!-- ENCODING. This was set in core/pom.xml only, so every other module copied resources and
+             ran javadoc under the platform default - reproducible only by accident, and it happened
+             to be UTF-8 on the machine where that was written. Setting it here is what silences both
+             `Using platform encoding ... to copy filtered resources` and javadoc's `Source files
+             encoding has not been set`. -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 </project>
