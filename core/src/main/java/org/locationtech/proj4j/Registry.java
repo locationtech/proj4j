@@ -184,6 +184,7 @@ public class Registry {
         register("eck4", Eckert4Projection.class, "Eckert IV");
         register("eck5", Eckert5Projection.class, "Eckert V");
         register("eck6", Eckert6Projection.class, "Eckert VI");
+        register("eqearth", EqualEarthProjection.class, "Equal Earth");
         register("eqc", PlateCarreeProjection.class, "Equidistant Cylindrical (Plate Caree)");
         register("eqdc", EquidistantConicProjection.class, "Equidistant Conic");
         register("euler", EulerProjection.class, "Euler");

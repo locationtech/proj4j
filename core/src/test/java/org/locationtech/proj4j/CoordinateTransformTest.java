@@ -129,6 +129,14 @@ public class CoordinateTransformTest extends BaseCoordinateTransformTest {
     }
 
     @Test
+    public void testEqualEarth() {
+        // Reference coordinates computed with PROJ.
+        checkTransformAndInverse("EPSG:4326", 10, 20, "EPSG:8857", 930502.55, 2543374.08, 0.01, 1e-6);
+        checkTransformAndInverse("EPSG:4326", -80, 20, "EPSG:8858", 930502.55, 2543374.08, 0.01, 1e-6);
+        checkTransformAndInverse("EPSG:4326", 160, 20, "EPSG:8859", 930502.55, 2543374.08, 0.01, 1e-6);
+    }
+
+    @Test
     public void testStereographicAzimuthal() {
         checkTransformAndInverse("EPSG:4326", 0, -75, "EPSG:3031", 0, 1638783.238407, 1e-6, 1e-6);
         checkTransformAndInverse("EPSG:4326", -57.65625, -79.21875, "EPSG:3031", -992481.633786, 628482.06328, 1e-6, 1e-6);
