@@ -47,10 +47,27 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 		initialize();
 	}
 
+	private boolean trueScaleLatitudeSet = false;
+
+	public void setTrueScaleLatitude( double trueScaleLatitude ) {
+		super.setTrueScaleLatitude(trueScaleLatitude);
+		trueScaleLatitudeSet = true;
+	}
+
+	public void setTrueScaleLatitudeDegrees( double trueScaleLatitude ) {
+		super.setTrueScaleLatitudeDegrees(trueScaleLatitude);
+		trueScaleLatitudeSet = true;
+	}
+
 	public void initialize() {
 		double t;
 
 		super.initialize();
+		// Without +lat_ts the polar aspects have their true scale (k_0) at the pole, as in
+		// PROJ. The default of 0 instead gave half the scale, e.g. UPS coordinates from
+		// "+proj=stere +lat_0=90 +k=0.994 +ellps=WGS84" were half of the correct ones.
+		if (!trueScaleLatitudeSet)
+			trueScaleLatitude = ProjectionMath.HALFPI;
 		if (Math.abs((t = Math.abs(projectionLatitude)) - ProjectionMath.HALFPI) < EPS10)
 			mode = projectionLatitude < 0. ? SOUTH_POLE : NORTH_POLE;
 		else
