@@ -22,6 +22,7 @@ package org.locationtech.proj4j.proj;
 import java.util.Objects;
 
 import org.locationtech.proj4j.ProjCoordinate;
+import org.locationtech.proj4j.ProjectionException;
 
 
 public class AitoffProjection extends PseudoCylindricalProjection {
@@ -33,11 +34,18 @@ public class AitoffProjection extends PseudoCylindricalProjection {
 	private double cosphi1 = 0;
 
 	public AitoffProjection() {
+		// NaN marks "+lat_1 not given", so the Winkel Tripel default can be applied
+		projectionLatitude1 = Double.NaN;
+	}
+
+	protected AitoffProjection(int type) {
+		this();
+		winkel = type == WINKEL;
 	}
 
 	public AitoffProjection(int type, double projectionLatitude) {
+		this(type);
 		this.projectionLatitude = projectionLatitude;
-		winkel = type == WINKEL;
 	}
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
@@ -59,11 +67,10 @@ public class AitoffProjection extends PseudoCylindricalProjection {
 	public void initialize() {
 		super.initialize();
 		if (winkel) {
-//FIXME
-//			if (pj_param(P->params, "tlat_1").i)
-//				if ((cosphi1 = Math.cos(pj_param(P->params, "rlat_1").f)) == 0.)
-//					throw new IllegalArgumentException("-22")
-//			else /* 50d28' or acos(2/pi) */
+			if (!Double.isNaN(projectionLatitude1)) {
+				if ((cosphi1 = Math.cos(projectionLatitude1)) == 0.)
+					throw new ProjectionException("Invalid value for lat_1: |lat_1| should be < 90");
+			} else /* 50d28' or acos(2/pi) */
 				cosphi1 = 0.636619772367581343;
 		}
 	}

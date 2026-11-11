@@ -90,7 +90,9 @@ public class RobinsonProjection extends PseudoCylindricalProjection {
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate xy) {
 		double phi = Math.abs(lpphi);
-		int i = (int)Math.floor(phi * C1);
+		// the 1e-15 guard makes latitudes that land exactly on a table node (multiples of 5
+		// degrees) select that node, instead of the one below it through floor() rounding
+		int i = (int)Math.floor(phi * C1 + 1e-15);
 		if (i >= NODES)
 			i = NODES;
 		phi = Math.toDegrees(phi - RC1 * i);

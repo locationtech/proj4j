@@ -52,13 +52,24 @@ public class Units {
     public final static Unit FATHOMS = new Unit("fathom", "fathoms", "fath", 1.8288);
     public final static Unit LINKS = new Unit("link", "links", "link", 0.201168);
 
+    // Indian units, as defined by PROJ (src/units.cpp)
+    public final static Unit INDIAN_YARDS = new Unit("Indian yard", "Indian yards", "ind-yd", 0.91439523);
+    public final static Unit INDIAN_FEET = new Unit("Indian foot", "Indian feet", "ind-ft", 0.30479841);
+    public final static Unit INDIAN_CHAINS = new Unit("Indian chain", "Indian chains", "ind-ch", 20.11669506);
+
     public final static Unit POINTS = new Unit("point", "points", "point", 0.0254/72.27);
 
+    /**
+     * The units {@code +units=} accepts, mirroring PROJ's table (src/units.cpp).
+     * CHAINS, FATHOMS, LINKS and US_CHAINS used to be missing here, so definitions such as
+     * {@code +units=link} silently fell back to metres.
+     */
     public static Unit[] units = {
         DEGREES,
         KILOMETRES, METRES, DECIMETRES, CENTIMETRES, MILLIMETRES,
-        MILES, YARDS, FEET, INCHES,
-        US_MILES, US_YARDS, US_FEET, US_INCHES,
+        MILES, YARDS, FEET, INCHES, CHAINS, FATHOMS, LINKS,
+        US_MILES, US_YARDS, US_FEET, US_INCHES, US_CHAINS,
+        INDIAN_YARDS, INDIAN_FEET, INDIAN_CHAINS,
         NAUTICAL_MILES
     };
 

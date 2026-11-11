@@ -63,7 +63,7 @@ public class CassiniProjection extends Projection {
 			c *= es * c / (1 - es);
 			a2 = a1 * a1;
 			xy.x = n * a1 * (1. - a2 * t *
-				(C1 - (8. - t + 8. * c) * a2 * C2));
+				(C1 + (8. - t + 8. * c) * a2 * C2));
 			xy.y -= m0 - n * tn * a2 *
 				(.5 + (5. - t + 6. * c) * a2 * C3);
 		}

@@ -116,9 +116,14 @@ public class DatumParameters {
         this.es = es;
     }
 
+    /**
+     * Sets the reciprocal (inverse) flattening, {@code +rf}.
+     * PROJ: {@code f = 1/rf; es = 2f - f*f}.
+     */
     public void setRF(double rf) {
         ellipsoid = null;  // force user-defined ellipsoid
-        es = rf * (2. - rf);
+        double f = 1. / rf;
+        es = f * (2. - f);
     }
 
     public void setR_A() {
@@ -126,10 +131,23 @@ public class DatumParameters {
         a *= 1. - es * (SIXTH + es * (RA4 + es * RA6));
     }
 
+    /**
+     * Sets the flattening, {@code +f}.
+     * PROJ: {@code es = 2f - f*f}.
+     */
     public void setF(double f) {
         ellipsoid = null;  // force user-defined ellipsoid
-        double rf = 1.0 / f;
-        es = rf * (2. - rf);
+        es = f * (2. - f);
+    }
+
+    /**
+     * Sets the radius of the sphere, {@code +R}.
+     * PROJ: "specifying R overrules everything" - the ellipsoid becomes a sphere.
+     */
+    public void setR(double r) {
+        ellipsoid = null;  // force user-defined ellipsoid
+        a = r;
+        es = 0;
     }
 
     public double getA() {

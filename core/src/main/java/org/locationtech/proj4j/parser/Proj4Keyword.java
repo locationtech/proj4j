@@ -38,6 +38,8 @@ public class Proj4Keyword {
     public static final String lat_0 = "lat_0";
     public static final String lat_1 = "lat_1";
     public static final String lat_2 = "lat_2";
+    public static final String lon_1 = "lon_1";
+    public static final String lon_2 = "lon_2";
     public static final String lon_0 = "lon_0";
     public static final String lonc = "lonc";
     public static final String pm = "pm";
@@ -57,6 +59,8 @@ public class Proj4Keyword {
 
     public static final String south = "south";
     public static final String to_meter = "to_meter";
+    public static final String vunits = "vunits";
+    public static final String vto_meter = "vto_meter";
     public static final String towgs84 = "towgs84";
     public static final String units = "units";
     public static final String x_0 = "x_0";
@@ -68,6 +72,13 @@ public class Proj4Keyword {
     public static final String no_defs = "no_defs";
     public static final String wktext = "wktext";
     public static final String no_uoff = "no_uoff";
+    public static final String czech = "czech";
+    public static final String approx = "approx";
+    public static final String W = "W";
+    public static final String M = "M";
+    public static final String n = "n";
+    public static final String lsat = "lsat";
+    public static final String path = "path";
 
 
     private static Set<String> supportedParams = null;
@@ -95,6 +106,8 @@ public class Proj4Keyword {
             supportedParams.add(lat_0);
             supportedParams.add(lat_1);
             supportedParams.add(lat_2);
+            supportedParams.add(lon_1);
+            supportedParams.add(lon_2);
             supportedParams.add(lon_0);
             supportedParams.add(lonc);
 
@@ -105,6 +118,8 @@ public class Proj4Keyword {
             supportedParams.add(south);
             supportedParams.add(towgs84);
             supportedParams.add(to_meter);
+            supportedParams.add(vunits);      // vertical unit of a compound CRS; parsed, not applied
+            supportedParams.add(vto_meter);   // vertical unit of a compound CRS; parsed, not applied
             supportedParams.add(units);
             supportedParams.add(nadgrids);
             supportedParams.add(pm);
@@ -112,6 +127,13 @@ public class Proj4Keyword {
 
             supportedParams.add(gamma);       // Just for Oblique Mercator projection
             supportedParams.add(no_uoff);     // Just for Oblique Mercator projection
+            supportedParams.add(czech);       // Just for the Krovak projection
+            supportedParams.add(approx);      // Transverse Mercator algorithm selection
+            supportedParams.add(W);           // Hammer, Lagrange
+            supportedParams.add(M);           // Hammer
+            supportedParams.add(n);           // Urmaev Flat-Polar Sinusoidal
+            supportedParams.add(lsat);        // Space Oblique Mercator for Landsat
+            supportedParams.add(path);        // Space Oblique Mercator for Landsat
             supportedParams.add(zone);        // Just for Transverse Mercator projection
 
             supportedParams.add(title);       // no-op

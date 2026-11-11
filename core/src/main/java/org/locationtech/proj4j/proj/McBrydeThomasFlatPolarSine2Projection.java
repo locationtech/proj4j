@@ -38,15 +38,16 @@ public class McBrydeThomasFlatPolarSine2Projection extends Projection {
 		int i;
 
 		k = C3 * Math.sin(lpphi);
+		double phi = lpphi;
 		for (i = MAX_ITER; i > 0; i--) {
-			t = lpphi / C2;
-			out.y -= V = (C1 * Math.sin(t) + Math.sin(lpphi) - k) /
-				(C1_2 * Math.cos(t) + Math.cos(lpphi));
+			t = phi / C2;
+			phi -= V = (C1 * Math.sin(t) + Math.sin(phi) - k) /
+				(C1_2 * Math.cos(t) + Math.cos(phi));
 			if (Math.abs(V) < LOOP_TOL)
 				break;
 		}
-		t = lpphi / C2;
-		out.x = C_x * lplam * (1. + 3. * Math.cos(lpphi)/Math.cos(t) );
+		t = phi / C2;
+		out.x = C_x * lplam * (1. + 3. * Math.cos(phi)/Math.cos(t) );
 		out.y = C_y * Math.sin(t);
 		return out;
 	}

@@ -20,6 +20,8 @@
 package org.locationtech.proj4j.proj;
 
 import org.locationtech.proj4j.ProjCoordinate;
+import org.locationtech.proj4j.ProjectionException;
+import org.locationtech.proj4j.util.ProjectionMath;
 
 public class PerspectiveProjection extends Projection {
 
@@ -64,8 +66,8 @@ public class PerspectiveProjection extends Projection {
 			xy.y = sinphi;
 			break;
 		}
-//		if (xy.y < rp)
-//			throw new ProjectionException("");
+		if (xy.y < rp)
+			throw new ProjectionException("Point is on the far side of the globe");
 		xy.y = pn1 / (p - xy.y);
 		xy.x = xy.y * cosphi * Math.sin(lplam);
 		switch (mode) {
@@ -143,24 +145,29 @@ INVERSE(s_inverse); /* spheroid * /
 }
 */
 
+	public void setHeightOfOrbit(double h) {
+		this.height = h;
+	}
+
+	public double getHeightOfOrbit() {
+		return height;
+	}
+
 	public void initialize() {
 		super.initialize();
-mode = EQUIT;
-height = a;
-tilt = 0;
-//		if ((height = pj_param(params, "dh").f) <= 0.) E_ERROR(-30);
-/*
-		if (fabs(fabs(phi0) - Math.HALFPI) < EPS10)
-			mode = phi0 < 0. ? S_POLE : N_POLE;
-		else if (fabs(phi0) < EPS10)
+		tilt = 0;
+		if (Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) < EPS10)
+			mode = projectionLatitude < 0. ? S_POLE : N_POLE;
+		else if (Math.abs(projectionLatitude) < EPS10)
 			mode = EQUIT;
 		else {
 			mode = OBLIQ;
-			psinph0 = Math.sin(phi0);
-			pcosph0 = Math.cos(phi0);
+			psinph0 = Math.sin(projectionLatitude);
+			pcosph0 = Math.cos(projectionLatitude);
 		}
-*/
 		pn1 = height / a; /* normalize by radius */
+		if (pn1 <= 0 || pn1 > 1e10)
+			throw new ProjectionException("Invalid value for h");
 		p = 1. + pn1;
 		rp = 1. / p;
 		h = 1. / pn1;

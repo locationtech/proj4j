@@ -45,6 +45,10 @@ public class TransverseMercatorProjection extends CylindricalProjection {
     private double esp;
     private double ml0;
     private double[] en;
+    /** +approx: keep the truncated series instead of the exact Poder/Engsager algorithm */
+    private boolean approx = false;
+    /** the exact algorithm, used for ellipsoids unless +approx was given (as in PROJ) */
+    private ExtendedTransverseMercatorProjection exact;
 
     public TransverseMercatorProjection() {
         ellipsoid = Ellipsoid.GRS80;
@@ -89,8 +93,34 @@ public class TransverseMercatorProjection extends CylindricalProjection {
         return false;
     }
 
+    /**
+     * {@code +approx}: use the Evenden/Snyder truncated series instead of the exact
+     * Poder/Engsager algorithm. PROJ defaults to the exact one for ellipsoids since 6.0;
+     * the series is only accurate near the central meridian.
+     */
+    public void setApprox(boolean approx) {
+        this.approx = approx;
+    }
+
+    public boolean isApprox() {
+        return approx;
+    }
+
     public void initialize() {
         super.initialize();
+        if (!spherical && !approx) {
+            // PROJ's default algorithm for ellipsoids (setup(): TMercAlgo::PODER_ENGSAGER)
+            ExtendedTransverseMercatorProjection e = new ExtendedTransverseMercatorProjection();
+            e.setEllipsoid(ellipsoid);
+            e.setProjectionLatitude(projectionLatitude);
+            e.setProjectionLongitude(projectionLongitude);
+            e.setScaleFactor(scaleFactor);
+            e.setFromMetres(fromMetres);
+            e.initialize();
+            exact = e;
+        } else {
+            exact = null;
+        }
         if (spherical) {
             esp = scaleFactor;
             ml0 = .5 * esp;
@@ -131,11 +161,14 @@ public class TransverseMercatorProjection extends CylindricalProjection {
     }
 
     public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate xy) {
+        if (exact != null)
+            return exact.project(lplam, lpphi, xy);
         if (spherical) {
             double cosphi = Math.cos(lpphi);
             double b = cosphi * Math.sin(lplam);
 
-            xy.x = ml0 * scaleFactor * Math.log((1. + b) / (1. - b));
+            // ml0 already carries the scale factor (ml0 = .5 * esp, esp = k0)
+            xy.x = ml0 * Math.log((1. + b) / (1. - b));
             double ty = cosphi * Math.cos(lplam) / Math.sqrt(1. - b * b);
             ty = ProjectionMath.acos(ty);
             if (lpphi < 0.0)
@@ -167,6 +200,8 @@ public class TransverseMercatorProjection extends CylindricalProjection {
     }
 
     public ProjCoordinate projectInverse(double x, double y, ProjCoordinate out) {
+        if (exact != null)
+            return exact.projectInverse(x, y, out);
         if (spherical) {
             double h = Math.exp(x / scaleFactor);
             double g = .5 * (h - 1. / h);

@@ -81,6 +81,13 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     protected double projectionLatitude2 = 0.0;
 
     /**
+     * The longitudes of the two points of a two-point projection setup (+lon_1, +lon_2)
+     */
+    protected double projectionLongitude1 = 0.0;
+
+    protected double projectionLongitude2 = 0.0;
+
+    /**
      * The projection alpha value
      */
     protected double alpha = Double.NaN;
@@ -179,6 +186,23 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
      * units of this projection.  Default is metres, but may be degrees
      */
     protected Unit unit = null;
+
+    /**
+     * Vertical unit of this projection ({@code +vunits}), null when not given.
+     *
+     * <p>It is recorded so that the compound (horizontal + vertical) definitions shipped in the
+     * EPSG resource can be parsed, but it is <b>not</b> applied: proj4j carries the vertical
+     * ordinate in metres throughout, so a caller reading {@code z} gets metres regardless of this
+     * value. PROJ turns it into {@code vto_meter} and applies it to the vertical ordinate only
+     * (src/init.cpp, src/inv.cpp); the horizontal transform is unaffected either way.
+     */
+    protected Unit verticalUnit = null;
+
+    /**
+     * Conversion factor from metres to the vertical unit, the vertical counterpart of
+     * {@link #fromMetres}. Recorded but not applied - see {@link #verticalUnit}.
+     */
+    protected double verticalFromMetres = 1;
 
     /**
      * PrimeMeridian defining an offset from the Greenwich (the prime meridian used in WGS84)
@@ -742,6 +766,30 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     /**
      * Set the conversion factor from metres to projected units. This is set to 1 by default.
      */
+    /**
+     * Sets the vertical unit, {@code +vunits}. Recorded, not applied - see {@link #verticalUnit}.
+     */
+    public void setVerticalUnit( Unit verticalUnit ) {
+        this.verticalUnit = verticalUnit;
+        if ( verticalUnit != null )
+            this.verticalFromMetres = 1.0 / verticalUnit.value;
+    }
+
+    public Unit getVerticalUnit() {
+        return verticalUnit;
+    }
+
+    /**
+     * Sets the vertical conversion factor, {@code +vto_meter}. Recorded, not applied.
+     */
+    public void setVerticalFromMetres( double verticalFromMetres ) {
+        this.verticalFromMetres = verticalFromMetres;
+    }
+
+    public double getVerticalFromMetres() {
+        return verticalFromMetres;
+    }
+
     public void setFromMetres( double fromMetres ) {
         this.fromMetres = fromMetres;
     }
@@ -763,6 +811,9 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
 
     public void setRadius(double radius) {
         a = radius;
+        // +R defines a sphere: any eccentricity carried over from an ellipsoid no longer applies
+        e = 0;
+        es = 0;
     }
 
     /**

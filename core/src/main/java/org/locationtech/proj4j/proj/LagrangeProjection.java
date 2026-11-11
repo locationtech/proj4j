@@ -29,7 +29,8 @@ public class LagrangeProjection extends Projection {
 
 	// Parameters
 	private double hrw;
-	private double rw = 1.4;
+	private double w = 2;
+	private double rw;
 	private double a1;
 	private double phi1;
 
@@ -53,21 +54,22 @@ public class LagrangeProjection extends Projection {
 	}
 
 	public void setW( double w ) {
-		this.rw = w;
+		this.w = w;
 	}
 
 	public double getW() {
-		return rw;
+		return w;
 	}
 
 	public void initialize() {
 		super.initialize();
-		if (rw <= 0)
-			throw new ProjectionException("-27");
-		hrw = 0.5 * (rw = 1. / rw);
+		if (w <= 0)
+			throw new ProjectionException("Invalid value for W: it should be > 0");
+		rw = 1. / w;
+		hrw = 0.5 * rw;
 		phi1 = projectionLatitude1;
 		if (Math.abs(Math.abs(phi1 = Math.sin(phi1)) - 1.) < TOL)
-			throw new ProjectionException("-22");
+			throw new ProjectionException("Invalid value for lat_1: |lat_1| should be < 90");
 		a1 = Math.pow((1. - phi1)/(1. + phi1), hrw);
 	}
 

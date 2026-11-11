@@ -33,9 +33,9 @@ public class McBrydeThomasFlatPolarParabolicProjection extends Projection {
 	private final static double ONEEPS = 1.0000001;
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		out.y = Math.asin(CS * Math.sin(lpphi));
-		out.x = FXC * lplam * (2. * Math.cos(C23 * lpphi) - 1.);
-		out.y = FYC * Math.sin(C13 * lpphi);
+		double phi = ProjectionMath.asin(CS * Math.sin(lpphi));
+		out.x = FXC * lplam * (2. * Math.cos(C23 * phi) - 1.);
+		out.y = FYC * Math.sin(C13 * phi);
 		return out;
 	}
 
