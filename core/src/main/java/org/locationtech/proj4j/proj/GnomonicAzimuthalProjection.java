@@ -83,7 +83,9 @@ public class GnomonicAzimuthalProjection extends AzimuthalProjection {
 
 		rh = ProjectionMath.distance(x, y);
 		sinz = Math.sin(lp.y = Math.atan(rh));
-		cosz = Math.sqrt(1. - sinz * sinz);
+		// cos() rather than sqrt(1 - sinz * sinz), which loses the digits close to
+		// 90 degrees from the centre and defeats the atan2() below
+		cosz = Math.cos(lp.y);
 		if (rh == 0.) {
 			lp.y = projectionLatitude;
 			lp.x = 0.;

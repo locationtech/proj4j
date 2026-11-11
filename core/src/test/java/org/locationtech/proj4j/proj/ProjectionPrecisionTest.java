@@ -82,6 +82,19 @@ public class ProjectionPrecisionTest {
         {"+proj=aitoff +a=6371000 +b=6371000 +lon_0=0", 1e-09, 1e-09, 0.00011119492664455874, 0.00011119492664455874, 0, 1.0e-06},
     };
 
+    // gnom in equatorial and oblique mode close to 90 degrees from the centre, where the
+    // coordinates are very large and cos(z) from sqrt(1 - sin(z)^2) lost its digits:
+    // definition, x, y (the exact forward image rounded to double), lon, lat (the exact inverse
+    // of those doubles, from a 50-digit computation)
+    private static final Object[][] INVERSE_FAR = {
+        {"+proj=gnom +lat_0=0 +a=6371000 +b=6371000 +lon_0=0", -0.011119492664455874, -3650314329490979.0, -1e-07, -89.9999999},
+        {"+proj=gnom +lat_0=0 +a=6371000 +b=6371000 +lon_0=0", 1123379.1940936304, 3706626311913009.5, 10.000000000000002, 89.9999999},
+        {"+proj=gnom +lat_0=0 +a=6371000 +b=6371000 +lon_0=0", 0.0, 36503141116197.78, 0.0, 89.99999},
+        {"+proj=gnom +lat_0=45 +a=6371000 +b=6371000 +lon_0=0", 516232372521323.0, 6371000.0, 90.0, 1e-06},
+        {"+proj=gnom +lat_0=45 +a=6371000 +b=6371000 +lon_0=0", 0.0, -3650314070120549.0, 0.0, -44.9999999},
+        {"+proj=gnom +lat_0=-30 +a=6371000 +b=6371000 +lon_0=0", 0.0, 3650314070120549.0, 0.0, 59.9999999},
+    };
+
     private static double distance(double l1, double p1, double l2, double p2) {
         double a = Math.sin((p2 - p1) / 2), b = Math.sin((l2 - l1) / 2);
         return 2 * R * Math.asin(Math.sqrt(a * a + Math.cos(p1) * Math.cos(p2) * b * b));
@@ -120,6 +133,23 @@ public class ProjectionPrecisionTest {
                     failures.append(def).append(" inverse (").append(x).append(", ").append(y)
                         .append(") is ").append(inv).append(" m off\n");
             }
+        }
+        assertTrue(failures.toString(), failures.length() == 0);
+    }
+
+    @Test
+    public void gnomonicInverseFarFromTheCentre() {
+        StringBuilder failures = new StringBuilder();
+        for (Object[] c : INVERSE_FAR) {
+            String def = (String) c[0];
+            double x = ((Number) c[1]).doubleValue(), y = ((Number) c[2]).doubleValue();
+            double lon = ((Number) c[3]).doubleValue(), lat = ((Number) c[4]).doubleValue();
+            Projection p = factory.createFromParameters(null, def).getProjection();
+            ProjCoordinate ll = p.inverseProject(new ProjCoordinate(x, y), new ProjCoordinate());
+            double inv = distance(Math.toRadians(ll.x), Math.toRadians(ll.y), Math.toRadians(lon), Math.toRadians(lat));
+            if (!(inv < 1e-6))
+                failures.append(def).append(" inverse (").append(x).append(", ").append(y)
+                    .append(") is ").append(inv).append(" m off\n");
         }
         assertTrue(failures.toString(), failures.length() == 0);
     }
