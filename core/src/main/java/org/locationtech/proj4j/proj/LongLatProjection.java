@@ -16,6 +16,7 @@
 
 package org.locationtech.proj4j.proj;
 
+import org.locationtech.proj4j.ProjCoordinate;
 import org.locationtech.proj4j.units.Units;
 
 /**
@@ -36,6 +37,14 @@ public class LongLatProjection extends Projection
 
     public String toString() {
         return "LongLat";
+    }
+
+    @Override
+    protected ProjCoordinate projectInverse(double x, double y, ProjCoordinate dst) {
+        // longitude and latitude are already the geographic coordinates
+        dst.x = x;
+        dst.y = y;
+        return dst;
     }
 
     public void initialize()

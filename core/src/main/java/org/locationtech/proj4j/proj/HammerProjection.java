@@ -44,6 +44,31 @@ public class HammerProjection extends PseudoCylindricalProjection {
 		return xy;
 	}
 
+	public ProjCoordinate projectInverse(double x, double y, ProjCoordinate lp) {
+		// Undo the M scaling of the forward: u = d * cos(phi) * sin(W * lam) and
+		// v = d * sin(phi), with d = sqrt(2 / (1 + cos(phi) * cos(W * lam)))
+		double u = x / mw;
+		double v = y / rm;
+		double t = 1. - 0.25 * u * u - 0.25 * v * v;
+		if (t < 0.) {
+			// a few ulps outside the outline is rounding; farther out is outside the map
+			if (t < -1e-14)
+				throw new ProjectionException("Point outside the Hammer projection");
+			t = 0.;
+		}
+		double z = Math.sqrt(t);
+		// z * u = cos(phi) * sin(W * lam), z * v = sin(phi), c = cos(phi) * cos(W * lam)
+		double c = 2. * z * z - 1.;
+		lp.x = Math.atan2(z * u, c) / w;
+		// asin(z * v), but accurate near the poles
+		lp.y = Math.atan2(z * v, Math.sqrt(z * u * z * u + c * c));
+		return lp;
+	}
+
+	public boolean hasInverse() {
+		return true;
+	}
+
 	public void initialize() {
 		super.initialize();
 		// w and m default to .5 and 1; a supplied +W / +M must not be overwritten
