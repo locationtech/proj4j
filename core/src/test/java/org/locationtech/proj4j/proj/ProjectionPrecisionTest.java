@@ -72,6 +72,14 @@ public class ProjectionPrecisionTest {
         {"+proj=vandg +a=6371000 +b=6371000 +lon_0=0", 10.0, 3e-09, 1111949.2664455874, 0.00033358477993369337, 0, 1.0e-06},
         // vandg: close to the origin the formulas lost the digits; within 1e-10 of the equator or the central meridian y or lon was 0
         {"+proj=vandg +a=6371000 +b=6371000 +lon_0=0", 1e-08, 0.5, 0.0011119406864577287, 55597.892321672304, 1, 1.0e-06},
+        // wintri: close to the origin the forward lost half the digits (acos)
+        {"+proj=wintri +a=6371000 +b=6371000 +lon_0=0", 1e-06, 4e-07, 0.090991907766723808, 0.044477970657823493, 0, 1.0e-06},
+        // wintri: close to the origin the forward lost half the digits (acos)
+        {"+proj=wintri +a=6371000 +b=6371000 +lon_0=0", 1e-09, 1e-09, 0.000090991907766723819, 0.00011119492664455874, 0, 1.0e-06},
+        // aitoff: close to the origin the forward lost half the digits (acos)
+        {"+proj=aitoff +a=6371000 +b=6371000 +lon_0=0", 1e-06, 4e-07, 0.11119492664455873, 0.044477970657823493, 0, 1.0e-06},
+        // aitoff: close to the origin the forward lost half the digits (acos)
+        {"+proj=aitoff +a=6371000 +b=6371000 +lon_0=0", 1e-09, 1e-09, 0.00011119492664455874, 0.00011119492664455874, 0, 1.0e-06},
     };
 
     private static double distance(double l1, double p1, double l2, double p2) {
