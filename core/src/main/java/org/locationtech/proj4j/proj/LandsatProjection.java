@@ -27,6 +27,26 @@ public class LandsatProjection extends Projection {
 
 	private double a2, a4, b, c1, c3;
 	private double q, t, u, w, p22, sa, ca, xj, rlm, rlm2;
+	/** +lsat: Landsat satellite number, 1..5 */
+	private int landsat = 0;
+	/** +path: Landsat path number, 1..251 (satellites 1-3) or 1..233 (4-5) */
+	private int path = 0;
+
+	public void setLandsat(int landsat) {
+		this.landsat = landsat;
+	}
+
+	public int getLandsat() {
+		return landsat;
+	}
+
+	public void setPath(int path) {
+		this.path = path;
+	}
+
+	public int getPath() {
+		return path;
+	}
 
 	private final static double TOL = 1e-7;
 	private final static double PI_HALFPI = 4.71238898038468985766;
@@ -151,17 +171,14 @@ public class LandsatProjection extends Projection {
 
 	public void initialize() {
 		super.initialize();
-		int land, path;
+		int land = landsat;
 		double lam, alf, esc, ess;
 
-//FIXME		land = pj_param(params, "ilsat").i;
-land = 1;
 		if (land <= 0 || land > 5)
-			throw new ProjectionException("-28");
-//FIXME		path = pj_param(params, "ipath").i;
-path = 120;
-		if (path <= 0 || path > (land <= 3 ? 251 : 233))
-			throw new ProjectionException("-29");
+			throw new ProjectionException("Invalid value for lsat: lsat should be in [1, 5] range");
+		int maxPathVal = land <= 3 ? 251 : 233;
+		if (path <= 0 || path > maxPathVal)
+			throw new ProjectionException("Invalid value for path: path should be in [1, " + maxPathVal + "] range");
 		if (land <= 3) {
 			projectionLongitude = DTR * 128.87 - ProjectionMath.TWOPI / 251. * path;
 			p22 = 103.2669323;

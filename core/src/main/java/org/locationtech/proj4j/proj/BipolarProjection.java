@@ -50,7 +50,8 @@ public class BipolarProjection extends Projection {
 	public BipolarProjection() {
 		minLatitude = Math.toRadians(-80);
 		maxLatitude = Math.toRadians(80);
-		projectionLongitude = Math.toRadians(-90);
+		// no lon_0 default: the projection constants already carry the bipolar
+		// orientation, and PROJ leaves lon_0 at 0 unless it is given
 		minLongitude = Math.toRadians(-90);
 		maxLongitude = Math.toRadians(90);
 	}

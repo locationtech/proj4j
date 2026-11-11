@@ -29,7 +29,8 @@ public class CylindricalEqualAreaProjection extends Projection {
 	private double[] apa;
 
 	public CylindricalEqualAreaProjection() {
-		this(0.0, 0.0, 0.0);
+		// NaN marks "+lat_ts not given", so that a supplied +k_0 survives
+		this(0.0, 0.0, Double.NaN);
 	}
 
 	public CylindricalEqualAreaProjection(double projectionLatitude, double projectionLongitude, double trueScaleLatitude) {
@@ -41,9 +42,15 @@ public class CylindricalEqualAreaProjection extends Projection {
 
 	public void initialize() {
 		super.initialize();
-		double t = trueScaleLatitude;
+		double t = 0.0;
 
-		scaleFactor = Math.cos(t);
+		// as in PROJ, lat_ts defines the scale factor; without it +k_0 is used as given
+		if (!Double.isNaN(trueScaleLatitude)) {
+			t = trueScaleLatitude;
+			scaleFactor = Math.cos(t);
+			if (scaleFactor < 0.)
+				throw new ProjectionException("Invalid value for lat_ts: |lat_ts| should be <= 90");
+		}
 		if (es != 0) {
 			t = Math.sin(t);
 			scaleFactor /= Math.sqrt(1. - es * t * t);

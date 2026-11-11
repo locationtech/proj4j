@@ -36,3 +36,5 @@ _SUCCESS
 tags
 .vscode
 .metals
+
+.claude

@@ -40,11 +40,33 @@ public class KrovakProjection extends Projection {
         maxLatitude = Math.toRadians(60);
         minLongitude = Math.toRadians(-90);
         maxLongitude = Math.toRadians(90);
+        /*
+         * PROJ defaults, applied unless the definition overrides them:
+         * lat_0 = 49d30'N, lon_0 = 42d30' E of Ferro - 17d40' (i.e. relative to
+         * Greenwich, not Ferro), k_0 = 0.9999.
+         */
+        projectionLatitude = 0.863937979737193;
+        projectionLongitude = 0.7417649320975901 - 0.308341501185665;
+        scaleFactor = 0.9999;
         initialize();
+    }
+
+    public void setCzech(boolean czech) {
+        this.czech = czech;
+    }
+
+    public boolean isCzech() {
+        return czech;
     }
 
     @Override
     public void initialize() {
+        /* Krovak is defined on Bessel 1841, whatever ellipsoid the definition carries,
+           so fix it before the base class derives one_es/spherical/totalScale from it. */
+        a = 6377397.155;
+        es = 0.006674372230614;
+        e = sqrt(es);
+
         super.initialize();
 
         double s90, fi0, e2, uq, u0, g, k1, n0;
@@ -53,15 +75,7 @@ public class KrovakProjection extends Projection {
         s90 = 2 * s45;
         fi0 = projectionLatitude;    /* Latitude of projection centre 49deg 30' */
 
-        /* Ellipsoid is used as Parameter in for.c and inv.c, therefore a must
-           be set to 1 here.
-           Ellipsoid Bessel 1841 a = 6377397.155m 1/f = 299.1528128,
-           e2=0.006674372230614;
-           */
-        a = 1; /* 6377397.155; */
-        /* e2 = P->es; */      /* 0.006674372230614; */
-        e2 = 0.006674372230614;
-        e = sqrt(e2);
+        e2 = es;
 
         alfa = sqrt(1. + (e2 * pow(cos(fi0), 4)) / (1. - e2));
 
@@ -72,7 +86,7 @@ public class KrovakProjection extends Projection {
         k = tan( u0 / 2. + s45) / pow  (tan(fi0 / 2. + s45) , alfa) * g;
 
         k1 = scaleFactor;
-        n0 = a * sqrt(1. - e2) / (1. - e2 * pow(sin(fi0), 2));
+        n0 = sqrt(1. - e2) / (1. - e2 * pow(sin(fi0), 2));
         s0 = 1.37008346281555;       /* Latitude of pseudo standard parallel 78deg 30'00" N */
         n = sin(s0);
         ro0 = k1 * n0 / tan(s0);
@@ -97,8 +111,8 @@ public class KrovakProjection extends Projection {
         ro = ro0 * pow(tan(s0 / 2. + s45) , n) / pow(tan(s / 2. + s45) , n)   ;
 
         /* x and y are reverted! */
-        out.y = ro * cos(eps) / a;
-        out.x = ro * sin(eps) / a;
+        out.y = ro * cos(eps);
+        out.x = ro * sin(eps);
 
         if(!czech) {
             out.y *= -1.0;

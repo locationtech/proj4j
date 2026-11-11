@@ -37,9 +37,9 @@ public class UrmaevFlatPolarSinusoidalProjection extends Projection {
 	}
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
-		out.y = ProjectionMath.asin(n * Math.sin(lpphi));
-		out.x = C_x * lplam * Math.cos(lpphi);
-		out.y = C_y * lpphi;
+		double phi = ProjectionMath.asin(n * Math.sin(lpphi));
+		out.x = C_x * lplam * Math.cos(phi);
+		out.y = C_y * phi;
 		return out;
 	}
 

@@ -63,7 +63,8 @@ public class PolyconicProjection extends Projection {
 			} else {
 				sp = Math.sin(lpphi);
 				ms = Math.abs(cp = Math.cos(lpphi)) > TOL ? ProjectionMath.msfn(sp, cp, es) / sp : 0.;
-				out.x = ms * Math.sin(out.x *= sp);
+				lplam *= sp;
+				out.x = ms * Math.sin(lplam);
 				out.y = (ProjectionMath.mlfn(lpphi, sp, cp, en) - ml0) + ms * (1. - Math.cos(lplam));
 			}
 		}
@@ -108,7 +109,7 @@ public class PolyconicProjection extends Projection {
 					c = sp * (mlp = Math.sqrt(1. - es * sp * sp)) / cp;
 					ml = ProjectionMath.mlfn(lpphi, sp, cp, en);
 					mlb = ml * ml + r;
-					mlp = (1.0 / es) / (mlp * mlp * mlp);
+					mlp = one_es / (mlp * mlp * mlp);
 					lpphi += ( dPhi =
 						( ml + ml + c * mlb - 2. * xyy * (c * ml + 1.) ) / (
 						es * s2ph * (mlb - 2. * xyy * ml) / c +
@@ -132,7 +133,6 @@ public class PolyconicProjection extends Projection {
 
 	public void initialize() {
 		super.initialize();
-spherical = true;//FIXME
 		if (!spherical) {
 			en = ProjectionMath.enfn(es);
 			if (en == null)

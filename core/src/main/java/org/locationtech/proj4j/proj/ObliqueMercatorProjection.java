@@ -35,6 +35,12 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 
 	private double lamc, lam1, phi1, lam2, phi2, Gamma, al, bl, el, singam, cosgam, sinrot, cosrot, u_0;
 	private boolean ellips, rot, no_uoff;
+	/**
+	 * The raw {@code +alpha} and {@code +gamma}, NaN when not given. They decide which of PROJ's
+	 * three setups runs, so they must survive {@link #initialize()} - which can be called more
+	 * than once - untouched by the derived azimuth and rectified bearing.
+	 */
+	private double alphaParam = Double.NaN, gammaParam = Double.NaN;
 
 	public ObliqueMercatorProjection() {
 		ellipsoid = Ellipsoid.WGS84;
@@ -44,8 +50,6 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 		maxLongitude = Math.toRadians(60);
 		minLatitude = Math.toRadians(-80);
 		maxLatitude = Math.toRadians(80);
-		alpha = Math.toRadians(-45);//FIXME
-		initialize();
 	}
 
 	/**
@@ -53,38 +57,62 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 	*/
 	public ObliqueMercatorProjection(Ellipsoid ellipsoid, double lon_0, double lat_0, double alpha, double k, double x_0, double y_0) {
 		setEllipsoid(ellipsoid);
-		lamc = lon_0;
+		lonc = lon_0;
 		projectionLatitude = lat_0;
-		this.alpha = alpha;
+		setAlpha(alpha);
 		scaleFactor = k;
 		falseEasting = x_0;
 		falseNorthing = y_0;
 		initialize();
 	}
 
+	@Override public void setAlpha(double alpha) {
+		super.setAlpha(alpha);
+		alphaParam = this.alpha;
+	}
+
+	@Override public void setAlphaDegrees(double alpha) {
+		super.setAlphaDegrees(alpha);
+		alphaParam = this.alpha;
+	}
+
 	public void initialize() {
 		super.initialize();
 		double con, com, cosphi0, d, f, h, l, sinphi0, p, j, gamma0;
 
-		//FIXME-setup rot, alpha, longc,lon/lat1/2
 		rot = true;
-    lamc = lonc;
+		lamc = lonc;
 
-    // true if alpha provided
-    int azi = Double.isNaN(alpha) ? 0 : 1;
-    // true if gamma provided
-    int gzi = Double.isNaN(Gamma) ? 0 : 1;
-		if (azi != 0) { // alpha specified
-			if (Math.abs(alpha) <= TOL ||
-				Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) <= TOL ||
-				Math.abs(Math.abs(alpha) - ProjectionMath.HALFPI) <= TOL)
-				throw new ProjectionException("Obl 1");
+		// which setup applies is decided by the raw parameters, exactly as in PROJ
+		boolean azi = !Double.isNaN(alphaParam);   // +alpha given
+		boolean gzi = !Double.isNaN(gammaParam);   // +gamma given
+		double alpha_c = azi ? alphaParam : 0.;
+		double gamma = gzi ? gammaParam : 0.;
+
+		if (azi || gzi) {
+			if (Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) <= TOL)
+				throw new ProjectionException("Invalid value for lat_0: |lat_0| should be < 90");
+			if (azi && (Math.abs(alpha_c) <= TOL ||
+					Math.abs(Math.abs(alpha_c) - ProjectionMath.HALFPI) <= TOL))
+				throw new ProjectionException(
+					"Invalid value for alpha: it should be different from 0 and |alpha| < 90");
 		} else {
-			if (Math.abs(phi1 - phi2) <= TOL ||
-				(con = Math.abs(phi1)) <= TOL ||
-				Math.abs(con - ProjectionMath.HALFPI) <= TOL ||
-				Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) <= TOL ||
-				Math.abs(Math.abs(phi2) - ProjectionMath.HALFPI) <= TOL) throw new ProjectionException("Obl 2");
+			// two-point form: +lat_1/+lon_1/+lat_2/+lon_2
+			phi1 = projectionLatitude1;
+			phi2 = projectionLatitude2;
+			lam1 = projectionLongitude1;
+			lam2 = projectionLongitude2;
+			if (Math.abs(phi1) > ProjectionMath.HALFPI - TOL)
+				throw new ProjectionException("Invalid value for lat_1: |lat_1| should be < 90");
+			if (Math.abs(phi2) > ProjectionMath.HALFPI - TOL)
+				throw new ProjectionException("Invalid value for lat_2: |lat_2| should be < 90");
+			if (Math.abs(phi1 - phi2) <= TOL)
+				throw new ProjectionException(
+					"Invalid value for lat_1/lat_2: lat_1 should be different from lat_2");
+			if (Math.abs(phi1) <= TOL)
+				throw new ProjectionException("Invalid value for lat_1: lat_1 should be different from 0");
+			if (Math.abs(Math.abs(projectionLatitude) - ProjectionMath.HALFPI) <= TOL)
+				throw new ProjectionException("Invalid value for lat_0: |lat_0| should be < 90");
 		}
 		com = (spherical = es == 0.) ? 1 : Math.sqrt(one_es);
 		if (Math.abs(projectionLatitude) > EPS10) {
@@ -118,15 +146,17 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 			al = scaleFactor;
 			el = d = f = 1.;
 		}
-		if (azi != 0 || gzi != 0) {
-			if (azi != 0) {
-				gamma0 = Math.asin(Math.sin(alpha) / d);
-				if(gzi == 0) {
-					Gamma = alpha;
-				}
-			}else {
-				gamma0 = Gamma;
-				alpha = Math.asin(d * Math.sin(gamma0));
+		if (azi || gzi) {
+			if (azi) {
+				gamma0 = Math.asin(Math.sin(alpha_c) / d);
+				if (!gzi)
+					gamma = alpha_c;
+			} else {
+				gamma0 = gamma;
+				alpha_c = Math.asin(d * Math.sin(gamma0));
+				if (Double.isNaN(alpha_c))
+					throw new ProjectionException("Invalid value for gamma: given lat_0, |gamma| should be <= "
+						+ Math.toDegrees(Math.asin(1. / d)));
 			}
 			projectionLongitude = lamc - Math.asin((.5 * (f - 1. / f)) *
 					   Math.tan(gamma0)) / bl;
@@ -150,26 +180,50 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 			   j * Math.tan(.5 * bl * (lam1 - lam2)) / p) / bl);
 			gamma0 = Math.atan(2. * Math.sin(bl * ProjectionMath.normalizeLongitude(lam1 - projectionLongitude)) /
 			   (f - 1. / f));
-			Gamma = Math.asin(d * Math.sin(gamma0));
-			alpha = Gamma;
+			gamma = alpha_c = Math.asin(d * Math.sin(gamma0));
 		}
 		singam = Math.sin(gamma0);
 		cosgam = Math.cos(gamma0);
-		sinrot = Math.sin(Gamma);
-		cosrot = Math.cos(Gamma);
-		
+		sinrot = Math.sin(gamma);
+		cosrot = Math.cos(gamma);
+
 		// The natural-origin offset uses the azimuth of the central line (alpha), following Snyder's
 		// Hotine Oblique Mercator: u_c = (A / B) * atan(sqrt(D^2 - 1) / cos(alpha_c)). Using the
-		// rectified bearing (Gamma) here misplaces the projection centre whenever Gamma != alpha,
+		// rectified bearing (gamma) here misplaces the projection centre whenever gamma != alpha,
 		// e.g. for definitions with an explicit "+gamma=0" and a non-zero azimuth.
-		u_0 = no_uoff ? 0. :
-			Math.abs(al * Math.atan(Math.sqrt(d * d - 1.) / Math.cos(alpha)) / bl);
-		if (projectionLatitude < 0.)
-			u_0 = - u_0;
+		if (no_uoff)
+			u_0 = 0.;
+		else {
+			u_0 = Math.abs(al * Math.atan(Math.sqrt(d * d - 1.) / Math.cos(alpha_c)) / bl);
+			if (projectionLatitude < 0.)
+				u_0 = - u_0;
+		}
+
+		// publish the derived azimuth and rectified bearing, as PROJ keeps alpha_c/gamma in its state
+		this.alpha = alpha_c;
+		this.Gamma = gamma;
 	}
 
     @Override public void setGamma(double gamma) {
-        this.Gamma = gamma;
+        this.gammaParam = gamma;
+    }
+
+    /** {@code +lon_1}, the longitude of the first point of the two-point form. */
+    public void setProjectionLongitude1(double lon1) {
+        this.projectionLongitude1 = lon1;
+    }
+
+    public void setProjectionLongitude1Degrees(double lon1) {
+        this.projectionLongitude1 = DTR * lon1;
+    }
+
+    /** {@code +lon_2}, the longitude of the second point of the two-point form. */
+    public void setProjectionLongitude2(double lon2) {
+        this.projectionLongitude2 = lon2;
+    }
+
+    public void setProjectionLongitude2Degrees(double lon2) {
+        this.projectionLongitude2 = DTR * lon2;
     }
     
     @Override public void setNoUoff(boolean no_uoff) {
@@ -190,11 +244,11 @@ public class ObliqueMercatorProjection extends CylindricalProjection {
 			ul = 2. * (s * singam - vl * cosgam) / (q + 1. / q);
 			con = Math.cos(bl * lam);
 			if (Math.abs(con) >= TOL) {
-				us = al * Math.atan((s * cosgam + vl * singam) / con) / bl;
-				if (con < 0.)
-					us += Math.PI * al / bl;
+				// atan2 picks the right quadrant on its own; the historical
+				// atan(y/con) + PI correction is only right for y > 0
+				us = al * Math.atan2(s * cosgam + vl * singam, con) / bl;
 			} else
-				us = al * bl * lam;
+				us = al * lam;
 		}
 		if (Math.abs(Math.abs(ul) - 1.) <= EPS10) throw new ProjectionException("Obl 3");
 		vs = .5 * al * Math.log((1. - ul) / (1. + ul)) / bl;
