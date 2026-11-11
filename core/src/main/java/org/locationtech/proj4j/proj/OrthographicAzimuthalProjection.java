@@ -80,7 +80,7 @@ public class OrthographicAzimuthalProjection extends AzimuthalProjection {
 				sinc = 1.;
 		}
 		cosc = Math.sqrt(1. - sinc * sinc); /* in this range OK */
-		if (Math.abs(rh) <= EPS10)
+		if (rh == 0.)
 			lp.y = projectionLatitude;
 		else switch (mode) {
 		case NORTH_POLE:
@@ -91,23 +91,16 @@ public class OrthographicAzimuthalProjection extends AzimuthalProjection {
 			lp.y = - Math.acos(sinc);
 			break;
 		case EQUATOR:
-			lp.y = y * sinc / rh;
+		case OBLIQUE: {
+			// rh * sin(phi), rh * cos(phi) * cos(lam) and rh * cos(phi) * sin(lam): atan2()
+			// keeps the latitude accurate near the poles, where asin() of sin(phi) did not
+			double s0 = mode == EQUATOR ? 0. : sinphi0, c0 = mode == EQUATOR ? 1. : cosphi0;
+			double n = rh * cosc * s0 + y * sinc * c0;
+			y = rh * cosc * c0 - y * sinc * s0;
 			x *= sinc;
-			y = cosc * rh;
-			if (Math.abs(lp.y) >= 1.)
-				lp.y = lp.y < 0. ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI;
-			else
-				lp.y = Math.asin(lp.y);
+			lp.y = Math.atan2(n, Math.sqrt(x * x + y * y));
 			break;
-		case OBLIQUE:
-			lp.y = cosc * sinphi0 + y * sinc * cosphi0 / rh;
-			y = (cosc - sinphi0 * lp.y) * rh;
-			x *= sinc * cosphi0;
-			if (Math.abs(lp.y) >= 1.)
-				lp.y = lp.y < 0. ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI;
-			else
-				lp.y = Math.asin(lp.y);
-			break;
+		}
 		}
 		lp.x = (y == 0. && (mode == OBLIQUE || mode == EQUATOR)) ?
 			 (x == 0. ? 0. : x < 0. ? -ProjectionMath.HALFPI : ProjectionMath.HALFPI) : Math.atan2(x, y);

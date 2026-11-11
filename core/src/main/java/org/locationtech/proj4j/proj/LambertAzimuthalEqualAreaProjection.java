@@ -223,16 +223,20 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
       }
       switch (mode) {
       case EQUIT:
-        lpphi = Math.abs(rh) <= EPS10 ? 0. : Math.asin(xyy * sinz / rh);
+      case OBLIQ: {
+        if (rh == 0.) {
+          lpphi = phi0;
+          break;
+        }
+        // rh * sin(phi), rh * cos(phi) * cos(lam) and rh * cos(phi) * sin(lam): atan2()
+        // keeps the latitude accurate near the poles, where asin() of sin(phi) did not
+        double s0 = mode == EQUIT ? 0. : sinph0, c0 = mode == EQUIT ? 1. : cosph0;
+        double n = rh * cosz * s0 + xyy * sinz * c0;
+        xyy = rh * cosz * c0 - xyy * sinz * s0;
         xyx *= sinz;
-        xyy = cosz * rh;
+        lpphi = Math.atan2(n, Math.hypot(xyx, xyy));
         break;
-      case OBLIQ:
-        lpphi = Math.abs(rh) <= EPS10 ? phi0 :
-          Math.asin(cosz * sinph0 + xyy * sinz * cosph0 / rh);
-        xyx *= sinz * cosph0;
-        xyy = (cosz - Math.sin(lpphi) * sinph0) * rh;
-        break;
+      }
       case N_POLE:
         xyy = -xyy;
         lpphi = ProjectionMath.HALFPI - lpphi;
@@ -241,8 +245,8 @@ public class LambertAzimuthalEqualAreaProjection extends Projection {
         lpphi -= ProjectionMath.HALFPI;
         break;
       }
-      lplam = (xyy == 0. && (mode == EQUIT || mode == OBLIQ)) ?
-        0. : Math.atan2(xyx, xyy);
+      // no special case for xyy == 0: the longitude is +/-90 degrees there, not 0
+      lplam = Math.atan2(xyx, xyy);
       out.x = lplam;
       out.y = lpphi;
     }

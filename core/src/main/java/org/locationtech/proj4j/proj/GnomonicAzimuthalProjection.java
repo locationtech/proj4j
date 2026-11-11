@@ -84,29 +84,22 @@ public class GnomonicAzimuthalProjection extends AzimuthalProjection {
 		rh = ProjectionMath.distance(x, y);
 		sinz = Math.sin(lp.y = Math.atan(rh));
 		cosz = Math.sqrt(1. - sinz * sinz);
-		if (Math.abs(rh) <= EPS10) {
+		if (rh == 0.) {
 			lp.y = projectionLatitude;
 			lp.x = 0.;
 		} else {
 			switch (mode) {
 			case OBLIQUE:
-				lp.y = cosz * sinphi0 + y * sinz * cosphi0 / rh;
-				if (Math.abs(lp.y) >= 1.)
-					lp.y = lp.y > 0. ? ProjectionMath.HALFPI : - ProjectionMath.HALFPI;
-				else
-					lp.y = Math.asin(lp.y);
-				y = (cosz - sinphi0 * Math.sin(lp.y)) * rh;
-				x *= sinz * cosphi0;
-				break;
-			case EQUATOR:
-				lp.y = y * sinz / rh;
-				if (Math.abs(lp.y) >= 1.)
-					lp.y = lp.y > 0. ? ProjectionMath.HALFPI : - ProjectionMath.HALFPI;
-				else
-					lp.y = Math.asin(lp.y);
-				y = cosz * rh;
+			case EQUATOR: {
+				// rh * sin(phi), rh * cos(phi) * cos(lam) and rh * cos(phi) * sin(lam): atan2()
+				// keeps the latitude accurate near the poles, where asin() of sin(phi) did not
+				double s0 = mode == EQUATOR ? 0. : sinphi0, c0 = mode == EQUATOR ? 1. : cosphi0;
+				double n = rh * cosz * s0 + y * sinz * c0;
+				y = rh * cosz * c0 - y * sinz * s0;
 				x *= sinz;
+				lp.y = Math.atan2(n, Math.sqrt(x * x + y * y));
 				break;
+			}
 			case SOUTH_POLE:
 				lp.y -= ProjectionMath.HALFPI;
 				break;
