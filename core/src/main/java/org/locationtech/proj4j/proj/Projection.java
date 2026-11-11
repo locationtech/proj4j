@@ -357,17 +357,18 @@ public abstract class Projection implements Cloneable, java.io.Serializable {
     /**
      * Computes the inverse projection of a given point
      * (i.e. from projection space to geographics).
-     * This should be overridden for all projections.
+     * This should be overridden for all projections that have an inverse;
+     * for the others (see {@link #hasInverse()}) it throws.
      *
      * @param x the projected x ordinate (in coordinate system units)
      * @param y the projected y ordinate (in coordinate system units)
      * @param dst the inverse-projected geographic coordinate  (in radians)
      * @return the target coordinate
+     * @throws ProjectionException if this projection has no inverse
      */
     protected ProjCoordinate projectInverse(double x, double y, ProjCoordinate dst) {
-        dst.x = x;
-        dst.y = y;
-        return dst;
+        // returning the input unchanged would pass projected coordinates off as radians
+        throw new ProjectionException(this, "inverse projection not available");
     }
 
 
