@@ -66,6 +66,12 @@ public class ProjectionPrecisionTest {
         {"+proj=putp2 +a=6371000 +b=6371000 +lon_0=0", 100.0, -89.9999, 26.820261630556856, -9481615.7309176723, 1, 1.0e-06},
         // putp2: near the poles the Newton iteration stopped early
         {"+proj=putp2 +a=6371000 +b=6371000 +lon_0=0", -60.0, 89.99, -1609.0354738766009, 9480819.1246850995, 1, 1.0e-06},
+        // vandg: close to the origin the formulas lost the digits; within 1e-10 of the equator or the central meridian y or lon was 0
+        {"+proj=vandg +a=6371000 +b=6371000 +lon_0=0", 1e-06, 1e-06, 0.11119492664455873, 0.11119492664455874, 1, 1.0e-06},
+        // vandg: close to the origin the formulas lost the digits; within 1e-10 of the equator or the central meridian y or lon was 0
+        {"+proj=vandg +a=6371000 +b=6371000 +lon_0=0", 10.0, 3e-09, 1111949.2664455874, 0.00033358477993369337, 0, 1.0e-06},
+        // vandg: close to the origin the formulas lost the digits; within 1e-10 of the equator or the central meridian y or lon was 0
+        {"+proj=vandg +a=6371000 +b=6371000 +lon_0=0", 1e-08, 0.5, 0.0011119406864577287, 55597.892321672304, 1, 1.0e-06},
     };
 
     private static double distance(double l1, double p1, double l2, double p2) {
