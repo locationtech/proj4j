@@ -83,7 +83,9 @@ public class CRSFactory {
         String[] params = csReader.getParameters(name);
         if (params == null)
             throw new UnknownAuthorityCodeException(name);
-        return createFromParameters(name, params);
+        CoordinateReferenceSystem crs = createFromParameters(name, params);
+        crs.setAreaOfUse(csReader.getAreaOfUse(name));
+        return crs;
     }
 
     /**

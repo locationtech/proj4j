@@ -54,6 +54,7 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
     private String[] params;
     private Datum datum;
     private Projection proj;
+    private AreaOfUse areaOfUse;
 
     public CoordinateReferenceSystem(String name, String[] params, Datum datum, Projection proj) {
         this.name = name;
@@ -83,6 +84,20 @@ public class CoordinateReferenceSystem implements java.io.Serializable {
 
     public Projection getProjection() {
         return proj;
+    }
+
+    /**
+     * Gets the geographic area in which this CRS is intended to be used, or {@code null}
+     * if no area-of-use metadata is available.
+     *
+     * @return the area of use in decimal degrees, or {@code null}
+     */
+    public AreaOfUse getAreaOfUse() {
+        return areaOfUse;
+    }
+
+    void setAreaOfUse(AreaOfUse areaOfUse) {
+        this.areaOfUse = areaOfUse;
     }
 
     public String getParameterString() {

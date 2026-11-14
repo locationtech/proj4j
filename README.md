@@ -135,6 +135,21 @@ ProjCoordinate result = new ProjCoordinate();
 wgsToUtm.transform(new ProjCoordinate(lon, lat), result);
 ```
 
+### CRS area of use
+
+For an EPSG CRS, `getAreaOfUse()` returns its EPSG geographic area-of-use metadata, or
+`null` when the CRS has no available metadata. Bounds and coordinates are in decimal
+degrees (longitude, latitude); custom parameter-defined CRSs have no area-of-use metadata.
+The metadata is distributed in the `proj4j-epsg` artifact.
+
+```Java
+AreaOfUse area = UTM.getAreaOfUse();
+if (area != null) {
+    System.out.println(area.getWestLongitude() + ", " + area.getSouthLatitude()
+        + " to " + area.getEastLongitude() + ", " + area.getNorthLatitude());
+}
+```
+
 ## Building, Testing and installing locally
 
 `mvn clean install`

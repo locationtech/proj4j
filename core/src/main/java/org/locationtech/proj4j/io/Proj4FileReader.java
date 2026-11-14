@@ -16,17 +16,25 @@
 package org.locationtech.proj4j.io;
 
 import org.locationtech.proj4j.util.Pair;
+import org.locationtech.proj4j.AreaOfUse;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StreamTokenizer;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Proj4FileReader {
+
+    private static final String AREA_OF_USE_RESOURCE = "proj4/area_of_use.tsv";
 
     public Proj4FileReader() {
         super();
@@ -122,6 +130,61 @@ public class Proj4FileReader {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Gets area-of-use metadata for an EPSG coordinate reference system.
+     *
+     * @param crsName the authority name of the coordinate reference system
+     * @return the area of use, or {@code null} if metadata is unavailable
+     */
+    public AreaOfUse getAreaOfUse(String crsName) {
+        int separator = crsName.indexOf(':');
+        if (separator < 0 || !crsName.substring(0, separator).equalsIgnoreCase("EPSG")) {
+            return null;
+        }
+        return AreaOfUseData.AREAS.get(crsName.substring(separator + 1));
+    }
+
+    private static Map<String, AreaOfUse> readAreaOfUseData() {
+        InputStream input = Proj4FileReader.class.getClassLoader()
+                .getResourceAsStream(AREA_OF_USE_RESOURCE);
+        if (input == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, AreaOfUse> areas = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty() || line.charAt(0) == '#') {
+                    continue;
+                }
+                String[] fields = line.split("\t", 6);
+                if (fields.length != 6) {
+                    throw new IllegalStateException("Invalid area-of-use entry: " + line);
+                }
+                AreaOfUse area = new AreaOfUse(
+                        fields[5],
+                        Double.parseDouble(fields[1]),
+                        Double.parseDouble(fields[2]),
+                        Double.parseDouble(fields[3]),
+                        Double.parseDouble(fields[4]));
+                if (areas.put(fields[0], area) != null) {
+                    throw new IllegalStateException("Duplicate area-of-use entry for EPSG:" + fields[0]);
+                }
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Unable to read area-of-use metadata", e);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid numeric value in area-of-use metadata", e);
+        }
+        return Collections.unmodifiableMap(areas);
+    }
+
+    private static final class AreaOfUseData {
+        private static final Map<String, AreaOfUse> AREAS = readAreaOfUseData();
     }
 
     public String readEpsgCodeFromFile(String[] params) throws IOException {
