@@ -62,7 +62,7 @@ public class ProjStringParameterTest {
     @Test
     public void azimuthalDefaultCentre() {
         // without +lat_0 and +lon_0 the centre is (0, 0), as in PROJ; it was (45, 45) for
-        // ortho and laea and the north pole for gnom, aeqd and stere
+        // ortho and the north pole for gnom, aeqd and stere
         ProjCoordinate xy = project("+proj=ortho +R=1", 30, 0);
         assertEquals(0.5, xy.x, 1e-12);
         assertEquals(0.0, xy.y, 1e-12);
