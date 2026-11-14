@@ -194,28 +194,26 @@ public class StereographicAzimuthalProjection extends AzimuthalProjection {
 			lp.x = 0.;
 			switch (mode) {
 			case EQUATOR:
-				if (Math.abs(rh) <= EPS10)
-					lp.y = 0.;
-				else
-					lp.y = Math.asin(y * sinc / rh);
-				if (cosc != 0. || x != 0.)
-					lp.x = Math.atan2(x * sinc, cosc * rh);
-				break;
-			case OBLIQUE:
-				if (Math.abs(rh) <= EPS10)
+			case OBLIQUE: {
+				if (rh == 0.) {
 					lp.y = projectionLatitude;
-				else
-					lp.y = Math.asin(cosc * sinphi0 + y * sinc * cosphi0 / rh);
-				if ((c = cosc - sinphi0 * Math.sin(lp.y)) != 0. || x != 0.)
-					lp.x = Math.atan2(x * sinc * cosphi0, c * rh);
+					break;
+				}
+				// rh * sin(phi), rh * cos(phi) * cos(lam) and rh * cos(phi) * sin(lam): atan2()
+				// keeps the latitude accurate near the poles, where asin() of sin(phi) did not
+				double s0 = mode == EQUATOR ? 0. : sinphi0, c0 = mode == EQUATOR ? 1. : cosphi0;
+				double n = rh * cosc * s0 + y * sinc * c0;
+				y = rh * cosc * c0 - y * sinc * s0;
+				x *= sinc;
+				lp.y = Math.atan2(n, Math.sqrt(x * x + y * y));
+				lp.x = Math.atan2(x, y);
 				break;
+			}
 			case NORTH_POLE:
 				y = -y;
 			case SOUTH_POLE:
-				if (Math.abs(rh) <= EPS10)
-					lp.y = projectionLatitude;
-				else
-					lp.y = Math.asin(mode == SOUTH_POLE ? - cosc : cosc);
+				// asin(-/+cos(c)), but accurate close to the pole
+				lp.y = mode == SOUTH_POLE ? c - ProjectionMath.HALFPI : ProjectionMath.HALFPI - c;
 				lp.x = (x == 0. && y == 0.) ? 0. : Math.atan2(x, y);
 				break;
 			}

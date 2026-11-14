@@ -29,6 +29,8 @@ public class HammerProjection extends PseudoCylindricalProjection {
 	private double w = 0.5;
 	private double m = 1;
 	private double rm;
+	// m / w, used by the forward; m itself is kept as set, so that initialize() can be called again
+	private double mw;
 
 	public HammerProjection() {
 	}
@@ -37,7 +39,7 @@ public class HammerProjection extends PseudoCylindricalProjection {
 		double cosphi, d;
 
 		d = Math.sqrt(2./(1. + (cosphi = Math.cos(lpphi)) * Math.cos(lplam *= w)));
-		xy.x = m * d * cosphi * Math.sin(lplam);
+		xy.x = mw * d * cosphi * Math.sin(lplam);
 		xy.y = rm * d * Math.sin(lpphi);
 		return xy;
 	}
@@ -50,7 +52,7 @@ public class HammerProjection extends PseudoCylindricalProjection {
 		if ((m = Math.abs(m)) <= 0.)
 			throw new ProjectionException("Invalid value for M: it should be > 0");
 		rm = 1. / m;
-		m /= w;
+		mw = m / w;
 		es = 0.;
 	}
 

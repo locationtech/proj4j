@@ -179,16 +179,20 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 			}
 			switch (mode) {
 			case EQUATOR:
-				lp.y = Math.abs(rh) <= EPS10 ? 0. : Math.asin(y * sinz / rh);
+			case OBLIQUE: {
+				if (rh == 0.) {
+					lp.y = projectionLatitude;
+					break;
+				}
+				// rh * sin(phi), rh * cos(phi) * cos(lam) and rh * cos(phi) * sin(lam): atan2()
+				// keeps the latitude accurate near the poles, where asin() of sin(phi) did not
+				double s0 = mode == EQUATOR ? 0. : sinphi0, c0 = mode == EQUATOR ? 1. : cosphi0;
+				double n = rh * cosz * s0 + y * sinz * c0;
+				y = rh * cosz * c0 - y * sinz * s0;
 				x *= sinz;
-				y = cosz * rh;
+				lp.y = Math.atan2(n, Math.sqrt(x * x + y * y));
 				break;
-			case OBLIQUE:
-				lp.y = Math.abs(rh) <= EPS10 ? projectionLatitude :
-				   Math.asin(cosz * sinphi0 + y * sinz * cosphi0 / rh);
-				x *= sinz * cosphi0;
-				y = (cosz - Math.sin(lp.y) * sinphi0) * rh;
-				break;
+			}
 			case NORTH_POLE:
 				y = -y;
 				lp.y = ProjectionMath.HALFPI - lp.y;
@@ -197,8 +201,8 @@ public class EqualAreaAzimuthalProjection extends AzimuthalProjection {
 				lp.y -= ProjectionMath.HALFPI;
 				break;
 			}
-			lp.x = (y == 0. && (mode == EQUATOR || mode == OBLIQUE)) ?
-				0. : Math.atan2(x, y);
+			// no special case for y == 0: the longitude is +/-90 degrees there, not 0
+			lp.x = Math.atan2(x, y);
 		} else {
 			double cCe, sCe, q, rho, ab = 0;
 

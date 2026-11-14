@@ -169,8 +169,10 @@ public class TransverseMercatorProjection extends CylindricalProjection {
 
             // ml0 already carries the scale factor (ml0 = .5 * esp, esp = k0)
             xy.x = ml0 * Math.log((1. + b) / (1. - b));
-            double ty = cosphi * Math.cos(lplam) / Math.sqrt(1. - b * b);
-            ty = ProjectionMath.acos(ty);
+            // Same angle as acos(cosphi * cos(lam) / sqrt(1 - b * b)), since
+            // 1 - b * b = sinphi^2 + (cosphi * cos(lam))^2, but without the loss of
+            // precision of acos() near 1, i.e. close to the equator
+            double ty = Math.atan2(Math.abs(Math.sin(lpphi)), cosphi * Math.cos(lplam));
             if (lpphi < 0.0)
                 ty = -ty;
             xy.y = esp * (ty - projectionLatitude);
@@ -205,8 +207,11 @@ public class TransverseMercatorProjection extends CylindricalProjection {
         if (spherical) {
             double h = Math.exp(x / scaleFactor);
             double g = .5 * (h - 1. / h);
-            h = Math.cos(projectionLatitude + y / scaleFactor);
-            out.y = ProjectionMath.asin(Math.sqrt((1. - h * h) / (1. + g * g)));
+            double d = projectionLatitude + y / scaleFactor;
+            h = Math.cos(d);
+            // Same angle as asin(sqrt((1 - h * h) / (1 + g * g))), but without the loss
+            // of precision of 1 - h * h close to the equator
+            out.y = Math.atan2(Math.abs(Math.sin(d)), Math.sqrt(g * g + h * h));
             if (y < 0)
                 out.y = -out.y;
             out.x = Math.atan2(g, h);

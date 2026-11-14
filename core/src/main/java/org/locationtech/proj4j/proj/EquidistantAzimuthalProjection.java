@@ -101,21 +101,21 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 			switch (mode) {
 			case EQUATOR:
 			case OBLIQUE:
-				if (mode == EQUATOR)
-					xy.y = cosphi * coslam;
-				else
-					xy.y = sinphi0 * sinphi + cosphi0 * cosphi * coslam;
-				if (Math.abs(Math.abs(xy.y) - 1.) < TOL)
-					if (xy.y < 0.)
-						throw new ProjectionException(); 
-					else
-						xy.x = xy.y = 0.;
-				else {
-					xy.y = Math.acos(xy.y);
-					xy.y /= Math.sin(xy.y);
-					xy.x = xy.y * cosphi * Math.sin(lam);
-					xy.y *= (mode == EQUATOR) ? sinphi :
-				   		cosphi0 * sinphi - sinphi0 * cosphi * coslam;
+				{
+					// c is the angular distance to (phi, lam). sin(c) from hypot() and c from
+					// atan2() keep the forward accurate near the centre, where acos(cos(c)) lost
+					// half the digits and points with cos(c) within 1e-14 of 1 went to the centre
+					double s0 = mode == EQUATOR ? 0. : sinphi0, c0 = mode == EQUATOR ? 1. : cosphi0;
+					double sinlam = Math.sin(lam);
+					double cosc = s0 * sinphi + c0 * cosphi * coslam;
+					double t = c0 * sinphi - s0 * cosphi * coslam;
+					double sinc = Math.hypot(cosphi * sinlam, t);
+					if (cosc < TOL - 1.)
+						throw new ProjectionException();
+					// c / sin(c), with limit 1 at the centre
+					double k = sinc == 0. ? 1. : Math.atan2(sinc, cosc) / sinc;
+					xy.x = k * cosphi * sinlam;
+					xy.y = k * t;
 				}
 				break;
 			case NORTH_POLE:
@@ -171,7 +171,7 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 				if (c_rh - EPS10 > Math.PI)
 					throw new ProjectionException(); 
 				c_rh = Math.PI;
-			} else if (c_rh < EPS10) {
+			} else if (c_rh == 0.) {
 				lp.y = projectionLatitude;
 				lp.x = 0.;
 				return lp;
@@ -179,17 +179,15 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 			if (mode == OBLIQUE || mode == EQUATOR) {
 				sinc = Math.sin(c_rh);
 				cosc = Math.cos(c_rh);
-				if (mode == EQUATOR) {
-					lp.y = ProjectionMath.asin(y * sinc / c_rh);
-					x *= sinc;
-					y = cosc * c_rh;
-				} else {
-					lp.y = ProjectionMath.asin(cosc * sinphi0 + y * sinc * cosphi0 /
-						c_rh);
-					y = (cosc - sinphi0 * Math.sin(lp.y)) * c_rh;
-					x *= sinc * cosphi0;
-				}
-				lp.x = y == 0. ? 0. : Math.atan2(x, y);
+				// rh * sin(phi), rh * cos(phi) * cos(lam) and rh * cos(phi) * sin(lam): atan2()
+				// keeps the latitude accurate near the poles, where asin() of sin(phi) did not
+				double s0 = mode == EQUATOR ? 0. : sinphi0, c0 = mode == EQUATOR ? 1. : cosphi0;
+				double n = c_rh * cosc * s0 + y * sinc * c0;
+				y = c_rh * cosc * c0 - y * sinc * s0;
+				x *= sinc;
+				lp.y = Math.atan2(n, Math.sqrt(x * x + y * y));
+				// no special case for y == 0: the longitude is +/-90 degrees there, not 0
+				lp.x = Math.atan2(x, y);
 			} else if (mode == NORTH_POLE) {
 				lp.y = ProjectionMath.HALFPI - c_rh;
 				lp.x = Math.atan2(x, -y);
