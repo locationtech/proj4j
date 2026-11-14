@@ -50,13 +50,16 @@ public class AitoffProjection extends PseudoCylindricalProjection {
 
 	public ProjCoordinate project(double lplam, double lpphi, ProjCoordinate out) {
 		double c = 0.5 * lplam;
-		double d = Math.acos(Math.cos(lpphi) * Math.cos(c));
-
-		if (d != 0) {
-			out.x = 2. * d * Math.cos(lpphi) * Math.sin(c) * (out.y = 1. / Math.sin(d));
-			out.y *= d * Math.sin(lpphi);
-		} else
-			out.x = out.y = 0.0;
+		double sinc = Math.sin(c);
+		double sinphi = Math.sin(lpphi);
+		double cosphi = Math.cos(lpphi);
+		// sin(d) from hypot() and d from atan2() keep the relative accuracy near the
+		// origin, where acos() of a value close to 1 did not (as in PROJ)
+		double sind = Math.hypot(cosphi * sinc, sinphi);
+		// d / sin(d), with limit 1 at the origin
+		double a = sind == 0. ? 1. : Math.atan2(sind, cosphi * Math.cos(c)) / sind;
+		out.x = 2. * cosphi * sinc * a;
+		out.y = sinphi * a;
 		if (winkel) {
 			out.x = (out.x + lplam * cosphi1) * 0.5;
 			out.y = (out.y + lpphi) * 0.5;
