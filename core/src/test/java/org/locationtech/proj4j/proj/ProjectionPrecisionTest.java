@@ -57,6 +57,21 @@ public class ProjectionPrecisionTest {
 
 
     @Test
+    public void hammerUsesWAndM() {
+        // +proj=hammer +R=6371000 +W=0.25 +M=2 at (-150, 80), from a 50-digit computation
+        HammerProjection p = new HammerProjection();
+        p.setW(0.25);
+        p.setM(2.);
+        p.setEllipsoid(new org.locationtech.proj4j.datum.Ellipsoid("sphere", R, R, 0., "sphere"));
+        p.initialize();
+        // initialize() can run more than once; it must not divide M by W again
+        p.initialize();
+        ProjCoordinate xy = p.project(new ProjCoordinate(-150., 80.), new ProjCoordinate());
+        assertTrue("x " + xy.x + ", y " + xy.y,
+            Math.hypot(xy.x - -7143380.5118388616, xy.y - 4159277.561056562) < 1e-6);
+    }
+
+    @Test
     public void azimuthalEquidistantNearTheAntipode() {
         // 79 m from the antipode: as in PROJ, only points within 1e-14 of cos(c) = -1 are
         // rejected. Expected values from a 50-digit computation; the forward is ill-conditioned
