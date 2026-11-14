@@ -38,6 +38,8 @@ public class ProjectionPrecisionTest {
     private static final Object[][] CASES = {
         // aeqd sphere, oblique: the forward lost half the digits near the centre (acos)
         {"+proj=aeqd +lat_0=45 +a=6371000 +b=6371000 +lon_0=0", 2e-06, 45.000001, 0.15725337058322724, 0.11119492830453609, 1, 1.0e-06},
+        // moll: near the poles 10 Newton iterations were not enough and the forward snapped to the pole
+        {"+proj=moll +a=6371000 +b=6371000 +lon_0=0", 45.0, 89.3, 252308.41375123064, 8995812.5734922552, 1, 1.0e-06},
         // wintri: close to the origin the forward lost half the digits (acos)
         {"+proj=wintri +a=6371000 +b=6371000 +lon_0=0", 1e-06, 4e-07, 0.090991907766723808, 0.044477970657823493, 0, 1.0e-06},
         // wintri: close to the origin the forward lost half the digits (acos)

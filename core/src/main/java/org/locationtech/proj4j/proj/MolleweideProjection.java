@@ -29,7 +29,8 @@ public class MolleweideProjection extends PseudoCylindricalProjection {
 	public static final int WAGNER4 = 1;
 	public static final int WAGNER5 = 2;
 
-	private static final int MAX_ITER = 10;
+	// 30 iterations, as in PROJ (with 10 the iteration gave up and snapped to the pole)
+	private static final int MAX_ITER = 30;
 	private static final double TOLERANCE = 1e-7;
 
 	private int type = MOLLEWEIDE;
