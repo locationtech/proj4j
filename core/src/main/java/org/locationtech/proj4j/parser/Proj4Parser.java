@@ -23,6 +23,7 @@ import org.locationtech.proj4j.*;
 import org.locationtech.proj4j.datum.Datum;
 import org.locationtech.proj4j.datum.Ellipsoid;
 import org.locationtech.proj4j.datum.Grid;
+import org.locationtech.proj4j.proj.AzimuthalProjection;
 import org.locationtech.proj4j.proj.ExtendedTransverseMercatorProjection;
 import org.locationtech.proj4j.proj.HammerProjection;
 import org.locationtech.proj4j.proj.KrovakProjection;
@@ -99,10 +100,16 @@ public class Proj4Parser {
         s = (String) params.get(Proj4Keyword.lat_0);
         if (s != null)
             projection.setProjectionLatitudeDegrees(parseAngle(s));
+        else if (projection instanceof AzimuthalProjection)
+            // PROJ's default is 0; the constructors of the azimuthal projections centre them
+            // on (45, 45) degrees or on the north pole
+            projection.setProjectionLatitudeDegrees(0);
 
         s = (String) params.get(Proj4Keyword.lon_0);
         if (s != null)
             projection.setProjectionLongitudeDegrees(parseAngle(s));
+        else if (projection instanceof AzimuthalProjection)
+            projection.setProjectionLongitudeDegrees(0);
 
         s = (String) params.get(Proj4Keyword.lat_1);
         if (s != null)
