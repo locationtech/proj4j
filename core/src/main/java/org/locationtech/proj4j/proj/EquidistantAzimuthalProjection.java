@@ -27,7 +27,7 @@ import org.locationtech.proj4j.util.ProjectionMath;
 
 public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 	
-	private final static double TOL = 1.e-8;
+	private final static double TOL = 1.e-14;
 
 	private int mode;
 	private double[] en;
@@ -101,21 +101,21 @@ public class EquidistantAzimuthalProjection extends AzimuthalProjection {
 			switch (mode) {
 			case EQUATOR:
 			case OBLIQUE:
-				if (mode == EQUATOR)
-					xy.y = cosphi * coslam;
-				else
-					xy.y = sinphi0 * sinphi + cosphi0 * cosphi * coslam;
-				if (Math.abs(Math.abs(xy.y) - 1.) < TOL)
-					if (xy.y < 0.)
-						throw new ProjectionException(); 
-					else
-						xy.x = xy.y = 0.;
-				else {
-					xy.y = Math.acos(xy.y);
-					xy.y /= Math.sin(xy.y);
-					xy.x = xy.y * cosphi * Math.sin(lam);
-					xy.y *= (mode == EQUATOR) ? sinphi :
-				   		cosphi0 * sinphi - sinphi0 * cosphi * coslam;
+				{
+					// c is the angular distance to (phi, lam). As in PROJ, sin(c) from hypot() and
+					// c from atan2() keep the forward accurate near the centre, unlike acos(cos(c));
+					// only points within TOL of cos(c) = -1 (the antipode) are rejected
+					double sinlam = Math.sin(lam);
+					double cosphiCoslam = cosphi * coslam;
+					double cosc = sinphi0 * sinphi + cosphi0 * cosphiCoslam;
+					double t = cosphi0 * sinphi - sinphi0 * cosphiCoslam;
+					double sinc = Math.hypot(cosphi * sinlam, t);
+					if (cosc < TOL - 1.)
+						throw new ProjectionException();
+					// c / sin(c), with limit 1 at the centre
+					double k = sinc == 0. ? 1. : Math.atan2(sinc, cosc) / sinc;
+					xy.x = k * cosphi * sinlam;
+					xy.y = k * t;
 				}
 				break;
 			case NORTH_POLE:

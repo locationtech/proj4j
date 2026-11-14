@@ -36,6 +36,8 @@ public class ProjectionPrecisionTest {
 
     // definition, lon, lat, x, y, check inverse (1/0), inverse tolerance in metres
     private static final Object[][] CASES = {
+        // aeqd sphere, oblique: the forward lost half the digits near the centre (acos)
+        {"+proj=aeqd +lat_0=45 +a=6371000 +b=6371000 +lon_0=0", 2e-06, 45.000001, 0.15725337058322724, 0.11119492830453609, 1, 1.0e-06},
         // wintri: close to the origin the forward lost half the digits (acos)
         {"+proj=wintri +a=6371000 +b=6371000 +lon_0=0", 1e-06, 4e-07, 0.090991907766723808, 0.044477970657823493, 0, 1.0e-06},
         // wintri: close to the origin the forward lost half the digits (acos)
@@ -51,6 +53,17 @@ public class ProjectionPrecisionTest {
         return 2 * R * Math.asin(Math.sqrt(a * a + Math.cos(p1) * Math.cos(p2) * b * b));
     }
 
+
+    @Test
+    public void azimuthalEquidistantNearTheAntipode() {
+        // 79 m from the antipode: as in PROJ, only points within 1e-14 of cos(c) = -1 are
+        // rejected. Expected values from a 50-digit computation; the forward is ill-conditioned
+        // there (c / sin(c) is about 2.6e5), hence the tolerance of 1e-4 m
+        Projection p = factory.createFromParameters(null, "+proj=aeqd +lat_0=45 +a=6371000 +b=6371000 +lon_0=0").getProjection();
+        ProjCoordinate xy = p.project(new ProjCoordinate(179.999, -45.0), new ProjCoordinate());
+        assertTrue("x " + xy.x + ", y " + xy.y,
+            Math.hypot(xy.x - 20015008.168952851, xy.y - -123.50602542169843) < 1e-4);
+    }
 
     @Test
     public void precisionNearPolesEquatorAndCentres() {
