@@ -12,8 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `+f` is the flattening and `+rf` the reciprocal flattening, as in PROJ. The two were swapped, so definitions that passed a `1/f` value under `+f` (e.g. `+f=298.257222101`) built a nonsensical ellipsoid; they must now use `+rf`. PROJ rejects such a `+f` value outright
   - Transverse Mercator (`+proj=tmerc`) uses the exact Poder/Engsager algorithm for ellipsoids, which has been PROJ's default since 6.0, and accepts `+approx` to select the Evenden/Snyder series. Inside a normal zone the two agree to well under a millimetre; 40 degrees from the central meridian they differ by ~1.5 km, and beyond ~80 degrees the series returns garbage where the exact algorithm reports the point as outside the projection domain
   - Equidistant Cylindrical (`+proj=eqc`) implements the ellipsoidal method (EPSG:1028) as well as the spherical one (EPSG:1029), matching PROJ 9.8.0. Northings on an ellipsoid are now meridional arc lengths rather than `a * phi`
+- `Projection.projectInverse` throws a `ProjectionException` for projections that have no inverse (Airy, August, Boggs, and others). It used to return its input unchanged, so `inverseProject()` silently passed projected coordinates off as radians [#141](https://github.com/locationtech/proj4j/pull/141)
+- Azimuthal projections (`ortho`, `gnom`, `aeqd`, `stere`) built from a PROJ string without `+lat_0`/`+lon_0` are centred on (0, 0), PROJ's default. They used to keep the constructor centres: (45, 45) for `ortho` and the north pole for the others. Code that calls the constructors directly is unaffected [#139](https://github.com/locationtech/proj4j/pull/139)
+- Updated `LICENSE` and `NOTICE.md` [#132](https://github.com/locationtech/proj4j/pull/132)
 
 ### Fixed
+- Polar stereographic without `+lat_ts` takes true scale at the pole, as in PROJ. It used to default to 0, which halved the coordinates: `+proj=stere +lat_0=90 +k=0.994 +ellps=WGS84` put (0, 85) at y = -280343 m instead of -555457 m. Definitions with `+lat_ts=90` (e.g. EPSG:32661) are unchanged [#139](https://github.com/locationtech/proj4j/pull/139)
+- Spherical precision fixes, as in PROJ [#143](https://github.com/locationtech/proj4j/pull/143)
+  - Aitoff, Winkel Tripel and spherical `aeqd`: the forward transform computes the angular distance with `hypot`/`atan2` instead of `acos`, so it stays accurate near the origin/centre. `aeqd` now rejects only points within 1e-14 of the antipode (the tolerance was 1e-8)
+  - Mollweide: 30 Newton iterations instead of 10, which ran out before converging and snapped the point to the pole
+  - Hammer: `initialize()` divided `+M` by `+W` in place, so calling it a second time gave a different projection
 - Oblique Mercator: compute the natural-origin (uc) offset from the central-line azimuth (`+alpha`) instead of the rectified bearing (`+gamma`), so the projection centre maps to the false easting/northing when `+gamma` differs from `+alpha` (e.g. an explicit `+gamma=0` with a non-zero azimuth) [#130](https://github.com/locationtech/proj4j/pull/130)
 - PROJ alignment sweep [#133](https://github.com/locationtech/proj4j/pull/133)
   - Oblique Mercator: `+alpha` alone no longer behaves as `+gamma=0`, and `+gamma` alone no longer falls back to an azimuth of -45 degrees. Both parameters are now tracked as given, as PROJ does, and the two-point form (`+lat_1`/`+lon_1`/`+lat_2`/`+lon_2`) is reachable
@@ -48,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Equal Earth projection (`+proj=eqearth`) and EPSG codes 8857-8859 (WGS 84 / Equal Earth Greenwich, Americas, Asia-Pacific) [#138](https://github.com/locationtech/proj4j/pull/138)
 - PROJ alignment sweep [#133](https://github.com/locationtech/proj4j/pull/133)
   - `ProjAlignmentTest`, pinning 67 cases against values generated from raw PROJ pipelines and cross-checked on PROJ 9.5.1 and 9.6.0
+- Inverse transforms for Aitoff (closed form), Winkel Tripel (PROJ's Newton-Raphson, Bildirici 2016) and Hammer (closed form, taking `+W` and `+M` into account) [#141](https://github.com/locationtech/proj4j/pull/141)
+- CRS area of use: `CoordinateReferenceSystem.getAreaOfUse()` returns an `AreaOfUse` with the EPSG bounds (decimal degrees) and area name, or `null` for parameter-defined CRSs and codes without metadata. The data ships in `proj4j-epsg` (`area_of_use.tsv`, from PROJ database v10.074) [#142](https://github.com/locationtech/proj4j/pull/142)
+- `SECURITY.md` [#131](https://github.com/locationtech/proj4j/pull/131)
 
 ## [1.4.3] - 2026-06-02
 
