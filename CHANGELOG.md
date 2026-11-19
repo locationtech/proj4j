@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-18
+
 ### Changed
 - PROJ alignment sweep [#133](https://github.com/locationtech/proj4j/pull/133)
   - `+f` is the flattening and `+rf` the reciprocal flattening, as in PROJ. The two were swapped, so definitions that passed a `1/f` value under `+f` (e.g. `+f=298.257222101`) built a nonsensical ellipsoid; they must now use `+rf`. PROJ rejects such a `+f` value outright
@@ -181,7 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix possible `null` dereference [#16](https://github.com/locationtech/proj4j/pull/16)
 - Fix `cea` (Cylindrical Equal Area) projection [#10](https://github.com/locationtech/proj4j/pull/10)
 
-[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/locationtech/proj4j/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/locationtech/proj4j/compare/v1.4.3...v1.5.0
 [1.4.3]: https://github.com/locationtech/proj4j/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/locationtech/proj4j/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/locationtech/proj4j/compare/v1.4.0...v1.4.1
