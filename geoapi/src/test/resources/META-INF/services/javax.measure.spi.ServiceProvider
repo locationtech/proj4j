@@ -1,0 +1,2 @@
+# seshat 1.5 registers its provider only in module-info, not here, so tests on the classpath cannot find it
+tech.uom.seshat.UnitServices
