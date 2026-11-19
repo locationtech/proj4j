@@ -1,0 +1,54 @@
+# Uploads software bill-of-materials (SBOMs) to the Eclipse SBOM registry https://sbom.eclipse.org.
+name: eclipse-sboms
+
+on:
+  push:
+    branches: ['master']
+    tags: [v*]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-sbom:
+    name: generate-sbom
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token for the upload to the Eclipse PIA
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # jgitver derives the version from git tags
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Generate SBOM
+        # one aggregate CycloneDX 1.6 SBOM of all published modules, configured in pom.xml
+        run: |
+          mvn -B -q -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip=true \
+            package cyclonedx:makeAggregateBom
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION="$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout | tail -n1 | tr -d '[:space:]')"
+          echo "Product version is: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-proj4j
+          path: target/bom.json
+
+      - name: Upload SBOM
+        uses: eclipse-csi/workflows/upload-sbom@0c1c6cf5cb4dc624a86410274c71b27d6273385a # there are no tags, this is main as of 2026-10-06
+        with:
+          sbom-file: ./target/bom.json
+          product-name: proj4j
+          product-version: ${{ steps.version.outputs.version }}
