@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Eclipse Dash license check and CycloneDX SBOM upload to the Eclipse SBOM registry GitHub workflows [#145](https://github.com/locationtech/proj4j/pull/145)
+
 ## [1.5.0] - 2026-11-18
 
 ### Changed
