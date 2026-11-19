@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eclipse Dash license check and CycloneDX SBOM upload to the Eclipse SBOM registry GitHub workflows [#145](https://github.com/locationtech/proj4j/pull/145)
 
 ### Changed
-- Updated Maven plugins (compiler 3.16.0, javadoc 3.12.0, source 3.4.0, surefire 3.6.1, jar 3.5.1, deploy 3.2.0, gpg 3.2.8, felix bundle 6.2.0), the seshat test dependency to 1.5, and the GitHub Actions; CI now uses the Temurin JDK instead of AdoptOpenJDK
+- Dependencies, Plugins and CI update [#146](https://github.com/locationtech/proj4j/pull/146)
 
 ## [1.5.0] - 2026-11-18
 
