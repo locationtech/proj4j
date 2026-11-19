@@ -147,6 +147,24 @@
                 </executions>
             </plugin>
 
+            <!-- CycloneDX SBOM of the published modules, see .github/workflows/eclipse-sboms.yml.
+                 Not bound to a phase; run `mvn package cyclonedx:makeAggregateBom` to write target/bom.json.
+                 Test dependencies are excluded. -->
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>2.9.3</version>
+                <configuration>
+                    <projectType>library</projectType>
+                    <!-- the Eclipse PIA rejects CycloneDX 1.7 -->
+                    <schemaVersion>1.6</schemaVersion>
+                    <outputFormat>json</outputFormat>
+                    <outputName>bom</outputName>
+                    <!-- maven.deploy.skip is set on the root and inherited, which would otherwise skip every module -->
+                    <skipNotDeployed>false</skipNotDeployed>
+                </configuration>
+            </plugin>
+
             <!-- Maven Central Publish -->
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
